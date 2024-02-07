@@ -1,4 +1,4 @@
-import { GolemNetwork } from "@golem-sdk/task-executor";
+import { GolemNetwork } from "@golem-sdk/golem-js";
 
 const golem = new GolemNetwork({
   yagna: { apiKey: "try_golem" },
