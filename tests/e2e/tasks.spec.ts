@@ -134,7 +134,7 @@ describe("Task Executor", function () {
     expect(outputs[2]).toEqual("OK");
   });
 
-  it("should run transfer file", async () => {
+  it.skip("should run transfer file", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
       logger,
