@@ -145,7 +145,7 @@ describe("Task Executor", function () {
       return res?.result;
     });
     expect(result).toEqual("Ok");
-    expect(readFileSync(`${process.env.GOTH_GFTP_VOLUME || ""}new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
+    expect(readFileSync(`new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
   });
 
   it("should run transfer file via http", async () => {
