@@ -29,7 +29,7 @@ import { ExecutorConfig } from "./config";
 import { RequireAtLeastOne } from "./types";
 import { TaskExecutorEventsDict } from "./events";
 import { EventEmitter } from "eventemitter3";
-import { TaskService } from "./service";
+import { TaskService, TaskServiceOptions } from "./service";
 import { TaskQueue } from "./queue";
 import { isBrowser, isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
@@ -87,7 +87,8 @@ export type ExecutorOptions = {
   PaymentOptions &
   NetworkServiceOptions &
   AgreementServiceOptions &
-  WorkOptions;
+  WorkOptions &
+  TaskServiceOptions;
 
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}

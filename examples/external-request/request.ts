@@ -1,4 +1,4 @@
-import { TaskExecutor, ResultState } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
@@ -28,7 +28,7 @@ const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
         .downloadFile("/golem/work/example.jpg", `${DIR_NAME}/example.jpg`)
         .end(),
     );
-    if (results[1].result === ResultState.Ok) {
+    if (results[1].result === "Ok") {
       console.log("Downloaded file to", `${DIR_NAME}/example.jpg`);
     } else {
       console.error("Something went wrong", results[1].message);

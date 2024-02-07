@@ -1,4 +1,5 @@
-import { TaskExecutor, jsonLogger, nullLogger, pinoLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoLogger, jsonLogger, nullLogger } from "@golem-sdk/golem-js";
 import { program, Option } from "commander";
 
 // Create command-line configuration.

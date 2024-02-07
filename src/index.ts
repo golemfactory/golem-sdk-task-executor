@@ -1,2 +1,8 @@
 export { TaskExecutor, YagnaOptions, ExecutorOptions, ExecutorOptionsMixin } from "./executor";
-export { ProposalFilterFactory } from "@golem-sdk/golem-js";
+export {
+  ProposalFilterFactory,
+  PaymentFilters,
+  AgreementSelectors,
+  AgreementCandidate,
+  ProposalFilter,
+} from "@golem-sdk/golem-js";
