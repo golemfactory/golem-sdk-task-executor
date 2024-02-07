@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["."],
+  "exclude": ["./cypress"],
+  "compilerOptions": {
+    "types": ["jest"],
+    "resolveJsonModule": true,
+    "noImplicitAny": false
+  }
+}

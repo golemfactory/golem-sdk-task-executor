@@ -1,0 +1,62 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "env": {
+    "shared-node-browser": true
+  },
+  "extends": ["eslint:recommended", "prettier"],
+  "rules": {
+    "no-constant-condition": [
+      "error",
+      {
+        "checkLoops": false
+      }
+    ],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "import",
+        "format": ["camelCase", "PascalCase"]
+      },
+      {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE"],
+        "leadingUnderscore": "forbid",
+        "trailingUnderscore": "forbid"
+      },
+      {
+        "selector": ["memberLike", "function"],
+        "format": ["camelCase"],
+        "leadingUnderscore": "forbid",
+        "filter": {
+          "regex": "golem.*", // ProposalProperties like 'golem.com.payment.debit-notes.accept-timeout?'
+          "match": false
+        }
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "enumMember",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "objectLiteralProperty",
+        "format": null // We have too many varrying cases like YAGNA_APPKEY, Authorization, golem.com.scheme.payu.payment-timeout-sec? which break this constantly
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts"],
+      "extends": ["plugin:@typescript-eslint/eslint-recommended", "plugin:@typescript-eslint/recommended"],
+      "plugins": ["@typescript-eslint"]
+    },
+    {
+      "files": ["**/*.js"],
+      "extends": ["eslint:recommended"]
+    }
+  ],
+  "ignorePatterns": ["dist/", "handbook_gen/", "docs/", "bundle.js", "tests", "*.config.ts", "tmp/"]
+}

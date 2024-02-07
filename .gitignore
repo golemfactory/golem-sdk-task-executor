@@ -1,0 +1,36 @@
+# Sensitive details
+.env
+
+#Node modules
+/node_modules
+/examples/logs
+/examples/node_modules
+/examples/adv-web-example/node_modules
+/tests/web/node_modules/
+
+#Outputs
+/.nyc_output
+/coverage
+/dist
+/examples/dist
+/examples/blender/*.png
+/examples/yacat/*.sh
+/examples/yacat/*.txt
+/examples/yacat/*.hash
+/examples/yacat/*.potfile
+/docs
+logs/
+.cypress
+
+#Lock files
+*.lock
+
+#IDE
+.idea
+*.DS_Store
+.vscode
+
+#Nuxt
+/examples/adv-web-example/.nuxt
+tmp/
+reports/

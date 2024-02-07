@@ -1,0 +1,2 @@
+total 4
+drwxrwxr-x 2 1001 1001 4096 Sep 21  2023 work
