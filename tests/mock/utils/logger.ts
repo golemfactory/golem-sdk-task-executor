@@ -1,4 +1,4 @@
-import { Logger } from "../../../src";
+import { Logger } from "@golem-sdk/golem-js";
 
 function ctxToString(ctx: Record<string, unknown> | Error | undefined) {
   if (!ctx) return "[no context]";
