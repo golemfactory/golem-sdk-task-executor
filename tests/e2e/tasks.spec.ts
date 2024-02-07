@@ -2,7 +2,9 @@ import { LoggerMock } from "../mock/utils/logger";
 import { readFileSync } from "fs";
 import { EVENT_TYPE, BaseEvent, Events } from "@golem-sdk/golem-js";
 import { TaskExecutor } from "../../src";
+import { fileURLToPath } from "url";
 const logger = new LoggerMock(false);
+const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 
 describe("Task Executor", function () {
   let executor: TaskExecutor;
@@ -134,18 +136,18 @@ describe("Task Executor", function () {
     expect(outputs[2]).toEqual("OK");
   });
 
-  it.skip("should run transfer file", async () => {
+  it("should run transfer file", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
       logger,
     });
     const result = await executor.run(async (ctx) => {
       await ctx.uploadJson({ test: "1234" }, "/golem/work/test.json");
-      const res = await ctx.downloadFile("/golem/work/test.json", "new_test.json");
+      const res = await ctx.downloadFile("/golem/work/test.json", `${DIR_NAME}/new_test.json`);
       return res?.result;
     });
     expect(result).toEqual("Ok");
-    expect(readFileSync(`new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
+    expect(readFileSync(`${DIR_NAME}/new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
   });
 
   it("should run transfer file via http", async () => {

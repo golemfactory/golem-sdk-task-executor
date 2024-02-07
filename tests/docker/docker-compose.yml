@@ -53,7 +53,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /root/.local/share/yagna/
-      - ../../:/golem-js
+      - ../../:/golem-sdk-task-executor
     environment:
       - YAGNA_AUTOCONF_APPKEY=try_golem
       - YAGNA_API_URL=http://0.0.0.0:7465

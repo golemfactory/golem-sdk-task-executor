@@ -1,7 +1,8 @@
 import { TaskExecutor } from "../../src";
 import { LoggerMock } from "../mock/utils/logger";
 import fs from "fs";
-
+import { fileURLToPath } from "url";
+const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 const logger = new LoggerMock(false);
 
 describe("GFTP transfers", function () {
@@ -14,7 +15,7 @@ describe("GFTP transfers", function () {
       });
 
       executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(__dirname + "/../mock/fixtures/eiffel.blend");
+        const sourcePath = fs.realpathSync(DIR_NAME + "/../mock/fixtures/eiffel.blend");
         await ctx.uploadFile(sourcePath, "/golem/work/eiffel.blend");
       });
 
