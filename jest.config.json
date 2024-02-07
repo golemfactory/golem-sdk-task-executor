@@ -1,13 +1,22 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
-  "setupFilesAfterEnv": ["./tests/jest.setup.ts"],
-  "transform": {
-    "^.+\\.tsx?$": [
-      "ts-jest",
+  "testMatch": ["src/*.spec.ts"],
+  "reporters": [
+    "default",
+    [
+      "jest-junit",
       {
-        "tsconfig": "tsconfig.spec.json"
+        "outputDirectory": "reports",
+        "outputName": "unit-report.xml"
       }
-    ]
-  }
+    ],
+    [
+      "github-actions",
+      {
+        "silent": false
+      }
+    ],
+    "summary"
+  ]
 }

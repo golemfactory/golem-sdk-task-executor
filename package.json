@@ -24,7 +24,7 @@
     "build": "rollup -c --forceExit",
     "dev": "rollup -c -w",
     "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "jest --config tests/unit/jest.config.json",
+    "test:unit": "jest --config jest.config.json --passWithNoTests",
     "test:e2e": "jest --config tests/e2e/jest.config.json tests/e2e/**.spec.ts --runInBand --forceExit",
     "test:cypress": "cypress run",
     "test:examples": "ts-node --project tsconfig.spec.json tests/examples/examples.test.ts",

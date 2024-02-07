@@ -5,7 +5,6 @@
 ![node-current](https://img.shields.io/node/v/@golem-sdk/golem-sdk-task-executor)
 ![npm type definitions](https://img.shields.io/npm/types/@golem-sdk/task-executor)
 
-
 ## What's TaskExecutor?
 
 TODO
