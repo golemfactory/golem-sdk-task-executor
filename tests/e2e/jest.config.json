@@ -2,5 +2,22 @@
   "preset": "ts-jest",
   "testEnvironment": "node",
   "setupFilesAfterEnv": ["<rootDir>/_setupLogging.ts"],
+  "reporters": [
+    [
+      "jest-junit",
+      {
+        "outputDirectory": "reports",
+        "outputName": "e2e-report.xml"
+      }
+    ],
+    [
+      "github-actions",
+      {
+        "silent": false
+      }
+    ],
+    "summary"
+  ],
   "testTimeout": 180000
 }
+
