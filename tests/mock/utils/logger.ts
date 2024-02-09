@@ -79,6 +79,10 @@ export class LoggerMock implements Logger {
         return `\x1b[33m[${level}]\x1b[0m`;
       case "info":
         return `\x1b[34m[${level}]\x1b[0m`;
+      case "error":
+        return `\x1b[31m[${level}]\x1b[0m`;
+      default:
+        return `\x1b[35m[${level}]\x1b[0m`;
     }
   }
 }

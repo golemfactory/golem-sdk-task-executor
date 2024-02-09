@@ -1,14 +1,15 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { readFileSync } from "fs";
+import { readFileSync, realpathSync } from "fs";
 
 (async function main() {
   const executor = await TaskExecutor.create("golem/alpine:latest");
   try {
+    const sourcePath = realpathSync("../tests/mock/fixtures/eiffel.blend");
     await executor.run(async (ctx) => {
-      await ctx.uploadJson({ test: "1234" }, "/golem/work/test.json");
-      const res = await ctx.downloadFile("/golem/work/test.json", "new_test.json");
+      await ctx.uploadFile(sourcePath, "/golem/work/eiffel.blend");
+      const res = await ctx.downloadFile("/golem/work/eiffel.blend", "eiffel.blend");
       console.log(`Result=${res.result}`);
-      console.log("File new_test.json: ", readFileSync("new_test.json", "utf-8"));
+      console.log("File eiffel.blend: ", readFileSync("eiffel.blend", "utf-8"));
     });
   } catch (err) {
     console.error("Execution failed", err);

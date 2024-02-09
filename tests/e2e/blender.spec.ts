@@ -1,9 +1,7 @@
 import { TaskExecutor } from "../../src";
 import { LoggerMock } from "../mock/utils/logger";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
-const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 const logger = new LoggerMock(false);
 const blenderParams = (frame) => ({
   scene_file: "/golem/resource/scene.blend",
@@ -34,7 +32,7 @@ describe("Blender rendering", function () {
       });
 
       executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(DIR_NAME + "/../mock/fixtures/cubes.blend");
+        const sourcePath = fs.realpathSync(__dirname + "/../mock/fixtures/cubes.blend");
         await ctx.uploadFile(sourcePath, "/golem/resource/scene.blend");
       });
 
@@ -61,7 +59,7 @@ describe("Blender rendering", function () {
       }
 
       for (const file of expectedResults) {
-        expect(fs.existsSync(file)).toEqual(true);
+        expect(fs.existsSync(`${process.env.GOTH_GFTP_VOLUME || ""}${file}`)).toEqual(true);
       }
 
       await executor.shutdown();
