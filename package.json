@@ -24,7 +24,7 @@
     "build": "rollup -c --forceExit",
     "dev": "rollup -c -w",
     "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "jest --config jest.config.json --passWithNoTests",
+    "test:unit": "jest --config jest.config.json",
     "test:e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/e2e/jest.config.json tests/e2e/**.spec.ts --runInBand --forceExit",
     "test:cypress": "cypress run",
     "test:examples": "tsx tests/examples/examples.test.ts",

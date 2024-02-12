@@ -282,7 +282,7 @@ export class TaskExecutor {
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
     if (isNode) this.installSignalHandlers();
-    this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
+    // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
     this.logger.info(`Task Executor has started`, {
       subnet: this.options.subnetTag,
       network: this.paymentService.config.payment.network,
@@ -325,7 +325,7 @@ export class TaskExecutor {
     await Promise.all([this.taskService.end(), this.agreementPoolService.end(), this.marketService.end()]);
     await this.paymentService.end();
     await this.yagna.end();
-    this.options.eventTarget?.dispatchEvent(new Events.ComputationFinished());
+    // this.options.eventTarget?.dispatchEvent(new Events.ComputationFinished());
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
@@ -387,13 +387,7 @@ export class TaskExecutor {
       "manifest" | "imageTag" | "imageHash"
     >,
   ): Promise<Package> {
-    const packageInstance = Package.create({ ...this.options.packageOptions, ...packageReference });
-
-    this.options.eventTarget.dispatchEvent(
-      new Events.PackageCreated({ packageReference, details: packageInstance.details }),
-    );
-
-    return packageInstance;
+    return Package.create({ ...this.options.packageOptions, ...packageReference });
   }
 
   private async executeTask<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
