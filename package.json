@@ -27,7 +27,7 @@
     "test:unit": "jest --config jest.config.json --passWithNoTests",
     "test:e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/e2e/jest.config.json tests/e2e/**.spec.ts --runInBand --forceExit",
     "test:cypress": "cypress run",
-    "test:examples": "tsx --tsconfig tsconfig.spec.json tests/examples/examples.test.ts",
+    "test:examples": "tsx tests/examples/examples.test.ts",
     "lint": "npm run lint:ts && npm run lint:ts:tests && npm run lint:eslint",
     "lint:ts": "tsc --project tsconfig.json --noEmit",
     "lint:ts:tests": "tsc --project tests/tsconfig.json --noEmit",
