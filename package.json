@@ -27,7 +27,7 @@
     "test:unit": "jest --config jest.config.json --passWithNoTests",
     "test:e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/e2e/jest.config.json tests/e2e/**.spec.ts --runInBand --forceExit",
     "test:cypress": "cypress run",
-    "test:examples": "ts-node --project tsconfig.spec.json tests/examples/examples.test.ts",
+    "test:examples": "tsx --project tsconfig.spec.json tests/examples/examples.test.ts",
     "lint": "npm run lint:ts && npm run lint:ts:tests && npm run lint:eslint",
     "lint:ts": "tsc --project tsconfig.json --noEmit",
     "lint:ts:tests": "tsc --project tests/tsconfig.json --noEmit",
@@ -78,9 +78,9 @@
     "semantic-release": "^23.0.0",
     "ts-jest": "^29.1.1",
     "ts-loader": "^9.5.1",
-    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tslint-config-prettier": "^1.18.0",
+    "tsx": "^4.7.1",
     "typescript": "^5.3.3"
   }
 }
