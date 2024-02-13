@@ -1,8 +1,5 @@
 import { TaskExecutor } from "../../src";
-import { LoggerMock } from "../mock/utils/logger";
 import fs from "fs";
-
-const logger = new LoggerMock(false);
 
 describe("GFTP transfers", function () {
   it(
@@ -10,7 +7,6 @@ describe("GFTP transfers", function () {
     async () => {
       const executor = await TaskExecutor.create({
         package: "golem/alpine:latest",
-        logger,
       });
 
       executor.onActivityReady(async (ctx) => {

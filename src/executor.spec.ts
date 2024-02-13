@@ -77,6 +77,7 @@ when(gftpStorageProviderMock.close()).thenResolve(anything());
 when(taskServiceMock.run()).thenResolve(anything());
 when(taskServiceMock.end()).thenResolve(anything());
 when(taskMock.getActivity()).thenReturn(activity);
+when(taskMock.getDetails()).thenReturn({ activityId: "1", agreementId: "1", id: "1", retriesCount: 0 });
 
 jest.mock("@golem-sdk/golem-js", () => ({
   ...jest.requireActual("@golem-sdk/golem-js"),

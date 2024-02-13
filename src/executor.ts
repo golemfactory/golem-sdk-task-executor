@@ -223,12 +223,14 @@ export class TaskExecutor {
     this.taskService = new TaskService(
       this.yagna.getApi(),
       this.taskQueue,
+      this.events,
       this.agreementPoolService,
       this.paymentService,
       this.networkService,
       { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
     );
     this.statsService = new StatsService({ ...this.options, logger: this.logger.child("stats") });
+    this.events.emit("start");
   }
 
   /**
@@ -399,6 +401,7 @@ export class TaskExecutor {
         activityReadySetupFunctions: this.activityReadySetupFunctions,
       });
       this.taskQueue.addToEnd(task);
+      this.events.emit("taskQueued", task.getDetails());
       while (this.isRunning) {
         if (task.isFinished()) {
           if (task.isRejected()) throw task.getError();

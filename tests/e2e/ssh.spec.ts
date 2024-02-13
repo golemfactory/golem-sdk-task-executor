@@ -1,8 +1,6 @@
-import { LoggerMock } from "../mock/utils/logger";
 import crypto from "crypto";
 import { TaskExecutor } from "../../src";
 import { spawn } from "child_process";
-const logger = new LoggerMock(false);
 
 describe("SSH connection", function () {
   let executor: TaskExecutor;
@@ -11,7 +9,6 @@ describe("SSH connection", function () {
       package: "golem/examples-ssh:latest",
       capabilities: ["vpn"],
       networkIp: "192.168.0.0/24",
-      logger,
     });
     let websocketUri;
     const password = crypto.randomBytes(3).toString("hex");

@@ -17,6 +17,8 @@ import {
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
+import { EventEmitter } from "eventemitter3";
+import { TaskExecutorEventsDict } from "./events";
 
 export interface TaskServiceOptions extends ActivityOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
@@ -43,6 +45,7 @@ export class TaskService {
   constructor(
     private yagnaApi: YagnaApi,
     private tasksQueue: TaskQueue,
+    private events: EventEmitter<TaskExecutorEventsDict>,
     private agreementPoolService: AgreementPoolService,
     private paymentService: PaymentService,
     private networkService?: NetworkService,
@@ -103,14 +106,7 @@ export class TaskService {
     try {
       activity = await this.getOrCreateActivity(agreement);
       task.start(activity, networkNode);
-      this.options.eventTarget?.dispatchEvent(
-        new Events.TaskStarted({
-          id: task.id,
-          agreementId: agreement.id,
-          activityId: activity.id,
-          provider: agreement.getProviderInfo(),
-        }),
-      );
+      this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
         taskId: task.id,
         providerName: agreement.getProviderInfo().name,
@@ -169,16 +165,7 @@ export class TaskService {
     task.cleanup();
     await this.releaseTaskResources(task);
     const reason = task.getError()?.message;
-    this.options.eventTarget?.dispatchEvent(
-      new Events.TaskRedone({
-        id: task.id,
-        activityId: task.getActivity()?.id,
-        agreementId: task.getActivity()?.agreement.id,
-        provider: task.getActivity()?.getProviderInfo(),
-        retriesCount: task.getRetriesCount(),
-        reason,
-      }),
-    );
+    this.events.emit("taskRedone", task.getDetails());
     this.logger.warn(`Task execution failed. Trying to redo the task.`, {
       taskId: task.id,
       attempt: task.getRetriesCount(),
@@ -191,16 +178,7 @@ export class TaskService {
     task.cleanup();
     await this.releaseTaskResources(task);
     if (task.isRejected()) {
-      const reason = task.getError()?.message;
-      this.options.eventTarget?.dispatchEvent(
-        new Events.TaskRejected({
-          id: task.id,
-          agreementId: task.getActivity()?.agreement.id,
-          activityId: task.getActivity()?.id,
-          provider: task.getActivity()?.getProviderInfo(),
-          reason,
-        }),
-      );
+      this.events.emit("taskRejected", task.getDetails());
       this.logger.error(`Task has been rejected`, {
         taskId: task.id,
         reason: task.getError()?.message,
@@ -208,7 +186,7 @@ export class TaskService {
         providerName: task.getActivity()?.getProviderInfo().name,
       });
     } else {
-      this.options.eventTarget?.dispatchEvent(new Events.TaskFinished({ id: task.id }));
+      this.events.emit("taskCompleted", task.getDetails());
       this.logger.info(`Task computed`, {
         taskId: task.id,
         retries: task.getRetriesCount(),

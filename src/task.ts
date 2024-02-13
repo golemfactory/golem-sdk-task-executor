@@ -1,6 +1,12 @@
 import { QueueableTask } from "./queue";
 import { Activity, GolemConfigError, GolemTimeoutError, NetworkNode, Worker } from "@golem-sdk/golem-js";
 
+export interface ProviderInfo {
+  name: string;
+  id: string;
+  walletAddress: string;
+}
+
 export enum TaskState {
   New = "new",
   Queued = "queued",
@@ -17,6 +23,15 @@ export type TaskOptions = {
   timeout?: number;
   /** array of setup functions to run on each activity */
   activityReadySetupFunctions?: Worker<unknown>[];
+};
+
+export type TaskDetails = {
+  id: string;
+  retriesCount: number;
+  agreementId?: string;
+  activityId?: string;
+  provider?: ProviderInfo;
+  error?: Error;
 };
 
 const DEFAULTS = {
@@ -142,5 +157,15 @@ export class Task<OutputType = unknown> implements QueueableTask {
   }
   getNetworkNode(): NetworkNode | undefined {
     return this.networkNode;
+  }
+  getDetails(): TaskDetails {
+    return {
+      id: this.id,
+      activityId: this.getActivity()?.id,
+      agreementId: this.getActivity()?.agreement?.id,
+      provider: this.getActivity()?.getProviderInfo(),
+      retriesCount: this.getRetriesCount(),
+      error: this.getError(),
+    };
   }
 }

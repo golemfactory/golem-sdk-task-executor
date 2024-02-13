@@ -1,18 +1,11 @@
 import { TaskExecutor, ProposalFilterFactory } from "../../src";
-import { LoggerMock } from "../mock/utils/logger";
-
-const logger = new LoggerMock(false);
 
 describe("Strategies", function () {
-  beforeEach(function () {
-    logger.clear();
-  });
   describe("Proposals", () => {
     it("should filtered providers by black list names", async () => {
       const executor = await TaskExecutor.create({
         package: "golem/alpine:latest",
         proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
-        logger,
       });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>

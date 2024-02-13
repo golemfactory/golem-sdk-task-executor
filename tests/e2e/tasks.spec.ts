@@ -1,28 +1,31 @@
-import { LoggerMock } from "../mock/utils/logger";
-import fs, { readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { EVENT_TYPE, BaseEvent, Events } from "@golem-sdk/golem-js";
 import { TaskExecutor } from "../../src";
-const logger = new LoggerMock(false);
 
 describe("Task Executor", function () {
   let executor: TaskExecutor;
-  beforeEach(function () {
-    logger.clear();
+  let eventTarget = new EventTarget();
+  let emittedEvents: Events.BaseEvent<any>[] = [];
+  eventTarget.addEventListener(EVENT_TYPE, (event) => emittedEvents.push(event as BaseEvent<any>));
+
+  beforeEach(() => {
+    emittedEvents = [];
   });
 
   afterEach(async function () {
-    logger.clear();
     await executor?.shutdown();
   });
 
   it("should run simple task", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
+      eventTarget,
     });
+
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
+    expect(emittedEvents).toContain(Events.DemandSubscribed);
     expect(logger.logs).toContain("Demand published on the market");
     expect(logger.logs).toContain("New proposal has been received");
     expect(logger.logs).toContain("Proposal has been responded");
@@ -34,7 +37,6 @@ describe("Task Executor", function () {
   it("should run simple task and get error for invalid command", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const result1 = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
     const result2 = await executor.run(async (ctx) => ctx.run("invalid-command"));
@@ -48,7 +50,6 @@ describe("Task Executor", function () {
   it("should run simple task using package tag", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
@@ -64,7 +65,6 @@ describe("Task Executor", function () {
   it("should run simple tasks by map function", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     const futureResults = data.map((x) =>
@@ -113,7 +113,6 @@ describe("Task Executor", function () {
   it("should run simple batch script and get results as promise", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const outputs: string[] = [];
     await executor
@@ -137,7 +136,6 @@ describe("Task Executor", function () {
   it("should run transfer file", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const result = await executor.run(async (ctx) => {
       await ctx.uploadJson({ test: "1234" }, "/golem/work/test.json");
@@ -151,7 +149,6 @@ describe("Task Executor", function () {
   it("should run transfer file via http", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     const result = await executor.run(async (ctx) => {
       const res = await ctx.transfer(
@@ -168,7 +165,6 @@ describe("Task Executor", function () {
       package: "golem/alpine:latest",
       capabilities: ["vpn"],
       networkIp: "192.168.0.0/24",
-      logger,
     });
     const result = await executor.run(async (ctx) => ctx.getIp());
     expect(["192.168.0.2", "192.168.0.3"]).toContain(result);
@@ -177,7 +173,6 @@ describe("Task Executor", function () {
   it("should spawn command as external process", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
     });
     let stdout = "";
     let stderr = "";
@@ -201,7 +196,6 @@ describe("Task Executor", function () {
   it("should not retry the task if maxTaskRetries is zero", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
       maxTaskRetries: 0,
     });
     try {
@@ -216,7 +210,6 @@ describe("Task Executor", function () {
   it("should not retry the task if taskRetries is zero", async () => {
     executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      logger,
       maxTaskRetries: 7,
     });
     try {

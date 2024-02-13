@@ -1,7 +1,14 @@
+import { TaskDetails } from "./task";
+
 /**
  * This interface describes events emitted by `TaskExecutor` through `TaskExecutor.events` object.
  */
 export interface TaskExecutorEventsDict {
+  /**
+   * Fires when task executor is created, before initialization services.
+   */
+  start: () => void;
+
   /**
    * Fires when task executor is initialized and ready to be used.
    */
@@ -9,7 +16,6 @@ export interface TaskExecutorEventsDict {
 
   /**
    * Fires when task executor is about to shut down, immediately after TaskExecutor.shutdown() is called.
-   *
    */
   beforeEnd: () => void;
 
@@ -17,4 +23,10 @@ export interface TaskExecutorEventsDict {
    * Fires when task executor is completely terminated.
    */
   end: () => void;
+
+  taskQueued: (task: TaskDetails) => void;
+  taskStarted: (task: TaskDetails) => void;
+  taskRedone: (task: TaskDetails) => void;
+  taskCompleted: (task: TaskDetails) => void;
+  taskRejected: (task: TaskDetails) => void;
 }

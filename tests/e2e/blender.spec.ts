@@ -1,8 +1,6 @@
 import { TaskExecutor } from "../../src";
-import { LoggerMock } from "../mock/utils/logger";
 import fs from "fs";
 
-const logger = new LoggerMock(false);
 const blenderParams = (frame) => ({
   scene_file: "/golem/resource/scene.blend",
   resolution: [400, 300],
@@ -28,7 +26,6 @@ describe("Blender rendering", function () {
     async () => {
       const executor = await TaskExecutor.create({
         package: "golem/blender:latest",
-        logger,
       });
 
       executor.onActivityReady(async (ctx) => {
