@@ -26,6 +26,7 @@ describe("Task Executor", function () {
 
   afterEach(async function () {
     await executor?.shutdown();
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple task", async () => {
@@ -35,7 +36,6 @@ describe("Task Executor", function () {
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple task and get error for invalid command", async () => {
@@ -49,7 +49,6 @@ describe("Task Executor", function () {
     expect(result2?.result).toEqual("Error");
     expect(result2?.stderr).toContain("sh: invalid-command: not found");
     expect(result2?.message).toEqual("ExeScript command exited with code 127");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple task using package tag", async () => {
@@ -59,7 +58,6 @@ describe("Task Executor", function () {
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple tasks by map function", async () => {
@@ -74,7 +72,6 @@ describe("Task Executor", function () {
     );
     const finalOutputs = (await Promise.all(futureResults)).filter((x) => !!x);
     expect(finalOutputs).toEqual(expect.arrayContaining(data));
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple batch script and get results as stream", async () => {
@@ -105,7 +102,6 @@ describe("Task Executor", function () {
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
     expect(onEnd).toEqual("END");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple batch script and get results as promise", async () => {
@@ -128,7 +124,6 @@ describe("Task Executor", function () {
     expect(outputs[0]).toEqual("Hello Golem");
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run transfer file", async () => {
@@ -143,7 +138,6 @@ describe("Task Executor", function () {
 
     expect(result).toEqual("Ok");
     expect(readFileSync(`new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should run transfer file via http", async () => {
@@ -158,7 +152,6 @@ describe("Task Executor", function () {
       return res.result;
     });
     expect(result).toEqual("Ok");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should get ip address", async () => {
@@ -185,7 +178,6 @@ describe("Task Executor", function () {
     expect(stdout).toContain("Hello World");
     expect(stderr).toContain("Hello Golem");
     expect(finalResult?.result).toContain("Ok");
-    verifyAllExpectedEventsEmitted();
   });
 
   it("should not retry the task if maxTaskRetries is zero", async () => {
