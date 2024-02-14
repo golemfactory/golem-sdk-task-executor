@@ -96,7 +96,7 @@ describe("Task Executor", function () {
         expect(e).toBeUndefined();
       });
     await sleep(5);
-    expect(taskDetails.taskId).toEqual("1");
+    expect(taskDetails.id).toEqual("1");
     expect(outputs[0]).toEqual("Hello Golem");
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
@@ -159,6 +159,7 @@ describe("Task Executor", function () {
       capabilities: ["vpn"],
       networkIp: "192.168.0.0/24",
     });
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     const result = await executor.run(async (ctx) => ctx.getIp());
     expect(["192.168.0.2", "192.168.0.3"]).toContain(result);
   });
@@ -184,6 +185,7 @@ describe("Task Executor", function () {
       package: "golem/alpine:latest",
       maxTaskRetries: 0,
     });
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
@@ -200,6 +202,7 @@ describe("Task Executor", function () {
       package: "golem/alpine:latest",
       maxTaskRetries: 7,
     });
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
@@ -223,6 +226,7 @@ describe("Task Executor", function () {
       midAgreementPaymentTimeoutSec: 10,
       midAgreementDebitNoteIntervalSec: 10,
     });
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let createdAgreementsCount = 0;
     eventTarget.addEventListener(EVENT_TYPE, (event) => {
       const ev = event as BaseEvent<unknown>;
@@ -245,20 +249,19 @@ describe("Task Executor", function () {
   });
 
   it("should only accept debit notes for agreements that were created by the executor", async () => {
-    const eventTarget1 = new EventTarget();
-    const eventTarget2 = new EventTarget();
     const executor1 = await TaskExecutor.create("golem/alpine:latest");
     const executor2 = await TaskExecutor.create("golem/alpine:latest");
     const createdAgreementsIds1 = new Set();
     const createdAgreementsIds2 = new Set();
     const acceptedDebitNoteAgreementIds1 = new Set();
     const acceptedDebitNoteAgreementIds2 = new Set();
-    eventTarget1.addEventListener(EVENT_TYPE, (event) => {
+    executor1.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
       if (ev instanceof Events.AgreementCreated) createdAgreementsIds1.add(ev.detail.id);
       if (ev instanceof Events.DebitNoteAccepted) acceptedDebitNoteAgreementIds1.add(ev.detail.agreementId);
+      emittedEventsNames.push(ev.name);
     });
-    eventTarget2.addEventListener(EVENT_TYPE, (event) => {
+    executor2.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
       if (ev instanceof Events.AgreementCreated) createdAgreementsIds2.add(ev.detail.id);
       if (ev instanceof Events.DebitNoteAccepted) acceptedDebitNoteAgreementIds2.add(ev.detail.agreementId);
