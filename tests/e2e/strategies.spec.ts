@@ -13,7 +13,7 @@ describe("Strategies", function () {
       const taskCompletedIds: string[] = [];
       executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.on("golemEvents", (event) => {
-        if (event.name === Events.ProposalReceived.name) {
+        if (event.name === Events.ProposalResponded.name) {
           proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
         }
       });
@@ -41,7 +41,7 @@ describe("Strategies", function () {
       const taskCompletedIds: string[] = [];
       executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.on("golemEvents", (event) => {
-        if (event.name === Events.ProposalReceived.name) {
+        if (event.name === Events.ProposalResponded.name) {
           proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
         }
       });

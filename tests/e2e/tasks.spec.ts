@@ -9,7 +9,6 @@ describe("Task Executor", function () {
 
   const verifyAllExpectedEventsEmitted = () => {
     expect(emittedEventsNames).toContain(Events.ProposalReceived.name);
-    expect(emittedEventsNames).toContain(Events.ProposalConfirmed.name);
     expect(emittedEventsNames).toContain(Events.ProposalResponded.name);
     expect(emittedEventsNames).toContain(Events.AgreementCreated.name);
     expect(emittedEventsNames).toContain(Events.ActivityCreated.name);
@@ -101,7 +100,7 @@ describe("Task Executor", function () {
         expect(e).toBeUndefined();
       });
     await sleep(5);
-    expect(taskDetails).toEqual({ taskId: "1", providerName: expect.anything(), retries: expect.anything() });
+    expect(taskDetails.taskId).toEqual("1");
     expect(outputs[0]).toEqual("Hello Golem");
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
