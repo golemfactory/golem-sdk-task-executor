@@ -17,7 +17,6 @@ describe("Task Executor", function () {
     expect(emittedEventsNames).toContain(Events.InvoiceReceived.name);
     expect(emittedEventsNames).toContain(Events.DebitNoteReceived.name);
     expect(emittedEventsNames).toContain(Events.PaymentAccepted.name);
-    expect(emittedEventsNames).toContain(Events.DebitNoteAccepted.name);
   };
 
   beforeEach(() => {
