@@ -73,7 +73,7 @@ jobs:
           npm run --prefix examples lint:ts
       - name: Copy unit-test report
         run: |
-          cp reports/unit-report.xml reports/unit-report-${{matrix.os}}-node${matrix.node-version}.xml
+          cp reports/unit-report.xml reports/unit-report-${{matrix.os}}-node_${matrix.node-version}.xml
       - name: Upload unit test reports
         uses: actions/upload-artifact@v4
         if: always()
