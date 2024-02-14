@@ -165,7 +165,7 @@ export class TaskService {
     task.cleanup();
     await this.releaseTaskResources(task);
     const reason = task.getError()?.message;
-    this.events.emit("taskRedone", task.getDetails());
+    this.events.emit("taskRetried", task.getDetails());
     this.logger.warn(`Task execution failed. Trying to redo the task.`, {
       taskId: task.id,
       attempt: task.getRetriesCount(),
@@ -178,7 +178,7 @@ export class TaskService {
     task.cleanup();
     await this.releaseTaskResources(task);
     if (task.isRejected()) {
-      this.events.emit("taskRejected", task.getDetails());
+      this.events.emit("taskFailed", task.getDetails());
       this.logger.error(`Task has been rejected`, {
         taskId: task.id,
         reason: task.getError()?.message,

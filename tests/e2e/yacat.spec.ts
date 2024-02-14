@@ -1,6 +1,4 @@
 import { TaskExecutor } from "../../src";
-import { LoggerMock } from "../mock/utils/logger";
-const logger = new LoggerMock(false);
 
 const range = (start: number, end: number, step = 1): number[] => {
   const list: number[] = [];
@@ -24,7 +22,6 @@ describe("Password cracking", function () {
          */
         package: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
         budget: 10,
-        logger,
       });
       const keyspace = await executor.run<number>(async (ctx) => {
         const result = await ctx.run(`hashcat --keyspace -a 3 ${mask} -m 400`);

@@ -10,7 +10,7 @@ describe("GFTP transfers", function () {
       });
 
       executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(__dirname + "/../mock/fixtures/eiffel.blend");
+        const sourcePath = fs.realpathSync(__dirname + "/../fixtures/eiffel.blend");
         await ctx.uploadFile(sourcePath, "/golem/work/eiffel.blend");
       });
 

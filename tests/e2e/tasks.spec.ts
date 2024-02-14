@@ -1,15 +1,29 @@
 import { readFileSync } from "fs";
 import { EVENT_TYPE, BaseEvent, Events } from "@golem-sdk/golem-js";
 import { TaskExecutor } from "../../src";
+import { sleep } from "../../src/utils";
 
 describe("Task Executor", function () {
   let executor: TaskExecutor;
-  let eventTarget = new EventTarget();
-  let emittedEvents: Events.BaseEvent<any>[] = [];
-  eventTarget.addEventListener(EVENT_TYPE, (event) => emittedEvents.push(event as BaseEvent<any>));
+  let emittedEventsNames: string[] = [];
+
+  const verifyAllExpectedEventsEmitted = () => {
+    expect(emittedEventsNames).toContain(Events.DemandSubscribed.name);
+    expect(emittedEventsNames).toContain(Events.ProposalReceived.name);
+    expect(emittedEventsNames).toContain(Events.ProposalConfirmed.name);
+    expect(emittedEventsNames).toContain(Events.ProposalResponded.name);
+    expect(emittedEventsNames).toContain(Events.AgreementCreated.name);
+    expect(emittedEventsNames).toContain(Events.ActivityCreated.name);
+    expect(emittedEventsNames).toContain(Events.ActivityDestroyed.name);
+    expect(emittedEventsNames).toContain(Events.AgreementTerminated.name);
+    expect(emittedEventsNames).toContain(Events.InvoiceReceived.name);
+    expect(emittedEventsNames).toContain(Events.DebitNoteReceived.name);
+    expect(emittedEventsNames).toContain(Events.PaymentAccepted.name);
+    expect(emittedEventsNames).toContain(Events.DebitNoteAccepted.name);
+  };
 
   beforeEach(() => {
-    emittedEvents = [];
+    emittedEventsNames = [];
   });
 
   afterEach(async function () {
@@ -17,27 +31,19 @@ describe("Task Executor", function () {
   });
 
   it("should run simple task", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-      eventTarget,
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
 
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
-    expect(emittedEvents).toContain(Events.DemandSubscribed);
-    expect(logger.logs).toContain("Demand published on the market");
-    expect(logger.logs).toContain("New proposal has been received");
-    expect(logger.logs).toContain("Proposal has been responded");
-    expect(logger.logs).toContain("New proposal added to pool");
-    expect(logger.logs).toMatch(/Agreement confirmed by provider/);
-    expect(logger.logs).toMatch(/Activity created/);
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple task and get error for invalid command", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
+
     const result1 = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
     const result2 = await executor.run(async (ctx) => ctx.run("invalid-command"));
 
@@ -45,27 +51,22 @@ describe("Task Executor", function () {
     expect(result2?.result).toEqual("Error");
     expect(result2?.stderr).toContain("sh: invalid-command: not found");
     expect(result2?.message).toEqual("ExeScript command exited with code 127");
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple task using package tag", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
+
     const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
-    expect(logger.logs).toContain("Demand published on the market");
-    expect(logger.logs).toContain("New proposal has been received");
-    expect(logger.logs).toContain("Proposal has been responded");
-    expect(logger.logs).toContain("New proposal added to pool");
-    expect(logger.logs).toMatch(/Agreement confirmed by provider/);
-    expect(logger.logs).toMatch(/Activity created/);
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple tasks by map function", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     const futureResults = data.map((x) =>
       executor.run(async (ctx) => {
@@ -75,13 +76,14 @@ describe("Task Executor", function () {
     );
     const finalOutputs = (await Promise.all(futureResults)).filter((x) => !!x);
     expect(finalOutputs).toEqual(expect.arrayContaining(data));
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple batch script and get results as stream", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-      logger,
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
+    let taskDetails;
+    executor.events.on("taskCompleted", (event) => (taskDetails = event));
     const outputs: string[] = [];
     let onEnd = "";
     await executor
@@ -99,21 +101,18 @@ describe("Task Executor", function () {
         executor.shutdown();
         expect(e).toBeUndefined();
       });
-    await logger.expectToInclude(
-      "Task computed",
-      { taskId: "1", providerName: expect.anything(), retries: expect.anything() },
-      5000,
-    );
+    await sleep(5);
+    expect(taskDetails).toEqual({ taskId: "1", providerName: expect.anything(), retries: expect.anything() });
     expect(outputs[0]).toEqual("Hello Golem");
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
     expect(onEnd).toEqual("END");
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run simple batch script and get results as promise", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     const outputs: string[] = [];
     await executor
       .run(async (ctx) => {
@@ -131,25 +130,28 @@ describe("Task Executor", function () {
     expect(outputs[0]).toEqual("Hello Golem");
     expect(outputs[1]).toEqual("Hello World");
     expect(outputs[2]).toEqual("OK");
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run transfer file", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
+
     const result = await executor.run(async (ctx) => {
       await ctx.uploadJson({ test: "1234" }, "/golem/work/test.json");
       const res = await ctx.downloadFile("/golem/work/test.json", "new_test.json");
       return res?.result;
     });
+
     expect(result).toEqual("Ok");
-    expect(readFileSync(`${process.env.GOTH_GFTP_VOLUME || ""}new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
+    expect(readFileSync(`new_test.json`, "utf-8")).toEqual('{"test":"1234"}');
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should run transfer file via http", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
+
     const result = await executor.run(async (ctx) => {
       const res = await ctx.transfer(
         "http://registry.golem.network/download/a2bb9119476179fac36149723c3ad4474d8d135e8d2d2308eb79907a6fc74dfa",
@@ -158,6 +160,7 @@ describe("Task Executor", function () {
       return res.result;
     });
     expect(result).toEqual("Ok");
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should get ip address", async () => {
@@ -171,9 +174,8 @@ describe("Task Executor", function () {
   });
 
   it("should spawn command as external process", async () => {
-    executor = await TaskExecutor.create({
-      package: "golem/alpine:latest",
-    });
+    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let stdout = "";
     let stderr = "";
     const finalResult = await executor.run(async (ctx) => {
@@ -185,12 +187,7 @@ describe("Task Executor", function () {
     expect(stdout).toContain("Hello World");
     expect(stderr).toContain("Hello Golem");
     expect(finalResult?.result).toContain("Ok");
-    expect(logger.logs).toContain("Demand published on the market");
-    expect(logger.logs).toContain("New proposal has been received");
-    expect(logger.logs).toContain("Proposal has been responded");
-    expect(logger.logs).toContain("New proposal added to pool");
-    expect(logger.logs).toMatch(/Agreement confirmed by provider/);
-    expect(logger.logs).toMatch(/Activity created/);
+    verifyAllExpectedEventsEmitted();
   });
 
   it("should not retry the task if maxTaskRetries is zero", async () => {
@@ -198,13 +195,15 @@ describe("Task Executor", function () {
       package: "golem/alpine:latest",
       maxTaskRetries: 0,
     });
+    let isRetry = false;
+    executor.events.on("taskRetried", () => (isRetry = true));
     try {
       executor.onActivityReady(async (ctx) => Promise.reject("Error"));
       await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
     } catch (error) {
       await executor.shutdown();
     }
-    expect(logger.logs).not.toContain("Trying to redo the task");
+    expect(isRetry).toEqual(false);
   });
 
   it("should not retry the task if taskRetries is zero", async () => {
@@ -212,13 +211,15 @@ describe("Task Executor", function () {
       package: "golem/alpine:latest",
       maxTaskRetries: 7,
     });
+    let isRetry = false;
+    executor.events.on("taskRetried", () => (isRetry = true));
     try {
       executor.onActivityReady(async (ctx) => Promise.reject("Error"));
       await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
     } catch (error) {
       await executor.shutdown();
     }
-    expect(logger.logs).not.toContain("Trying to redo the task");
+    expect(isRetry).toEqual(false);
   });
 
   it("should clean up the agreements in the pool if the agreement has been terminated by provider", async () => {

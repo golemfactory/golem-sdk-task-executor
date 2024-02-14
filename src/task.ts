@@ -158,6 +158,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getNetworkNode(): NetworkNode | undefined {
     return this.networkNode;
   }
+  getState(): TaskState {
+    return this.state;
+  }
   getDetails(): TaskDetails {
     return {
       id: this.id,

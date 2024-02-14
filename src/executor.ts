@@ -24,6 +24,8 @@ import {
   GolemConfigError,
   GolemInternalError,
   GolemTimeoutError,
+  EVENT_TYPE,
+  BaseEvent,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { RequireAtLeastOne } from "./types";
@@ -49,8 +51,6 @@ export type ExecutorOptions = {
   enableLogging?: boolean;
   /** Yagna Options */
   yagnaOptions?: YagnaOptions;
-  /** Event Bus implements EventTarget  */
-  eventTarget?: EventTarget;
   /** The maximum number of retries when the job failed on the provider */
   maxTaskRetries?: number;
   /** Custom Storage Provider used for transfer files */
@@ -230,6 +230,9 @@ export class TaskExecutor {
       { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
     );
     this.statsService = new StatsService({ ...this.options, logger: this.logger.child("stats") });
+    this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
+      this.events.emit("golemEvents", event as BaseEvent<any>),
+    );
     this.events.emit("start");
   }
 

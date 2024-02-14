@@ -1,6 +1,15 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
+  "setupFiles": ["<rootDir>/_setupEnv.ts"],
   "setupFilesAfterEnv": ["<rootDir>/_setupLogging.ts"],
-  "testTimeout": 180000
+  "testTimeout": 180000,
+  "transform": {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        "tsconfig": "tsconfig.spec.json"
+      }
+    ]
+  }
 }

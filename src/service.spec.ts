@@ -109,7 +109,7 @@ describe("Task Service", () => {
       },
     });
     const cb = jest.fn();
-    events.on("taskRedone", cb);
+    events.on("taskRetried", cb);
     when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
     const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
       taskRunningInterval: 10,
@@ -149,7 +149,7 @@ describe("Task Service", () => {
     const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
     const task = new Task("1", worker, { maxRetries: 1 });
     const cb = jest.fn();
-    events.on("taskRedone", cb);
+    events.on("taskRetried", cb);
     when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
     const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
       taskRunningInterval: 10,

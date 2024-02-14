@@ -1,4 +1,6 @@
 import { TaskExecutor, ProposalFilterFactory } from "../../src";
+import { sleep } from "../../src/utils";
+import { Events } from "@golem-sdk/golem-js";
 
 describe("Strategies", function () {
   describe("Proposals", () => {
@@ -7,39 +9,13 @@ describe("Strategies", function () {
         package: "golem/alpine:latest",
         proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
       });
-      const data = ["one", "two", "three"];
-      const futureResults = data.map((x) =>
-        executor.run(async (ctx) => {
-          const res = await ctx.run(`echo "${x}"`);
-          return res.stdout?.toString().trim();
-        }),
-      );
-      const finalOutputs = (await Promise.all(futureResults)).filter((x) => !!x);
-      expect(finalOutputs).toEqual(expect.arrayContaining(data));
-      await logger.expectToMatch(/Proposal rejected by Proposal Filter/, 5000);
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: "provider-1", taskId: "1", retries: expect.anything() },
-        5000,
-      );
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: "provider-1", taskId: "2", retries: expect.anything() },
-        5000,
-      );
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: "provider-1", taskId: "3", retries: expect.anything() },
-        5000,
-      );
-      await executor.shutdown();
-    });
-
-    it("should filtered providers by white list names", async () => {
-      const executor = await TaskExecutor.create({
-        package: "golem/alpine:latest",
-        proposalFilter: ProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
-        logger,
+      let proposalReceivedProviderNames: string[] = [];
+      const taskCompletedIds: string[] = [];
+      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.events.on("golemEvents", (event) => {
+        if (event.name === Events.ProposalReceived.name) {
+          proposalReceivedProviderNames.push((event as Events.ProposalReceived).detail.provider.name);
+        }
       });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>
@@ -50,22 +26,37 @@ describe("Strategies", function () {
       );
       const finalOutputs = (await Promise.all(futureResults)).filter((x) => !!x);
       expect(finalOutputs).toEqual(expect.arrayContaining(data));
-      await logger.expectToMatch(/Proposal rejected by Proposal Filter/, 5000);
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: `provider-2`, taskId: "1", retries: expect.anything() },
-        5000,
+      await sleep(5);
+      expect(proposalReceivedProviderNames).not.toContain("provider-2");
+      expect(taskCompletedIds).toEqual(expect.arrayContaining(["1", "2", "3"]));
+      await executor.shutdown();
+    });
+
+    it("should filtered providers by white list names", async () => {
+      const executor = await TaskExecutor.create({
+        package: "golem/alpine:latest",
+        proposalFilter: ProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
+      });
+      let proposalReceivedProviderNames: string[] = [];
+      const taskCompletedIds: string[] = [];
+      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.events.on("golemEvents", (event) => {
+        if (event.name === Events.ProposalReceived.name) {
+          proposalReceivedProviderNames.push((event as Events.ProposalReceived).detail.provider.name);
+        }
+      });
+      const data = ["one", "two", "three"];
+      const futureResults = data.map((x) =>
+        executor.run(async (ctx) => {
+          const res = await ctx.run(`echo "${x}"`);
+          return res.stdout?.toString().trim();
+        }),
       );
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: `provider-2`, taskId: "2", retries: expect.anything() },
-        5000,
-      );
-      await logger.expectToInclude(
-        `Task computed`,
-        { providerName: `provider-2`, taskId: "3", retries: expect.anything() },
-        5000,
-      );
+      const finalOutputs = (await Promise.all(futureResults)).filter((x) => !!x);
+      expect(finalOutputs).toEqual(expect.arrayContaining(data));
+      await sleep(5);
+      expect(proposalReceivedProviderNames).toContain("provider-2");
+      expect(taskCompletedIds).toEqual(expect.arrayContaining(["1", "2", "3"]));
       await executor.shutdown();
     });
   });

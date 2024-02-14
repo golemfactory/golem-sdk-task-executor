@@ -1,4 +1,4 @@
-import { instance, imock, when, anything, mock, spy, verify, reset } from "@johanblumenberg/ts-mockito";
+import { instance, imock, when, anything, mock, verify, reset } from "@johanblumenberg/ts-mockito";
 import { Task } from "./task";
 import { TaskExecutor } from "./executor";
 import { sleep } from "./utils";
@@ -14,14 +14,19 @@ import {
   WorkErrorCode,
   Yagna,
   Package,
-  Allocation,
   Activity,
   GftpStorageProvider,
-  PaymentConfig,
   YagnaApi,
   Logger,
-  PaymentServiceEvents,
 } from "@golem-sdk/golem-js";
+
+// temporarily until the import in golem-js is fixed
+import { Allocation } from "@golem-sdk/golem-js/dist/payment";
+import { PaymentConfig } from "@golem-sdk/golem-js/dist/payment/config";
+interface PaymentServiceEvents {
+  error: (err: Error) => void;
+}
+
 jest.mock("./service");
 
 const paymentServiceMock = mock(PaymentService);
