@@ -1,5 +1,5 @@
 import { TaskQueue } from "./queue";
-import { Task, TaskState } from "./task";
+import { Task } from "./task";
 import { instance, mock, reset, when } from "@johanblumenberg/ts-mockito";
 
 describe("Task Queue", function () {
