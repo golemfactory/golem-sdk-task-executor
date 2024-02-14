@@ -13,7 +13,6 @@ import {
   NetworkService,
   Activity,
   ActivityOptions,
-  Events,
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";

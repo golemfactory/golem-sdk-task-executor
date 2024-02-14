@@ -31,5 +31,5 @@ export interface TaskExecutorEventsDict {
   taskCompleted: (task: TaskDetails) => void;
   taskFailed: (task: TaskDetails) => void;
 
-  golemEvents: (event: BaseEvent<any>) => void;
+  golemEvents: (event: BaseEvent<unknown>) => void;
 }

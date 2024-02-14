@@ -231,7 +231,7 @@ export class TaskExecutor {
     );
     this.statsService = new StatsService({ ...this.options, logger: this.logger.child("stats") });
     this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
-      this.events.emit("golemEvents", event as BaseEvent<any>),
+      this.events.emit("golemEvents", event as BaseEvent<unknown>),
     );
     this.events.emit("start");
   }

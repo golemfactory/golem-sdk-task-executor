@@ -17,23 +17,23 @@ describe("Task Queue", function () {
       expect(testQueue.size).toEqual(1);
     });
     it("should add new task on the end of the queue", () => {
-      const tasksToAdd = ["A", "B", "C"].map((t) => instance(taskMock));
+      const tasksToAdd = ["A", "B", "C"].map(() => instance(taskMock));
       // Add tree different tasks to the queue
       tasksToAdd.forEach((task) => testQueue.addToEnd(task));
       // Check if the order is the same
       tasksToAdd.forEach((task) => {
-        const returned_task = testQueue.get();
-        expect(returned_task).toEqual(task);
+        const returnedTask = testQueue.get();
+        expect(returnedTask).toEqual(task);
       });
     });
     it("should add task on the beginning of the queue", () => {
-      const tasksToAdd = ["A", "B", "C"].map((t) => instance(taskMock));
+      const tasksToAdd = ["A", "B", "C"].map(() => instance(taskMock));
       // Add tree different tasks to the queue
       tasksToAdd.forEach((task) => testQueue.addToBegin(task));
       // Reverse expectation and check
       tasksToAdd.reverse().forEach((task) => {
-        const returned_task = testQueue.get();
-        expect(returned_task).toEqual(task);
+        const returnedTask = testQueue.get();
+        expect(returnedTask).toEqual(task);
       });
     });
     it("should throws error if adding pending task", () => {
@@ -53,7 +53,6 @@ describe("Task Queue", function () {
     });
 
     it('should return "undefined" when the queue is empty', () => {
-      const task = instance(taskMock);
       expect(testQueue.size).toEqual(0);
       expect(testQueue.get()).toBeUndefined();
     });

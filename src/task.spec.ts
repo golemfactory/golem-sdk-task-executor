@@ -24,7 +24,7 @@ describe("Task", function () {
   });
 
   it("should complete task with results", () => {
-    const task = new Task<any>("1", worker);
+    const task = new Task<unknown>("1", worker);
     task.start(activity);
     const result = new Result<null>({
       index: 0,
@@ -38,7 +38,7 @@ describe("Task", function () {
   });
 
   it("should complete task with error", () => {
-    const task = new Task<any>("1", worker);
+    const task = new Task<unknown>("1", worker);
     task.start(activity);
     const error = new Error("test");
     task.stop(undefined, error, false);
@@ -46,7 +46,7 @@ describe("Task", function () {
   });
 
   it("should retry task", () => {
-    const task = new Task<any>("1", worker);
+    const task = new Task<unknown>("1", worker);
     task.start(activity);
     const error = new Error("test");
     task.stop(undefined, error, true);

@@ -13,7 +13,7 @@ import {
   YagnaApi,
 } from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
-import { anything, imock, instance, mock, spy, verify, when, reset } from "@johanblumenberg/ts-mockito";
+import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 import { Readable } from "node:stream";
@@ -50,7 +50,7 @@ describe("Task Service", () => {
     ];
     const readable = new Readable({
       objectMode: true,
-      read(size: number) {
+      read() {
         readable.push(results.shift() ?? null);
       },
     });
@@ -104,7 +104,7 @@ describe("Task Service", () => {
     queue.addToEnd(task);
     const readable = new Readable({
       objectMode: true,
-      read(size: number) {
+      read() {
         readable.destroy(new Error("Test error"));
       },
     });
@@ -139,7 +139,7 @@ describe("Task Service", () => {
   });
 
   it("should throw an error if maxRetries is less then zero", async () => {
-    const worker = async (ctx: WorkContext) => Promise.resolve(true);
+    const worker = async () => Promise.resolve(true);
     expect(() => new Task("1", worker, { maxRetries: -1 })).toThrow(
       "The maxRetries parameter cannot be less than zero",
     );

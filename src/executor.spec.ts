@@ -219,6 +219,7 @@ describe("Task Executor", () => {
       when(taskMock.isRejected()).thenReturn(false).thenReturn(true).thenReturn(false);
       when(taskMock.getResults()).thenReturn("result 1").thenReturn("result 2");
       when(taskMock.getError()).thenReturn(new Error("error 1"));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const executorShutdownSpy = jest.spyOn(executor as any, "doShutdown");
 
       await expect(executor.run(() => Promise.resolve())).resolves.toEqual("result 1");
@@ -283,6 +284,7 @@ describe("Task Executor", () => {
       });
       const p = Promise.resolve();
       const originalDoShutdown = executor["doShutdown"].bind(executor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const spy = jest.spyOn(executor as any, "doShutdown").mockReturnValue(p);
 
       const r1 = executor.shutdown();
