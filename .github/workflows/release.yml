@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: unit-test-report-${{matrix.os}}-node_${{matrix.node-version}}
+          name: unit-test-report-${{matrix.os}}-node-${{matrix.node-version}}
           path: reports/unit-report.xml
 
   run-e2e-tests:
