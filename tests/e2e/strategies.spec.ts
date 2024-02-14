@@ -14,7 +14,7 @@ describe("Strategies", function () {
       executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.on("golemEvents", (event) => {
         if (event.name === Events.ProposalReceived.name) {
-          proposalReceivedProviderNames.push((event as Events.ProposalReceived).detail.provider.name);
+          proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
         }
       });
       const data = ["one", "two", "three"];
@@ -42,7 +42,7 @@ describe("Strategies", function () {
       executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.on("golemEvents", (event) => {
         if (event.name === Events.ProposalReceived.name) {
-          proposalReceivedProviderNames.push((event as Events.ProposalReceived).detail.provider.name);
+          proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
         }
       });
       const data = ["one", "two", "three"];

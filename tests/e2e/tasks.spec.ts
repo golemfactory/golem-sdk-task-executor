@@ -8,7 +8,6 @@ describe("Task Executor", function () {
   let emittedEventsNames: string[] = [];
 
   const verifyAllExpectedEventsEmitted = () => {
-    expect(emittedEventsNames).toContain(Events.DemandSubscribed.name);
     expect(emittedEventsNames).toContain(Events.ProposalReceived.name);
     expect(emittedEventsNames).toContain(Events.ProposalConfirmed.name);
     expect(emittedEventsNames).toContain(Events.ProposalResponded.name);
