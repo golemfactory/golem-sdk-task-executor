@@ -72,13 +72,14 @@ jobs:
           npm install --prefix examples
           npm run --prefix examples lint:ts
       - name: Copy unit-test report
-        run: cp unit-report.xml unit-report-${{ matrix.platform }}.xml
+        run: |
+          cp reports/unit-report.xml reports/unit-report-${{matrix.platform}}.xml
       - name: Upload unit test reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-report
-          path: reports/unit-report-${{ matrix.platform }}.xml
+          path: reports/unit-report-${{matrix.platform}}.xml
 
   run-e2e-tests:
     name: Run E2E tests
