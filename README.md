@@ -8,7 +8,8 @@
 ## What's TaskExecutor?
 
 TaskExecutor facilitate the creation of applications that utilize the computational power of the Golem Network
-in a transparent and efficient manner. It is built of the top of [@golem-sdk/golem-js](https://github.com/golemfactory/golem-js) library.
+in a transparent and efficient manner. It is a [@golem-sdk/golem-js](https://github.com/golemfactory/golem-js) based library allowing running computation tasks,
+designed for batch map-reduce like scenarios.
 With TaskExecutor, developers can focus on implementing their computational tasks without delving into the details of communicating
 with the Golem Network or managing modules such as payments or market.
 

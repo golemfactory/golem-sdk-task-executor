@@ -1,7 +1,7 @@
 {
   "name": "@golem-sdk/task-executor",
   "version": "1.0.0",
-  "description": "NodeJs and WebBrowser library to sending tasks to the Golem Network, monitoring their progress, and receiving results.",
+  "description": "A golem-js based library allowing running computation tasks on Golem, designed for batch map-reduce like scenarios",
   "repository": "https://github.com/golemfactory/golem-sdk-task-executor",
   "keywords": [
     "golem",
