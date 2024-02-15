@@ -1,4 +1,4 @@
-# Golem Task Executor
+# Task Executor
 
 ![GitHub](https://img.shields.io/github/license/golemfactory/golem-sdk-task-executor)
 ![npm](https://img.shields.io/npm/v/@golem-sdk/task-executor)
@@ -7,7 +7,10 @@
 
 ## What's TaskExecutor?
 
-TODO
+TaskExecutor facilitate the creation of applications that utilize the computational power of the Golem Network
+in a transparent and efficient manner. It is built of the top of [@golem-sdk-golem-js](https://github.com/golemfactory/golem-js) library.
+With TaskExecutor, developers can focus on implementing their computational tasks without delving into the details of communicating
+with the Golem Network or managing modules such as payments or market.
 
 ## System requirements
 
@@ -66,8 +69,6 @@ To build a library available to the NodeJS environment:
 
 ```bash
 npm run build
-# or
-yarn build
 ```
 
 This will generate production code in the `dist/` directory ready to be used in your nodejs or browser applications.
@@ -77,7 +78,7 @@ This will generate production code in the `dist/` directory ready to be used in 
 ### Hello World example
 
 ```ts
-import { TaskExecutor } from "@golem-sdk/golem-js";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 
 (async function main() {
   const executor = await TaskExecutor.create("golem/alpine:latest");
@@ -98,7 +99,7 @@ through them and learn about the recommended practices. All examples are automat
 process.
 
 In case you find an issue with the examples, feel free to submit
-an [issue report](https://github.com/golemfactory/golem-js/issues) to the repository.
+an [issue report](https://github.com/golemfactory/golem-sdk-task-executor/issues) to the repository.
 
 You can find even more examples and tutorials in
 the [JavaScript API section of the Golem Network Docs](https://docs.golem.network/docs/creators/javascript).
@@ -149,13 +150,12 @@ These values are defaults and can be influenced by the following settings:
 - `DemandOptions.midAgreementPaymentTimeoutSec`
 
 If you're using `TaskExecutor` to run tasks on Golem, you can pass them as part of the configuration object accepted
-by `TaskExecutor.create`. Consult [JS API reference](https://docs.golem.network/docs/golem-js/reference/overview) for
-details.
+by `TaskExecutor.create`.
 
 ### Limit price limits to filter out offers that are too expensive
 
 ```typescript
-import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
 
 const executor = await TaskExecutor.create({
   // What do you want to run
@@ -186,7 +186,7 @@ health-checks. Using this whitelist will increase the chance of working with a r
 can also build up your own list of favourite providers and use it in a similar fashion.
 
 ```typescript
-import { MarketHelpers, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/golem-js";
+import { MarketHelpers, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/task-executor";
 
 // Collect the whitelist
 const verifiedProviders = await MarketHelpers.getHealthyProvidersWhiteList();
@@ -229,19 +229,18 @@ Read the dedicated [testing documentation](./TESTING.md) to learn more about how
 It is recommended to run unit tests and static code analysis before committing changes.
 
 ```bash
-yarn lint
+npm run lint
 # and
-yarn format
+npm run format
 ```
 
 ## See also
 
 - [Golem](https://golem.network), a global, open-source, decentralized supercomputer that anyone can access.
 - Learn what you need to know to set up your Golem requestor node:
-  - [Requestor development: a quick primer](https://docs.golem.network/docs/quickstarts/python-quickstart)
-  - [Quick start](https://docs.golem.network/docs/creators/javascript/quickstarts)
-- Have a look at the most important concepts behind any Golem
-  application: [Golem application fundamentals](https://docs.golem.network/docs/creators/python/guides/application-fundamentals)
+  - [Golem JS Quickstart](https://docs.golem.network/docs/quickstarts/js-quickstart)
+  - [Golem JS Examples](https://docs.golem.network/docs/creators/javascript/examples)
+  - [Golem JS Tutorials](https://docs.golem.network/docs/creators/javascript/tutorials#golem-js-tutorials)
+  - [Golem JS Guides](https://docs.golem.network/docs/creators/javascript/guides)
 - Learn about preparing your own Docker-like images for
   the [VM runtime](https://docs.golem.network/docs/creators/javascript/examples/tools/converting-docker-image-to-golem-format)
-- Write your own app with [JavaScript API](https://docs.golem.network/docs/creators/javascript/quickstarts/quickstart)

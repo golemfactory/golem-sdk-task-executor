@@ -1,8 +1,8 @@
 {
   "name": "@golem-sdk/task-executor",
   "version": "1.0.0",
-  "description": "Task Executor TODO",
-  "repository": "https://github.com/golemfactory/golem-js",
+  "description": "NodeJs and WebBrowser library to sending tasks to the Golem Network, monitoring their progress, and receiving results.",
+  "repository": "https://github.com/golemfactory/golem-sdk-task-executor",
   "keywords": [
     "golem",
     "network",
@@ -11,8 +11,11 @@
     "sdk",
     "internet",
     "computer",
+    "task-executor",
     "task",
-    "executor"
+    "executor",
+    "golem-js",
+    "glm"
   ],
   "main": "dist/task-executor.cjs.js",
   "browser": "dist/task-executor.min.js",
