@@ -253,18 +253,21 @@ describe("Task Executor", function () {
     const executor2 = await TaskExecutor.create("golem/alpine:latest");
     const createdAgreementsIds1 = new Set();
     const createdAgreementsIds2 = new Set();
-    const acceptedDebitNoteAgreementIds1 = new Set();
-    const acceptedDebitNoteAgreementIds2 = new Set();
+    const acceptedPaymentsAgreementIds1 = new Set();
+    const acceptedPaymentsAgreementIds2 = new Set();
     executor1.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
       if (ev instanceof Events.AgreementCreated) createdAgreementsIds1.add(ev.detail.id);
-      if (ev instanceof Events.DebitNoteAccepted) acceptedDebitNoteAgreementIds1.add(ev.detail.agreementId);
+      if (ev instanceof Events.DebitNoteAccepted) acceptedPaymentsAgreementIds1.add(ev.detail.agreementId);
+      if (ev instanceof Events.PaymentAccepted) acceptedPaymentsAgreementIds1.add(ev.detail.agreementId);
+
       emittedEventsNames.push(ev.name);
     });
     executor2.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
       if (ev instanceof Events.AgreementCreated) createdAgreementsIds2.add(ev.detail.id);
-      if (ev instanceof Events.DebitNoteAccepted) acceptedDebitNoteAgreementIds2.add(ev.detail.agreementId);
+      if (ev instanceof Events.DebitNoteAccepted) acceptedPaymentsAgreementIds2.add(ev.detail.agreementId);
+      if (ev instanceof Events.PaymentAccepted) acceptedPaymentsAgreementIds2.add(ev.detail.agreementId);
     });
     try {
       await Promise.all([
@@ -277,7 +280,7 @@ describe("Task Executor", function () {
       await executor1.shutdown();
       await executor2.shutdown();
     }
-    expect(acceptedDebitNoteAgreementIds1).toEqual(createdAgreementsIds1);
-    expect(acceptedDebitNoteAgreementIds2).toEqual(createdAgreementsIds2);
+    expect(acceptedPaymentsAgreementIds1).toEqual(createdAgreementsIds1);
+    expect(acceptedPaymentsAgreementIds2).toEqual(createdAgreementsIds2);
   });
 });
