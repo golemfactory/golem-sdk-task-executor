@@ -93,7 +93,7 @@ export class ExecutorConfig {
       const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;
       if (!isLoggingEnabled) return nullLogger();
       if (options.logger) return options.logger.child("task-executor");
-      return defaultLogger("task-executor");
+      return defaultLogger("task-executor", { disableAutoPrefix: true });
     })();
     this.eventTarget = options.eventTarget || new EventTarget();
     this.maxTaskRetries = options.maxTaskRetries ?? DEFAULTS.maxTaskRetries;
@@ -127,7 +127,7 @@ export class TaskConfig extends ActivityConfig {
     this.taskTimeout = options?.taskTimeout || DEFAULTS.taskTimeout;
     this.activityStateCheckingInterval =
       options?.activityStateCheckingInterval || DEFAULTS.activityStateCheckingInterval;
-    this.logger = options?.logger || defaultLogger("work");
+    this.logger = options?.logger || defaultLogger("work", { disableAutoPrefix: true });
     this.storageProvider = options?.storageProvider;
     this.activityPreparingTimeout = options?.activityPreparingTimeout || DEFAULTS.activityPreparingTimeout;
   }
