@@ -222,7 +222,7 @@ const executor = await TaskExecutor.create({
 
 ## Debugging
 
-The library uses the [debug](https://www.npmjs.com/package/debug) package to provide debug logs. To enable them, set the `DEBUG` environment variable to `golem-js:*` or `golem-js:market:*` to see all logs or only the market-related ones, respectively. For more information, please refer to the [debug package documentation](https://www.npmjs.com/package/debug).
+The library uses the [debug](https://www.npmjs.com/package/debug) package to provide debug logs. To enable them, set the `DEBUG` environment variable to `task-executor:*` to see the related log lines. For more information, please refer to the [debug package documentation](https://www.npmjs.com/package/debug).
 
 ## Testing
 
