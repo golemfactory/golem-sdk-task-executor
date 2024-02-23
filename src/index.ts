@@ -5,4 +5,5 @@ export {
   AgreementSelectors,
   AgreementCandidate,
   ProposalFilter,
+  WorkContext,
 } from "@golem-sdk/golem-js";
