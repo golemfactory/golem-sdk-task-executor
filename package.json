@@ -17,6 +17,9 @@
     "golem-js",
     "glm"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/task-executor.cjs.js",
   "browser": "dist/task-executor.min.js",
   "module": "dist/task-executor.es.js",
