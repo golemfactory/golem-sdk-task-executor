@@ -7,9 +7,10 @@
 
 ## What's TaskExecutor?
 
-TaskExecutor facilitate the creation of applications that utilize the computational power of the Golem Network
+TaskExecutor facilitates building of applications that utilize the computational power of the Golem Network
 in a transparent and efficient manner. It is a [@golem-sdk/golem-js](https://github.com/golemfactory/golem-js) based library allowing running computation tasks,
 designed for batch map-reduce like scenarios.
+
 With TaskExecutor, developers can focus on implementing their computational tasks without delving into the details of communicating
 with the Golem Network or managing modules such as payments or market.
 
@@ -46,7 +47,7 @@ yagna payment fund --network goerli
 yagna payment status --network goerli
 ```
 
-#### Obtain your `app-key` to use with SDK
+#### Obtain your `app-key` to use with TaskExecutor
 
 If you don't have any app-keys available from `yagna app-key list`, go ahead and create one with the command below.
 You will need this key in order to communicate with `yagna` from your application via `golem-js`.You can set it
@@ -66,25 +67,27 @@ npm install @golem-sdk/task-executor
 
 ## Building
 
-To build a library available to the NodeJS environment:
+To build a library available to the Node.js environment:
 
 ```bash
 npm run build
 ```
 
-This will generate production code in the `dist/` directory ready to be used in your nodejs or browser applications.
+This will generate production code in the `dist/` directory ready to be used in your Node.js or browser applications.
 
 ## Usage
 
 ### Hello World example
 
 ```ts
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, WorkContext } from "@golem-sdk/task-executor";
 
 (async function main() {
   const executor = await TaskExecutor.create("golem/alpine:latest");
   try {
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+    const task = async (ctx: WorkContext) => (await ctx.run("echo 'Hello World'")).stdout?.toString();
+    const result = await executor.run(task);
+    console.log("Result:", result);
   } catch (error) {
     console.error("Computation failed:", error);
   } finally {
@@ -95,7 +98,7 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
 
 ### More examples
 
-The [examples directory](./examples) in the repository contains various usage patterns for the SDK. You can browse
+The [examples directory](./examples) in the repository contains various usage patterns for the TaskExecutor. You can browse
 through them and learn about the recommended practices. All examples are automatically tested during our release
 process.
 
@@ -107,13 +110,13 @@ the [JavaScript API section of the Golem Network Docs](https://docs.golem.networ
 
 ## Supported environments
 
-The SDK is designed to work with LTS versions of Node (starting from 18)
+The library is designed to work with LTS versions of Node (starting from 18)
 and with browsers.
 
 ## Golem Network Market Basics
 
 The Golem Network provides an open marketplace where anyone can join as a Provider and supply the network with their
-computing power. In return for their service, they are billing Requestors (users of this SDK) according to the pricing
+computing power. In return for their service, they are billing Requestors (users of this library) according to the pricing
 that they define.
 
 As a Requestor, you might want to:
@@ -129,12 +132,12 @@ your own market strategy (described below).
 
 When you obtain resources from the Provider and start using them, the billing cycle will start immediately.
 Since reliable service and payments are important for all actors in the Golem Network,
-the SDK makes use of the mid-agreement payments model and implements best practices for the market, which include:
+the library makes use of the mid-agreement payments model and implements best practices for the market, which include:
 
 - responding and accepting debit notes for activities that last longer than 30 minutes
 - issuing mid-agreement payments (pay-as-you-go)
 
-By default, the SDK will:
+By default, the library will:
 
 - accept debit notes sent by the Providers within two minutes of receipt (so that the Provider knows that we're alive,
   and it will continue serving the resources)
@@ -163,11 +166,11 @@ const executor = await TaskExecutor.create({
   package: "golem/alpine:3.18.2",
 
   // How much you wish to spend
-  budget: 0.5,
+  budget: 2.0,
   proposalFilter: ProposalFilterFactory.limitPriceFilter({
-    start: 1,
-    cpuPerSec: 1 / 3600,
-    envPerSec: 1 / 3600,
+    start: 1.0,
+    cpuPerSec: 1.0 / 3600,
+    envPerSec: 1.0 / 3600,
   }),
 
   // Where you want to spend
@@ -197,9 +200,9 @@ const whiteList = ProposalFilterFactory.allowProvidersById(verifiedProviders);
 
 // Prepare the price filter
 const acceptablePrice = ProposalFilterFactory.limitPriceFilter({
-  start: 1,
-  cpuPerSec: 1 / 3600,
-  envPerSec: 1 / 3600,
+  start: 1.0,
+  cpuPerSec: 1.0 / 3600,
+  envPerSec: 1.0 / 3600,
 });
 
 const executor = await TaskExecutor.create({
@@ -207,7 +210,7 @@ const executor = await TaskExecutor.create({
   package: "golem/alpine:3.18.2",
 
   // How much you wish to spend
-  budget: 0.5,
+  budget: 2.0,
   proposalFilter: (proposal) => acceptablePrice(proposal) && whiteList(proposal),
 
   // Where you want to spend
@@ -219,11 +222,11 @@ const executor = await TaskExecutor.create({
 
 ## Debugging
 
-The SDK uses the [debug](https://www.npmjs.com/package/debug) package to provide debug logs. To enable them, set the `DEBUG` environment variable to `golem-js:*` or `golem-js:market:*` to see all logs or only the market-related ones, respectively. For more information, please refer to the [debug package documentation](https://www.npmjs.com/package/debug).
+The library uses the [debug](https://www.npmjs.com/package/debug) package to provide debug logs. To enable them, set the `DEBUG` environment variable to `task-executor:*` to see the related log lines. For more information, please refer to the [debug package documentation](https://www.npmjs.com/package/debug).
 
 ## Testing
 
-Read the dedicated [testing documentation](./TESTING.md) to learn more about how to run tests of the SDK.
+Read the dedicated [testing documentation](./TESTING.md) to learn more about how to run tests of the library.
 
 ## Contributing
 
