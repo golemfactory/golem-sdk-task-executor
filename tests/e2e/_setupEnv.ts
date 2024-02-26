@@ -1,1 +1,1 @@
-process.env.DEBUG = "golem-js:*";
+process.env.DEBUG = "task-executor:*";
