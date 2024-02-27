@@ -87,7 +87,7 @@ export type ExecutorOptions = {
   PaymentOptions &
   NetworkServiceOptions &
   AgreementServiceOptions &
-  WorkOptions &
+  Omit<WorkOptions, "yagnaOptions"> &
   TaskServiceOptions;
 
 /**

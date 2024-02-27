@@ -1,4 +1,5 @@
 export { TaskExecutor, YagnaOptions, ExecutorOptions, ExecutorOptionsMixin } from "./executor";
+export { TaskExecutorEventsDict } from "./events";
 export {
   ProposalFilterFactory,
   PaymentFilters,

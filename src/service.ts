@@ -119,6 +119,7 @@ export class TaskService {
       }
 
       const ctx = new WorkContext(activity, {
+        yagnaOptions: this.yagnaApi.yagnaOptions,
         activityReadySetupFunctions: this.activitySetupDone.has(activity.id) ? [] : activityReadySetupFunctions,
         storageProvider: this.options.storageProvider,
         networkNode,
