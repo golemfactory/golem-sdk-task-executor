@@ -2,7 +2,7 @@
 
 ![GitHub](https://img.shields.io/github/license/golemfactory/golem-sdk-task-executor)
 ![npm](https://img.shields.io/npm/v/@golem-sdk/task-executor)
-![node-current](https://img.shields.io/node/v/@golem-sdk/golem-sdk-task-executor)
+![node-current](https://img.shields.io/node/v/@golem-sdk/task-executor)
 ![npm type definitions](https://img.shields.io/npm/types/@golem-sdk/task-executor)
 
 ## What's TaskExecutor?
