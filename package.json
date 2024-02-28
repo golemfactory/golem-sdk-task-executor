@@ -20,6 +20,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "workspaces": [
+    "examples"
+  ],
   "main": "dist/task-executor.cjs.js",
   "browser": "dist/task-executor.min.js",
   "module": "dist/task-executor.es.js",
