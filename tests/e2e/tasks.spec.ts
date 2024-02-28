@@ -251,13 +251,13 @@ describe("Task Executor", function () {
   it("should only accept debit notes for agreements that were created by the executor", async () => {
     const executor1 = await TaskExecutor.create("golem/alpine:latest");
     const executor2 = await TaskExecutor.create("golem/alpine:latest");
-    const createdAgreementsIds1 = new Set();
-    const createdAgreementsIds2 = new Set();
+    const confirmedAgreementsIds1 = new Set();
+    const confirmedAgreementsIds2 = new Set();
     const acceptedPaymentsAgreementIds1 = new Set();
     const acceptedPaymentsAgreementIds2 = new Set();
     executor1.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
-      if (ev instanceof Events.AgreementCreated) createdAgreementsIds1.add(ev.detail.id);
+      if (ev instanceof Events.AgreementConfirmed) confirmedAgreementsIds1.add(ev.detail.id);
       if (ev instanceof Events.DebitNoteAccepted) acceptedPaymentsAgreementIds1.add(ev.detail.agreementId);
       if (ev instanceof Events.PaymentAccepted) acceptedPaymentsAgreementIds1.add(ev.detail.agreementId);
 
@@ -265,7 +265,7 @@ describe("Task Executor", function () {
     });
     executor2.events.on("golemEvents", (event) => {
       const ev = event as BaseEvent<unknown>;
-      if (ev instanceof Events.AgreementCreated) createdAgreementsIds2.add(ev.detail.id);
+      if (ev instanceof Events.AgreementConfirmed) confirmedAgreementsIds2.add(ev.detail.id);
       if (ev instanceof Events.DebitNoteAccepted) acceptedPaymentsAgreementIds2.add(ev.detail.agreementId);
       if (ev instanceof Events.PaymentAccepted) acceptedPaymentsAgreementIds2.add(ev.detail.agreementId);
     });
@@ -280,7 +280,7 @@ describe("Task Executor", function () {
       await executor1.shutdown();
       await executor2.shutdown();
     }
-    expect(acceptedPaymentsAgreementIds1).toEqual(createdAgreementsIds1);
-    expect(acceptedPaymentsAgreementIds2).toEqual(createdAgreementsIds2);
+    expect(acceptedPaymentsAgreementIds1).toEqual(confirmedAgreementsIds1);
+    expect(acceptedPaymentsAgreementIds2).toEqual(confirmedAgreementsIds2);
   });
 });
