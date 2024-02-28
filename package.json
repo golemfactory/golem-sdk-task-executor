@@ -54,7 +54,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@golem-sdk/golem-js": "^2.2.0",
+    "@golem-sdk/golem-js": "^2.3.0",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
