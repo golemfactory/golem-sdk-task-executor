@@ -5,7 +5,7 @@
   "type": "module",
   "repository": "https://github.com/golemfactory/golem-sdk-task-executor",
   "scripts": {
-    "hello": "node ./hello-world/hello.mjs",
+    "hello": "tsx hello-world/hello.ts",
     "run": "tsx ./simple-usage/run.ts",
     "spawn": "tsx ./simple-usage/spawn.ts",
     "map": "tsx ./simple-usage/map.ts",
@@ -16,18 +16,19 @@
     "logger-hello": "tsx simple-usage/logger.ts",
     "blender": "tsx ./blender/blender.ts",
     "yacat": "tsx ./yacat/yacat.ts",
-    "fibonacci": "node ./fibonacci/fibonacci.js",
+    "fibonacci": "tsx fibonacci/fibonacci.ts",
     "external-request": "tsx ./external-request/request.ts",
     "ssh": "tsx ./ssh/ssh.ts",
     "tag": "tsx ./simple-usage/tag.ts",
     "web": "node ./web/app.mjs",
     "server": "tsx ./express/server.ts",
+    "proxy": "tsx ./proxy/proxy.ts",
     "lint:ts": "tsc --project tsconfig.json --noEmit"
   },
   "author": "GolemFactory <contact@golem.network>",
   "license": "LGPL-3.0",
   "engines": {
-    "node": ">=16.19.0"
+    "node": ">=18"
   },
   "dependencies": {
     "@golem-sdk/task-executor": "file:..",

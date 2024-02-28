@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/golem-js";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 
 /**
  * An example demonstrating the use of a proxy server to send and receive http requests to the provider.
