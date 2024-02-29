@@ -8,22 +8,22 @@ export interface TaskExecutorEventsDict {
   /**
    * Fires when task executor is created, before initialization services.
    */
-  start: () => void;
+  start: (ev: Event) => void;
 
   /**
    * Fires when task executor is initialized and ready to be used.
    */
-  ready: () => void;
+  ready: (ev: Event) => void;
 
   /**
    * Fires when task executor is about to shut down, immediately after TaskExecutor.shutdown() is called.
    */
-  beforeEnd: () => void;
+  beforeEnd: (ev: Event) => void;
 
   /**
    * Fires when task executor is completely terminated.
    */
-  end: () => void;
+  end: (ev: Event) => void;
 
   /**
    * Fires when a task is placed in the internal queue via {@link TaskExecutor.run}

@@ -8,7 +8,6 @@ import {
   PaymentOptions,
   PaymentService,
   NetworkService,
-  StatsService,
   NetworkServiceOptions,
   Logger,
   Yagna,
@@ -35,6 +34,7 @@ import { TaskService, TaskServiceOptions } from "./service";
 import { TaskQueue } from "./queue";
 import { isBrowser, isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
+import { StatsService } from "./stats";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 
@@ -229,11 +229,11 @@ export class TaskExecutor {
       this.networkService,
       { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
     );
-    this.statsService = new StatsService({ ...this.options, logger: this.logger.child("stats") });
+    this.statsService = new StatsService(this.events);
     this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
       this.events.emit("golemEvents", event as BaseEvent<unknown>),
     );
-    this.events.emit("start");
+    this.events.emit("start", new Event("start"));
   }
 
   /**
@@ -293,7 +293,7 @@ export class TaskExecutor {
       network: this.paymentService.config.payment.network,
       driver: this.paymentService.config.payment.driver,
     });
-    this.events.emit("ready");
+    this.events.emit("ready", new Event("ready"));
   }
 
   /**
@@ -322,7 +322,7 @@ export class TaskExecutor {
    * @private
    */
   private async doShutdown() {
-    this.events.emit("beforeEnd");
+    this.events.emit("beforeEnd", new Event("beforeEnd"));
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
     if (!this.configOptions.storageProvider) await this.storageProvider?.close();
@@ -334,16 +334,7 @@ export class TaskExecutor {
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
-    this.events.emit("end");
-  }
-
-  /**
-   * Statistics of execution process
-   *
-   * @return array
-   */
-  getStats() {
-    return this.statsService.getStatsTree();
+    this.events.emit("end", new Event("end"));
   }
 
   /**
@@ -484,7 +475,7 @@ export class TaskExecutor {
     const costsSummary = this.statsService.getAllCostsSummary();
     const duration = this.statsService.getComputationTime();
     const providersCount = new Set(costsSummary.map((x) => x["Provider Name"])).size;
-    this.logger.info(`Computation finished in ${duration}`);
+    this.logger.info(`Computation finished in ${(duration / 1000).toFixed(2)} sec.`);
     this.logger.info(`Negotiation summary:`, {
       agreements: costsSummary.length,
       providers: providersCount,
