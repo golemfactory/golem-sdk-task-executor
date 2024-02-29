@@ -94,33 +94,32 @@ export class StatsService {
   }
 
   /**
-   * Returns the total computation time (in ms) of all tasks from "start" to "stop",
-   * including the initialization and termination time of all services.
+   * Returns the total computation time (in ms) of all tasks
    */
   getComputationTime(): number {
     return this.times.get("all")?.duration ?? 0;
   }
 
   private subscribeTimeEvents() {
-    const startTimeListener = (event: Event) => {
-      this.times.set("all", { startTime: event.timeStamp });
-      this.logger.debug("Start time detected", { startTime: event.timeStamp });
+    const startTimeListener = (timestamp: number) => {
+      this.times.set("all", { startTime: timestamp });
+      this.logger.debug("Start time detected", { startTime: timestamp });
     };
-    this.events.on("start", startTimeListener);
-    this.listeners.set("start", startTimeListener);
+    this.events.on("ready", startTimeListener);
+    this.listeners.set("ready", startTimeListener);
 
-    const stopTimeListener = (event: Event) => {
+    const stopTimeListener = (timestamp: number) => {
       let times = this.times.get("all");
       if (!times) {
         times = {};
         this.times.set("all", times);
       }
-      times.stopTime = event.timeStamp;
+      times.stopTime = timestamp;
       times.duration = times?.startTime ? times.stopTime - times.startTime : undefined;
       this.logger.debug("Stop time detected", { ...times });
     };
-    this.events.on("end", stopTimeListener);
-    this.listeners.set("end", stopTimeListener);
+    this.events.on("beforeEnd", stopTimeListener);
+    this.listeners.set("beforeEnd", stopTimeListener);
   }
 
   private subscribeTaskEvents() {

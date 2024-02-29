@@ -233,7 +233,7 @@ export class TaskExecutor {
     this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
       this.events.emit("golemEvents", event as BaseEvent<unknown>),
     );
-    this.events.emit("start", new Event("start"));
+    this.events.emit("start", Date.now());
   }
 
   /**
@@ -293,7 +293,7 @@ export class TaskExecutor {
       network: this.paymentService.config.payment.network,
       driver: this.paymentService.config.payment.driver,
     });
-    this.events.emit("ready", new Event("ready"));
+    this.events.emit("ready", Date.now());
   }
 
   /**
@@ -322,7 +322,7 @@ export class TaskExecutor {
    * @private
    */
   private async doShutdown() {
-    this.events.emit("beforeEnd", new Event("beforeEnd"));
+    this.events.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
     if (!this.configOptions.storageProvider) await this.storageProvider?.close();
@@ -334,7 +334,7 @@ export class TaskExecutor {
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
-    this.events.emit("end", new Event("end"));
+    this.events.emit("end", Date.now());
   }
 
   /**
@@ -475,7 +475,7 @@ export class TaskExecutor {
     const costsSummary = this.statsService.getAllCostsSummary();
     const duration = this.statsService.getComputationTime();
     const providersCount = new Set(costsSummary.map((x) => x["Provider Name"])).size;
-    this.logger.info(`Computation finished in ${(duration / 1000).toFixed(2)} sec.`);
+    this.logger.info(`Computation finished in ${(duration / 1000).toFixed(1)} sec.`);
     this.logger.info(`Negotiation summary:`, {
       agreements: costsSummary.length,
       providers: providersCount,

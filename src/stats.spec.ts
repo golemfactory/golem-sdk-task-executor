@@ -14,7 +14,7 @@ describe("Stats Service", function () {
       agreementId?: string;
     }>,
   ) => {
-    events.emit("start", new Event("start"));
+    events.emit("ready", Date.now());
     for (const task of tasks) {
       const id = Math.random();
       const provider = {
@@ -62,7 +62,7 @@ describe("Stats Service", function () {
       // simulate the time gap between executing tasks / emitting events
       await sleep(100, true);
     }
-    events.emit("end", new Event("end"));
+    events.emit("beforeEnd", Date.now());
   };
 
   describe("All costs", () => {
