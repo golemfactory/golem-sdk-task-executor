@@ -1,7 +1,7 @@
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 import { ProviderInfo, TaskDetails } from "./task";
-import { BaseEvent, Events as GolemEvents } from "@golem-sdk/golem-js";
+import { BaseEvent, defaultLogger, Events as GolemEvents, Logger } from "@golem-sdk/golem-js";
 
 export interface AgreementInfo {
   id: string;
@@ -23,6 +23,10 @@ export interface TimeInfo {
   duration?: number;
 }
 
+interface StatsServiceOptions {
+  logger?: Logger;
+}
+
 export class StatsService {
   private listeners = new Map<keyof TaskExecutorEventsDict, EventEmitter.EventListener<string, string>>();
   private tasksCompleted = new Map<string, TaskDetails[]>();
@@ -31,16 +35,24 @@ export class StatsService {
   private invoices = new Map<string, InvoiceInfo[]>();
   private payments = new Map<string, PaymentInfo[]>();
   private times = new Map<string, TimeInfo>();
+  private logger: Logger;
 
-  constructor(private events: EventEmitter<TaskExecutorEventsDict>) {}
+  constructor(
+    private events: EventEmitter<TaskExecutorEventsDict>,
+    options?: StatsServiceOptions,
+  ) {
+    this.logger = options?.logger || defaultLogger("stats");
+  }
   async run() {
     this.subscribeGolemEvents();
     this.subscribeTaskEvents();
     this.subscribeTimeEvents();
+    this.logger.info("Stats Service has started");
   }
 
   async end() {
     this.unsubscribeAllEvents();
+    this.logger.info("Task Service has stopped");
   }
 
   /**
@@ -92,6 +104,7 @@ export class StatsService {
   private subscribeTimeEvents() {
     const startTimeListener = (event: Event) => {
       this.times.set("all", { startTime: event.timeStamp });
+      this.logger.debug("Start time detected", { startTime: event.timeStamp });
     };
     this.events.on("start", startTimeListener);
     this.listeners.set("start", startTimeListener);
@@ -104,6 +117,7 @@ export class StatsService {
       }
       times.stopTime = event.timeStamp;
       times.duration = times?.startTime ? times.stopTime - times.startTime : undefined;
+      this.logger.debug("Stop time detected", { ...times });
     };
     this.events.on("end", stopTimeListener);
     this.listeners.set("end", stopTimeListener);
@@ -118,6 +132,7 @@ export class StatsService {
         this.tasksCompleted.set(task.agreementId, tasks);
       }
       tasks.push(task);
+      this.logger.debug("Task data collected", { task });
     };
     this.events.on("taskCompleted", taskListener);
     this.listeners.set("taskCompleted", taskListener);
@@ -132,6 +147,7 @@ export class StatsService {
           proposalId: event.detail.proposalId,
         });
         this.providers.set(event.detail.provider.id, event.detail.provider);
+        this.logger.debug("AgreementCreated event collected", { agreement: event.detail });
       } else if (event instanceof GolemEvents.InvoiceReceived) {
         let invoices = this.invoices.get(event.detail.agreementId);
         if (!invoices) {
@@ -139,6 +155,7 @@ export class StatsService {
           this.invoices.set(event.detail.agreementId, invoices);
         }
         invoices.push(event.detail);
+        this.logger.debug("InvoiceReceived event collected", { agreement: event.detail });
       } else if (event instanceof GolemEvents.PaymentAccepted) {
         let payments = this.payments.get(event.detail.agreementId);
         if (!payments) {
@@ -146,6 +163,7 @@ export class StatsService {
           this.payments.set(event.detail.agreementId, payments);
         }
         payments.push(event.detail);
+        this.logger.debug("InvoiceAccepted event collected", { agreement: event.detail });
       }
     };
     this.events.on("golemEvents", golemEventsListener);
