@@ -338,6 +338,13 @@ export class TaskExecutor {
   }
 
   /**
+   * @Deprecated This feature is no longer supported. It will be removed in the next release.
+   */
+  getStats() {
+    return [];
+  }
+
+  /**
    * Registers a worker function that will be run when an activity is ready.
    * This is the perfect place to run setup functions that need to be run only once per
    * activity, for example uploading files that will be used by all tasks in the activity.
