@@ -3,12 +3,12 @@ import { Task } from "./task";
 import { TaskExecutor } from "./executor";
 import { sleep } from "./utils";
 import { TaskService } from "./service";
+import { StatsService } from "./stats";
 import { EventEmitter } from "eventemitter3";
 import {
   MarketService,
   AgreementPoolService,
   PaymentService,
-  StatsService,
   GolemConfigError,
   GolemWorkError,
   WorkErrorCode,
@@ -32,7 +32,6 @@ jest.mock("./service");
 const paymentServiceMock = mock(PaymentService);
 const agreementPoolServiceMock = mock(AgreementPoolService);
 const marketServiceMock = mock(MarketService);
-const statsServiceMock = mock(StatsService);
 const yagnaMock = mock(Yagna);
 const yagnaApiMock = imock<YagnaApi>();
 const packageMock = mock(Package);
@@ -46,7 +45,6 @@ Package.create = jest.fn();
 const paymentService = instance(paymentServiceMock);
 const agreementPoolService = instance(agreementPoolServiceMock);
 const marketService = instance(marketServiceMock);
-const statsService = instance(statsServiceMock);
 const yagna = instance(yagnaMock);
 const yagnaApi = instance(yagnaApiMock);
 const taskPackage = instance(packageMock);
@@ -54,7 +52,9 @@ const allocation = instance(allocationMock);
 const gftpStorageProvider = instance(gftpStorageProviderMock);
 const paymentEvents = instance(paymentEventsMock);
 const paymentConfig = { payment: { network: "test", driver: "test" } } as PaymentConfig;
+const statsServiceMock = mock(StatsService);
 const taskServiceMock = mock(TaskService);
+const statsService = instance(statsServiceMock);
 const taskMock = mock(Task);
 const taskService = instance(taskServiceMock);
 const task = instance(taskMock);
@@ -91,7 +91,6 @@ jest.mock("@golem-sdk/golem-js", () => ({
   AgreementPoolService: jest.fn(() => agreementPoolService),
   Yagna: jest.fn(() => yagna),
   GftpStorageProvider: jest.fn(() => gftpStorageProvider),
-  StatsService: jest.fn(() => statsService),
   Package: jest.fn(() => taskPackage),
 }));
 
@@ -101,6 +100,10 @@ jest.mock("./service", () => ({
 
 jest.mock("./task", () => ({
   Task: jest.fn(() => task),
+}));
+
+jest.mock("./stats", () => ({
+  StatsService: jest.fn(() => statsService),
 }));
 
 describe("Task Executor", () => {
