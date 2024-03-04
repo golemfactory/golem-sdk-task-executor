@@ -34,7 +34,7 @@ export class StatsService {
   private providers = new Map<string, ProviderInfo>();
   private invoices = new Map<string, InvoiceInfo[]>();
   private payments = new Map<string, PaymentInfo[]>();
-  private times = new Map<string, TimeInfo>();
+  private timeInfo: TimeInfo = {};
   private logger: Logger;
 
   constructor(
@@ -97,26 +97,21 @@ export class StatsService {
    * Returns the total computation time (in ms) of all tasks
    */
   getComputationTime(): number {
-    return this.times.get("all")?.duration ?? 0;
+    return this.timeInfo?.duration ?? 0;
   }
 
   private subscribeTimeEvents() {
     const startTimeListener = (timestamp: number) => {
-      this.times.set("all", { startTime: timestamp });
+      this.timeInfo.startTime = timestamp;
       this.logger.debug("Start time detected", { startTime: timestamp });
     };
     this.events.on("ready", startTimeListener);
     this.listeners.set("ready", startTimeListener);
 
     const stopTimeListener = (timestamp: number) => {
-      let times = this.times.get("all");
-      if (!times) {
-        times = {};
-        this.times.set("all", times);
-      }
-      times.stopTime = timestamp;
-      times.duration = times?.startTime ? times.stopTime - times.startTime : undefined;
-      this.logger.debug("Stop time detected", { ...times });
+      this.timeInfo.stopTime = timestamp;
+      this.timeInfo.duration = this.timeInfo?.startTime ? this.timeInfo.stopTime - this.timeInfo.startTime : undefined;
+      this.logger.debug("Stop time detected", { ...this.timeInfo });
     };
     this.events.on("beforeEnd", stopTimeListener);
     this.listeners.set("beforeEnd", stopTimeListener);
