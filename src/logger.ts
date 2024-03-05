@@ -54,7 +54,7 @@ export function pinoLogger(optionsOrStream?: pino.LoggerOptions | pino.Destinati
  * Golem Logger interface implementation using the Pino-Pretty library
  * Default set: `ignore: "pid,hostname,namespace", singleLine: true`
  * https://github.com/pinojs/pino-pretty
- * @param options -https://github.com/pinojs/pino-pretty?tab=readme-ov-file#options
+ * @param options - https://github.com/pinojs/pino-pretty?tab=readme-ov-file#options
  */
 export function pinoPrettyLogger(options?: pinoPretty.PrettyOptions): Logger {
   return new Pino({
