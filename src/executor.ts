@@ -16,7 +16,6 @@ import {
   NullStorageProvider,
   StorageProvider,
   WebSocketBrowserStorageProvider,
-  Events,
   GolemWorkError,
   WorkErrorCode,
   WorkOptions,
@@ -419,7 +418,7 @@ export class TaskExecutor {
       }
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
-        WorkErrorCode.TaskExecutionFailed,
+        WorkErrorCode.ScriptExecutionFailed,
         task?.getActivity()?.agreement,
         task?.getActivity(),
         task?.getActivity()?.getProviderInfo(),
@@ -468,7 +467,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.options.eventTarget?.dispatchEvent(new Events.ComputationFailed({ reason: err.toString() }));
+    // this.options.eventTarget?.dispatchEvent(new Events.ComputationFailed({ reason: err.toString() }));
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);
@@ -482,9 +481,9 @@ export class TaskExecutor {
   private printStats() {
     const costs = this.statsService.getAllCosts();
     const costsSummary = this.statsService.getAllCostsSummary();
-    const duration = this.statsService.getComputationTime();
+    // const duration = this.statsService.getComputationTime();
     const providersCount = new Set(costsSummary.map((x) => x["Provider Name"])).size;
-    this.logger.info(`Computation finished in ${duration}`);
+    // this.logger.info(`Computation finished in ${duration}`);
     this.logger.info(`Negotiation summary:`, {
       agreements: costsSummary.length,
       providers: providersCount,
@@ -493,7 +492,7 @@ export class TaskExecutor {
       this.logger.info(`Agreement ${index + 1}:`, {
         agreement: cost["Agreement"],
         provider: cost["Provider Name"],
-        tasks: cost["Task Computed"],
+        // tasks: cost["Task Computed"],
         cost: cost["Cost"],
         paymentStatus: cost["Payment Status"],
       });

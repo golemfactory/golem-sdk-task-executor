@@ -1,10 +1,17 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoLogger, jsonLogger, nullLogger } from "@golem-sdk/golem-js";
+import { TaskExecutor, pinoLogger, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { nullLogger } from "@golem-sdk/golem-js";
 import { program, Option } from "commander";
 
 // Create command-line configuration.
 program
-  .addOption(new Option("-l, --log <type>", "Set logger to use").default("text").choices(["text", "json", "null"]))
+  .addOption(
+    new Option(
+      "-l, --log <type>",
+      "Set logger to use. pretty - pino-pretty, json - default pino, debug - debug env lib, null - empty ",
+    )
+      .default("pretty")
+      .choices(["pretty", "json", "debug", "null"]),
+  )
   .option("-o, --output <file>", "log output file");
 
 // Parse command-line arguments.
@@ -13,10 +20,12 @@ const options = program.opts();
 
 // Create logger based on configuration.
 function createLogger(options) {
-  if (options.log === "text") {
-    return pinoLogger(options?.output);
+  if (options.log === "pretty") {
+    return pinoPrettyLogger(options?.output);
   } else if (options.log === "json") {
-    return jsonLogger(options?.output);
+    return pinoLogger(options?.output);
+  } else if (options.log === "debug") {
+    return undefined;
   } else {
     return nullLogger();
   }

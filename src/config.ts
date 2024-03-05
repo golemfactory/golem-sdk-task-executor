@@ -2,7 +2,6 @@ import { ExecutorOptions } from "./executor";
 import { isBrowser } from "./utils";
 import { TaskServiceOptions } from "./service";
 import {
-  defaultLogger,
   GolemConfigError,
   Logger,
   nullLogger,
@@ -10,6 +9,7 @@ import {
   PackageOptions,
   StorageProvider,
   ActivityConfig,
+  defaultLogger,
 } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
