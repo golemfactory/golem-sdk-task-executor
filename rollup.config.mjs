@@ -1,6 +1,7 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
+import alias from "@rollup/plugin-alias";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import nodePolyfills from "rollup-plugin-polyfill-node";
@@ -27,6 +28,9 @@ export default [
     },
     plugins: [
       ignore(["tmp", "pino"]),
+      alias({
+        entries: [{ find: "stream", replacement: "stream-browserify" }],
+      }),
       nodeResolve({ browser: true, preferBuiltins: true }),
       commonjs(),
       nodePolyfills(),
