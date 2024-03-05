@@ -16,8 +16,7 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
     maxTaskRetries: 5,
 
     // If you're using TaskExecutor, you want the "task" to last long in that case
-    taskTimeout: 60 * 60 * 1000,
-    activityExecuteTimeout: 60 * 60 * 1000,
+    taskTimeout: 60 * 60 * 1000, // 60 minutes
   });
 
   try {
