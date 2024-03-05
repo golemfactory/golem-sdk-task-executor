@@ -26,13 +26,13 @@ export default [
       format: "es",
     },
     plugins: [
-      ignore(["pino"]),
+      ignore(["tmp", "pino"]),
       nodeResolve({ browser: true, preferBuiltins: true }),
       commonjs(),
       nodePolyfills(),
       json(), // Required because one our dependencies (bottleneck) loads its own 'version.json'
       typescript({ tsconfig: "./tsconfig.json", exclude: ["**/__tests__", "**/*.spec.ts"] }),
-      // terser({ keep_classnames: true }),
+      terser({ keep_classnames: true }),
       filesize({ reporter: [sizeValidator, "boxen"] }),
     ],
   },
