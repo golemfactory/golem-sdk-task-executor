@@ -44,9 +44,9 @@ describe("PinoLogger", () => {
   describe("Pino pretty logger", () => {
     it("should write logs as pino pretty output", async () => {
       await writeFile("./test.log", "");
-      const logger = pinoPrettyLogger({ destination: "./test.log" });
+      const logger = pinoPrettyLogger({ destination: "./test.log", sync: true });
       logger.info("test log", { param: "test" });
-      await sleep(100, true);
+      await sleep(200, true);
       expect(await readFile("./test.log", "utf8")).toMatch(
         /^\[\d{2}:\d{2}:\d{2}\.\d{3}\].*INFO.*:.*test log.*{"param":"test"}.*/,
       );

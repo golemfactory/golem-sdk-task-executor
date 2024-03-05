@@ -1,4 +1,4 @@
-import { ProposalFilter, TaskExecutor } from "@golem-sdk/task-executor";
+import { ProposalFilter, TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to write a custom proposal filter.
@@ -13,6 +13,7 @@ const myFilter: ProposalFilter = (proposal) => {
 (async function main() {
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     proposalFilter: myFilter,
   });
   try {

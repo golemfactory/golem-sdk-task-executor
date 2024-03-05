@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
@@ -9,6 +9,7 @@ const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 
   // Create and configure a TaskExecutor instance.
   const executor = await TaskExecutor.create({
+    logger: pinoPrettyLogger(),
     capabilities: ["inet", "manifest-support"],
     manifest: manifest.toString("base64"),
     /**

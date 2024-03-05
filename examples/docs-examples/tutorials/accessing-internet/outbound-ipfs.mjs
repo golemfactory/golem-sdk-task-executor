@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { readFile } from "fs/promises";
 
 const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo3rs7ewhnp7lly";
@@ -10,6 +10,7 @@ const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo
   // Create and configure a TaskExecutor instance.
   const executor = await TaskExecutor.create({
     capabilities: ["inet", "manifest-support"],
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
     manifest: manifest.toString("base64"),
   });

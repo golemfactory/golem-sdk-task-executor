@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * An example demonstrating the use of a proxy server to send and receive http requests to the provider.
@@ -7,6 +7,7 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
  */
 (async function main() {
   const executor = await TaskExecutor.create({
+    logger: pinoPrettyLogger(),
     package: "golem/node:20-alpine",
     capabilities: ["vpn"],
     networkIp: "192.168.0.0/24",

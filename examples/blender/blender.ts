@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { program } from "commander";
 import { fileURLToPath } from "url";
 
@@ -29,6 +29,7 @@ async function main(subnetTag: string, driver?: string, network?: string, maxPar
     payment: { driver, network },
     package: "golem/blender:latest",
     maxParallelTasks,
+    logger: pinoPrettyLogger(),
   });
 
   try {

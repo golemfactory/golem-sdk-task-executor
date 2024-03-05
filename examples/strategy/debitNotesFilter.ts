@@ -1,4 +1,4 @@
-import { TaskExecutor, PaymentFilters } from "@golem-sdk/task-executor";
+import { TaskExecutor, PaymentFilters, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to use the predefined payment filter `acceptMaxAmountDebitNoteFilter`,
@@ -7,6 +7,7 @@ import { TaskExecutor, PaymentFilters } from "@golem-sdk/task-executor";
 (async function main() {
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     debitNotesFilter: PaymentFilters.acceptMaxAmountDebitNoteFilter(0.00001),
   });
 
