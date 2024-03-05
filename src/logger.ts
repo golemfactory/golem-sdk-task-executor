@@ -1,6 +1,7 @@
-import { Logger } from "@golem-sdk/golem-js";
+import { GolemUserError, Logger } from "@golem-sdk/golem-js";
 import * as pino from "pino";
 import * as pinoPretty from "pino-pretty";
+import { isBrowser } from "./utils";
 
 class Pino implements Logger {
   private logger: pino.Logger;
@@ -10,6 +11,9 @@ class Pino implements Logger {
     child?: pino.Logger,
     private namespace?: string,
   ) {
+    if (isBrowser) {
+      throw new GolemUserError("This pino logger implementation is not available from the browser");
+    }
     this.logger = child || pino.pino(optionsOrStream);
   }
 

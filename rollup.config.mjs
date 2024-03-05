@@ -4,6 +4,7 @@ import json from "@rollup/plugin-json";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import nodePolyfills from "rollup-plugin-polyfill-node";
+import ignore from "rollup-plugin-ignore";
 import pkg from "./package.json" assert { type: "json" };
 import filesize from "rollup-plugin-filesize";
 
@@ -25,6 +26,7 @@ export default [
       format: "es",
     },
     plugins: [
+      ignore(["pino"]),
       nodeResolve({ browser: true, preferBuiltins: true }),
       commonjs(),
       nodePolyfills(),
