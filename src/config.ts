@@ -2,7 +2,6 @@ import { ExecutorOptions } from "./executor";
 import { isBrowser } from "./utils";
 import { TaskServiceOptions } from "./service";
 import {
-  defaultLogger,
   GolemConfigError,
   Logger,
   nullLogger,
@@ -10,6 +9,7 @@ import {
   PackageOptions,
   StorageProvider,
   ActivityConfig,
+  defaultLogger,
 } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
@@ -121,7 +121,8 @@ export class TaskConfig extends ActivityConfig {
   public readonly logger: Logger;
 
   constructor(options?: TaskServiceOptions) {
-    super(options);
+    const activityExecuteTimeout = options?.activityExecuteTimeout || options?.taskTimeout || DEFAULTS.taskTimeout;
+    super({ ...options, activityExecuteTimeout });
     this.maxParallelTasks = options?.maxParallelTasks || DEFAULTS.maxParallelTasks;
     this.taskRunningInterval = options?.taskRunningInterval || DEFAULTS.taskRunningInterval;
     this.taskTimeout = options?.taskTimeout || DEFAULTS.taskTimeout;

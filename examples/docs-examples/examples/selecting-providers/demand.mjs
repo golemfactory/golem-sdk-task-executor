@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 (async function main() {
   const executor = await TaskExecutor.create({
@@ -7,6 +7,7 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
     //minMemGib : 8,
     //minStorageGib: 10,
     minCpuThreads: 1,
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
   });
 

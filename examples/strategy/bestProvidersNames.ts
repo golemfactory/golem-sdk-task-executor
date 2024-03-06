@@ -1,4 +1,4 @@
-import { TaskExecutor, AgreementCandidate } from "@golem-sdk/task-executor";
+import { TaskExecutor, AgreementCandidate, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to write a selector which choose the best provider based on scores provided as object: [providerName]: score
@@ -21,6 +21,7 @@ const bestProviderSelector =
 (async function main() {
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     agreementSelector: bestProviderSelector(scores),
   });
 

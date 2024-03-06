@@ -1,4 +1,4 @@
-import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger, ProposalFilterFactory } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to use the predefined filter `allowProvidersByName`,
@@ -15,6 +15,7 @@ for (let i = 0; i < whiteListNames.length; i++) {
   const executor = await TaskExecutor.create({
     package: "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae",
     proposalFilter: ProposalFilterFactory.allowProvidersByName(whiteListNames),
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
   });
 

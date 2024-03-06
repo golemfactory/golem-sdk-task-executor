@@ -1,4 +1,4 @@
-import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { TaskExecutor, ProposalFilterFactory, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to use the predefined filter `disallowProvidersByName`,
@@ -10,6 +10,7 @@ const blackListProvidersNames = ["provider-1", "golem-provider", "super-provider
 (async function main() {
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     proposalFilter: ProposalFilterFactory.disallowProvidersByName(blackListProvidersNames),
   });
 

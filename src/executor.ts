@@ -41,7 +41,7 @@ const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 export type ExecutorOptions = {
   /** Image hash or image tag as string, otherwise Package object */
   package?: string | Package;
-  /** Timeout for execute one task in ms */
+  /** Timeout for execute one task in ms. Default is 300_000 (5 minutes). */
   taskTimeout?: number;
   /** Subnet Tag */
   subnetTag?: string;

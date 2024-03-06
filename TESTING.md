@@ -46,7 +46,7 @@ Execute this command to start the Docker containers:
 
 The next step is to fund the requestor.
 
-    docker exec -t docker_requestor_1 /bin/sh -c "/golem-js/tests/docker/fundRequestor.sh"
+    docker exec -t docker_requestor_1 /bin/sh -c "/golem-sdk-task-executor/tests/docker/fundRequestor.sh"
 
 ### Install and Build the SDK
 
@@ -55,7 +55,7 @@ Finally, install and build the golem-js SDK in the Docker container
 Run this chain of commands to install and build the SDK and prepare cypress.
 
 ```docker
-docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-js && npm i && npm run build && ./node_modules/.bin/cypress install"
+docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-sdk-task-executor && npm i && npm run build && ./node_modules/.bin/cypress install"
 ```
 
 ### Execute the E2E Tests
@@ -63,7 +63,7 @@ docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-js && npm i && npm run b
 With your test environment set up, you can now initiate the E2E tests. Run the following command to start:
 
 ```docker
-docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-js && npm run test:e2e"
+docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-sdk-task-executor && npm run test:e2e"
 ```
 
 ### Execute the cypress Tests
@@ -71,11 +71,11 @@ docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-js && npm run test:e2e"
 First make sure that the webserver that's used for testing is running, by running the command
 
 ```docker
-docker exec -t -d docker_requestor_1 /bin/sh -c "cd /golem-js/examples/web && node app.mjs"
+docker exec -t -d docker_requestor_1 /bin/sh -c "cd /golem-sdk-task-executor/examples/web && node app.mjs"
 ```
 
 Now you're ready to start the cypress tests by running the command
 
 ```docker
-docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-js && npm run test:cypress -- --browser chromium"
+docker exec -t docker_requestor_1 /bin/sh -c "cd /golem-sdk-task-executor && npm run test:cypress -- --browser chromium"
 ```
