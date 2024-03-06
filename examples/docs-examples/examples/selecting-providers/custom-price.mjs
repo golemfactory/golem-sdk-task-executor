@@ -6,7 +6,7 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
 
 var costData = [];
 
-const myFilter = async (proposal) => {
+const myFilter = (proposal) => {
   let decision = false;
   let usageVector = proposal.properties["golem.com.usage.vector"];
   let counterIdx = usageVector.findIndex((ele) => ele === "golem.usage.duration_sec");
