@@ -3,7 +3,7 @@ import * as pino from "pino";
 import * as pinoPretty from "pino-pretty";
 import { isBrowser } from "./utils";
 
-class Pino implements Logger {
+class GolemPinoLogger implements Logger {
   private logger: pino.Logger;
 
   constructor(
@@ -37,9 +37,9 @@ class Pino implements Logger {
     this.logger.error(ctx, msg);
   }
 
-  child(namespace: string): Pino {
+  child(namespace: string): GolemPinoLogger {
     const fullNamespace = this.namespace ? `${this.namespace}:${namespace}` : namespace;
-    return new Pino(this.optionsOrStream, this.logger.child({ namespace: fullNamespace }), fullNamespace);
+    return new GolemPinoLogger(this.optionsOrStream, this.logger.child({ namespace: fullNamespace }), fullNamespace);
   }
 }
 
@@ -51,7 +51,7 @@ class Pino implements Logger {
  * https://github.com/pinojs/pino/blob/master/docs/api.md#destination
  */
 export function pinoLogger(optionsOrStream?: pino.LoggerOptions | pino.DestinationStream): Logger {
-  return new Pino(optionsOrStream);
+  return new GolemPinoLogger(optionsOrStream);
 }
 
 /**
@@ -61,7 +61,7 @@ export function pinoLogger(optionsOrStream?: pino.LoggerOptions | pino.Destinati
  * @param options - https://github.com/pinojs/pino-pretty?tab=readme-ov-file#options
  */
 export function pinoPrettyLogger(options?: pinoPretty.PrettyOptions): Logger {
-  return new Pino({
+  return new GolemPinoLogger({
     transport: {
       target: "pino-pretty",
       options: {
