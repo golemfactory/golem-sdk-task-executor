@@ -103,6 +103,7 @@ export class TaskService {
     let networkNode: NetworkNode | undefined;
 
     try {
+      this.startAcceptingAgreementPayments(agreement);
       activity = await this.getOrCreateActivity(agreement);
       task.start(activity, networkNode);
       this.events.emit("taskStarted", task.getDetails());
@@ -148,6 +149,12 @@ export class TaskService {
     this.activities.delete(activity.agreement.id);
   }
 
+  private startAcceptingAgreementPayments(agreement: Agreement) {
+    const agreementAlreadyAccepted = this.activities.has(agreement.id);
+    if (agreementAlreadyAccepted) return;
+    this.paymentService.acceptPayments(agreement);
+  }
+
   private async getOrCreateActivity(agreement: Agreement) {
     const previous = this.activities.get(agreement.id);
     if (previous) {
@@ -155,7 +162,6 @@ export class TaskService {
     } else {
       const activity = await Activity.create(agreement, this.yagnaApi, this.options);
       this.activities.set(agreement.id, activity);
-      this.paymentService.acceptPayments(agreement);
       return activity;
     }
   }
