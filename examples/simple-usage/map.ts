@@ -1,7 +1,10 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 (async function main() {
-  const executor = await TaskExecutor.create("golem/alpine:latest");
+  const executor = await TaskExecutor.create({
+    package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
+  });
   const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
   try {

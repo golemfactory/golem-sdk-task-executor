@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { program } from "commander";
 
 type MainOptions = {
@@ -20,6 +20,7 @@ program
   .action(async (args: MainOptions) => {
     const executor = await TaskExecutor.create({
       package: "golem/examples-hashcat:latest",
+      logger: pinoPrettyLogger(),
       maxParallelTasks: args.numberOfProviders,
       minMemGib: 0.5,
       minStorageGib: 2,

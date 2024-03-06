@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to write a custom proposal filter.
@@ -30,6 +30,7 @@ const myFilter = (proposal) => {
   const executor = await TaskExecutor.create({
     package: "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae",
     proposalFilter: myFilter,
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
     startupTimeout: 60_000,
   });

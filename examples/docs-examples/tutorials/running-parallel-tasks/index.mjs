@@ -1,10 +1,11 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { program } from "commander";
 
 async function main(args) {
   const executor = await TaskExecutor.create({
     package: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
     maxParallelTasks: args.numberOfProviders,
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: `try_golem` },
   });
 

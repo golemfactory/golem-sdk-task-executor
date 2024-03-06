@@ -1,4 +1,4 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { program } from "commander";
 
 type MainOptions = {
@@ -18,6 +18,7 @@ program
   .action(async (options: MainOptions) => {
     const executor = await TaskExecutor.create({
       package: "golem/js-fibonacci:latest",
+      logger: pinoPrettyLogger(),
       subnetTag: options.subnetTag,
       payment: { driver: options.paymentDriver, network: options.paymentNetwork },
     });

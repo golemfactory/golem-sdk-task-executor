@@ -1,10 +1,11 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { program } from "commander";
 import crypto from "crypto";
 
 async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100) {
   const executor = await TaskExecutor.create({
     package: "golem/examples-ssh:latest",
+    logger: pinoPrettyLogger(),
     capabilities: ["vpn"],
     networkIp: "192.168.0.0/24",
     maxParallelTasks: count,

@@ -1,4 +1,4 @@
-import { TaskExecutor, AgreementSelectors } from "@golem-sdk/task-executor";
+import { TaskExecutor, AgreementSelectors, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 /**
  * Example demonstrating how to use predefined selector `bestAgreementSelector`,
@@ -14,6 +14,7 @@ const scores = {
 (async function main() {
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     agreementSelector: AgreementSelectors.bestAgreementSelector(scores),
   });
 

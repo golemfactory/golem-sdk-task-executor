@@ -1,6 +1,9 @@
-import { TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
-const executor = await TaskExecutor.create("golem/alpine:latest");
+const executor = await TaskExecutor.create({
+  package: "golem/alpine:latest",
+  logger: pinoPrettyLogger(),
+});
 const finalResult = await executor.run(async (ctx) => {
   const remoteProcess = await ctx.spawn("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
   remoteProcess.stdout.on("data", (data) => console.log("stdout>", data));

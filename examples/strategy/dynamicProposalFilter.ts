@@ -4,7 +4,7 @@
  * By dynamic, we understand that the filter behaviour might change over time  due to some conditions
  */
 
-import { ProposalFilter, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/task-executor";
+import { ProposalFilter, ProposalFilterFactory, TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 const makeDynamicFilter: () => {
   filter: ProposalFilter;
@@ -35,6 +35,7 @@ const makeDynamicFilter: () => {
   const { filter, stopPolling } = makeDynamicFilter();
   const executor = await TaskExecutor.create({
     package: "golem/alpine:latest",
+    logger: pinoPrettyLogger(),
     proposalFilter: filter,
   });
   try {
