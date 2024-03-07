@@ -229,7 +229,7 @@ describe("Task Executor", () => {
       await expect(executor.run(() => Promise.resolve())).rejects.toThrow(
         new GolemWorkError(
           "Unable to execute task. Error: error 1",
-          WorkErrorCode.TaskExecutionFailed,
+          WorkErrorCode.ScriptExecutionFailed,
           undefined,
           undefined,
           undefined,
