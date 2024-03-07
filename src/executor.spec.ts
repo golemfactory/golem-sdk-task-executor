@@ -150,7 +150,7 @@ describe("Task Executor", () => {
       await executor.shutdown();
     });
 
-    it("should handle a critical error if startup payment service emit UserError", async () => {
+    it("should handle a critical error if startup payment service emit GolemUserError", async () => {
       const paymentEvents = new EventEmitter<PaymentServiceEvents>();
       when(paymentServiceMock.events).thenReturn(paymentEvents);
       const executor = await TaskExecutor.create({
