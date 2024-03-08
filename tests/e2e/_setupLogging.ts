@@ -8,8 +8,8 @@
 
 const jestConsole = console;
 
-beforeAll(() => {
-  global.console = require("console");
+beforeAll(async () => {
+  global.console = await import("console");
 });
 
 afterAll(() => {
