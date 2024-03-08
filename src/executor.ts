@@ -24,6 +24,7 @@ import {
   GolemTimeoutError,
   EVENT_TYPE,
   BaseEvent,
+  GolemUserError,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { RequireAtLeastOne } from "./types";
@@ -281,7 +282,13 @@ export class TaskExecutor {
     ]).catch((e) => this.handleCriticalError(e));
 
     // Start listening to issues reported by the services
-    this.paymentService.events.on("error", (e) => this.handleCriticalError(e));
+    this.paymentService.events.on("error", (e) => {
+      if (e instanceof GolemUserError) {
+        this.handleCriticalError(e);
+      } else {
+        this.logger.error("An error occurred while processing the payment", e);
+      }
+    });
 
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
