@@ -15,7 +15,6 @@ import {
   NullStorageProvider,
   StorageProvider,
   WebSocketBrowserStorageProvider,
-  Events,
   GolemWorkError,
   WorkErrorCode,
   WorkOptions,
@@ -417,7 +416,7 @@ export class TaskExecutor {
       }
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
-        WorkErrorCode.TaskExecutionFailed,
+        WorkErrorCode.ScriptExecutionFailed,
         task?.getActivity()?.agreement,
         task?.getActivity(),
         task?.getActivity()?.getProviderInfo(),
@@ -466,7 +465,6 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.options.eventTarget?.dispatchEvent(new Events.ComputationFailed({ reason: err.toString() }));
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);
