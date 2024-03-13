@@ -23,6 +23,7 @@
     "web": "node ./web/app.mjs",
     "server": "tsx ./express/server.ts",
     "proxy": "tsx ./proxy/proxy.ts",
+    "reputation-basic": "tsx ./reputation/basic.ts",
     "lint:ts": "tsc --project tsconfig.json --noEmit"
   },
   "author": "GolemFactory <contact@golem.network>",
