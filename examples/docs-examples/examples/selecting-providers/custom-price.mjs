@@ -28,7 +28,7 @@ const myFilter = (proposal) => {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae",
+    package: "golem/node:20-alpine",
     proposalFilter: myFilter,
     logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },

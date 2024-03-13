@@ -2,7 +2,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 (async () => {
   const executor = await TaskExecutor.create({
-    package: "dcd99a5904bebf7ca655a833b73cc42b67fd40b4a111572e3d2007c3",
+    package: "golem/node:20-alpine",
     logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
   });
@@ -16,7 +16,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
         .downloadFile("/golem/work/output.txt", "./output.txt")
         .end();
 
-      return res[2]?.stdout;
+      return res[2]?.result;
     });
 
     console.log(result);

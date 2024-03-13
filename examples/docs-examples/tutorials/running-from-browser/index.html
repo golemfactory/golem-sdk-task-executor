@@ -63,7 +63,7 @@
       };
       async function run() {
         const executor = await TaskExecutor.create({
-          package: "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae",
+          package: "golem/node:20-alpine",
           yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
           subnetTag: document.getElementById("SUBNET_TAG").value,
           logger,
