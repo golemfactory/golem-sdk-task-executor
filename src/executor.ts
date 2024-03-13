@@ -472,6 +472,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
+    this.events.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);
