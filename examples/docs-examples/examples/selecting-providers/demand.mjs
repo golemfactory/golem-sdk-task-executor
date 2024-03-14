@@ -2,7 +2,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/node:20-alpine",
+    package: "golem/alpine:latest",
     //minCpuCores : 2,
     //minMemGib : 8,
     //minStorageGib: 10,

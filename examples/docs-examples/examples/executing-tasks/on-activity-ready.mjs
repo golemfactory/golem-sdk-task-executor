@@ -2,7 +2,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 (async () => {
   const executor = await TaskExecutor.create({
-    package: "golem/node:20-alpine",
+    package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
     maxParallelTasks: 3,

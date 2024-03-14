@@ -24,7 +24,7 @@ const logger = {
 
 async function run() {
   const executor = await golem.TaskExecutor.create({
-    package: "golem/node:20-alpine",
+    package: "golem/alpine:latest",
     yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
     subnetTag: document.getElementById("SUBNET_TAG").value,
     logger,

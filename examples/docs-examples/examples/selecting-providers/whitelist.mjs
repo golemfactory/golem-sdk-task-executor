@@ -13,7 +13,7 @@ for (let i = 0; i < whiteListNames.length; i++) {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/node:20-alpine",
+    package: "golem/alpine:latest",
     proposalFilter: ProposalFilterFactory.allowProvidersByName(whiteListNames),
     logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
