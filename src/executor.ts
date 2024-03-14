@@ -77,6 +77,13 @@ export type ExecutorOptions = {
    */
   startupTimeout?: number;
   /**
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task starts.
+   * This parameter is expressed in ms. Default is 120_000 (2 minutes).
+   * If it is not possible to sign an agreement within the specified time,
+   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
+   */
+  taskStartupTimeout?: number;
+  /**
    * If set to `true`, the executor will exit with an error when no proposals are accepted.
    * You can customize how long the executor will wait for proposals using the `startupTimeout` parameter.
    * Default is `false`.
@@ -405,6 +412,7 @@ export class TaskExecutor {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
         maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
         timeout: options?.timeout ?? this.options.taskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.startupTaskTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
       });
       this.taskQueue.addToEnd(task);
