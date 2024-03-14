@@ -19,6 +19,7 @@ export default defineConfig({
         config.env.YAGNA_APPKEY = process.env.YAGNA_APPKEY;
         config.env.YAGNA_API_BASEPATH = process.env.YAGNA_API_URL;
         config.env.YAGNA_SUBNET = process.env.YAGNA_SUBNET;
+        config.env.PAYMENT_NETWORK = process.env.PAYMENT_NETWORK;
         res(config);
       });
     },
