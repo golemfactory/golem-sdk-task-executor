@@ -77,7 +77,7 @@ export type ExecutorOptions = {
    */
   startupTimeout?: number;
   /**
-   * Timeout for waiting for signing an agreement with an available provider from the moment the task starts.
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
    * This parameter is expressed in ms. Default is 120_000 (2 minutes).
    * If it is not possible to sign an agreement within the specified time,
    * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
