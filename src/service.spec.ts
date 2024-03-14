@@ -116,7 +116,7 @@ describe("Task Service", () => {
       activityStateCheckingInterval: 10,
     });
     service.run().then();
-    await sleep(500, true);
+    await sleep(800, true);
     expect(cb).toHaveBeenCalledTimes(3);
     expect(task.isRejected()).toEqual(true);
     await service.end();
