@@ -19,9 +19,9 @@ export enum TaskState {
 export type TaskOptions = {
   /** maximum number of retries if task failed due to provider reason, default = 5 */
   maxRetries?: number;
-  /** timeout in ms for task execution, measured for one attempt, default = 300_000 (5min) */
+  /** timeout in ms for task execution, measured for one attempt from start to stop, default = 300_000 (5min) */
   timeout?: number;
-  /** timeout in ms for task startup, including signing an agreement with the provider, default = 120_000 (2min) */
+  /** timeout in ms for task startup, measured from initialization to start, default = 120_000 (2min) */
   startupTimeout?: number;
   /** array of setup functions to run on each activity */
   activityReadySetupFunctions?: Worker<unknown>[];
