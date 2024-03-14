@@ -13,7 +13,7 @@ import {
 } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
-  payment: { driver: "erc20", network: "goerli" },
+  payment: { driver: "erc20", network: "holesky" },
   budget: 1.0,
   subnetTag: "public",
   basePath: "http://127.0.0.1:7465",
