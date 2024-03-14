@@ -53,7 +53,6 @@ manifest.compManifest.net.inet.out.urls = urls;
     // What do you want to run
     capabilities: ["inet", "manifest-support"],
     manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
-    //manifest: manifest_updated.toString("base64"),
 
     payment: { network: "holesky" },
     yagnaOptions: { apiKey: "try_golem" },
