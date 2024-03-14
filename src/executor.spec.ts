@@ -18,6 +18,7 @@ import {
   GftpStorageProvider,
   YagnaApi,
   Logger,
+  GolemUserError,
 } from "@golem-sdk/golem-js";
 
 // temporarily until the import in golem-js is fixed
@@ -127,6 +128,7 @@ describe("Task Executor", () => {
       expect(executor).toBeDefined();
       await executor.shutdown();
     });
+
     it("should handle a critical error if startup timeout is reached and exitOnNoProposals is enabled", async () => {
       const executor = await TaskExecutor.create({
         package: "test",
@@ -144,6 +146,26 @@ describe("Task Executor", () => {
       });
       await sleep(10, true);
       expect(handleErrorSpy).toHaveBeenCalled();
+      handleErrorSpy.mockClear();
+      await executor.shutdown();
+    });
+
+    it("should handle a critical error if startup payment service emit GolemUserError", async () => {
+      const paymentEvents = new EventEmitter<PaymentServiceEvents>();
+      when(paymentServiceMock.events).thenReturn(paymentEvents);
+      const executor = await TaskExecutor.create({
+        package: "test",
+        logger,
+        yagnaOptions,
+      });
+      const testUserError = new GolemUserError("User Error");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handleErrorSpy = jest.spyOn(executor as any, "handleCriticalError").mockImplementation((error) => {
+        expect(error).toEqual(testUserError);
+      });
+      paymentEvents.emit("error", testUserError);
+      expect(handleErrorSpy).toHaveBeenCalled();
+      handleErrorSpy.mockClear();
       await executor.shutdown();
     });
 
@@ -229,7 +251,7 @@ describe("Task Executor", () => {
       await expect(executor.run(() => Promise.resolve())).rejects.toThrow(
         new GolemWorkError(
           "Unable to execute task. Error: error 1",
-          WorkErrorCode.TaskExecutionFailed,
+          WorkErrorCode.ScriptExecutionFailed,
           undefined,
           undefined,
           undefined,

@@ -18,6 +18,10 @@
             <label for="SUBNET_TAG">Subnet Tag: </label>
             <input id="SUBNET_TAG" type="text" value="public" />
           </div>
+          <div>
+            <label for="PAYMENT_NETWORK">Payment network: </label>
+            <input id="PAYMENT_NETWORK" type="text" value="goerli" />
+          </div>
         </div>
         <h3>Actions</h3>
         <div class="row vertical">
@@ -63,9 +67,10 @@
       };
       async function run() {
         const executor = await TaskExecutor.create({
-          package: "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae",
+          package: "golem/alpine:latest",
           yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
           subnetTag: document.getElementById("SUBNET_TAG").value,
+          payment: { network: document.getElementById("PAYMENT_NETWORK").value },
           logger,
         });
         await executor
