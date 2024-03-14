@@ -27,6 +27,7 @@ async function run() {
     package: "golem/alpine:latest",
     yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
     subnetTag: document.getElementById("SUBNET_TAG").value,
+    payment: { network: document.getElementById("PAYMENT_NETWORK").value },
     logger,
   });
 

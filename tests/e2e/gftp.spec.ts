@@ -1,6 +1,12 @@
 import { TaskExecutor } from "../../src";
 import fs from "fs";
 
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 describe("GFTP transfers", function () {
   it(
     "should upload and download big files simultaneously",
@@ -10,7 +16,7 @@ describe("GFTP transfers", function () {
       });
 
       executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(__dirname + "/../fixtures/eiffel.blend");
+        const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/eiffel.blend"));
         await ctx.uploadFile(sourcePath, "/golem/work/eiffel.blend");
       });
 
