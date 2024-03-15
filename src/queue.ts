@@ -1,5 +1,5 @@
 import { Task } from "./task";
-import { GolemWorkError, WorkErrorCode } from "@golem-sdk/golem-js";
+import { GolemInternalError } from "@golem-sdk/golem-js";
 
 /**
  * @internal
@@ -33,10 +33,6 @@ export class TaskQueue<T extends QueueableTask = Task> {
   }
 
   private checkIfTaskIsEligibleForAdd(task: T) {
-    if (!task.isQueueable())
-      throw new GolemWorkError(
-        "You cannot add a task that is not in the correct state",
-        WorkErrorCode.TaskAddingFailed,
-      );
+    if (!task.isQueueable()) throw new GolemInternalError("You cannot add a task that is not in the correct state");
   }
 }

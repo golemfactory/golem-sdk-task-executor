@@ -15,7 +15,6 @@ import {
   NullStorageProvider,
   StorageProvider,
   WebSocketBrowserStorageProvider,
-  Events,
   GolemWorkError,
   WorkErrorCode,
   WorkOptions,
@@ -25,6 +24,7 @@ import {
   GolemTimeoutError,
   EVENT_TYPE,
   BaseEvent,
+  GolemUserError,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { RequireAtLeastOne } from "./types";
@@ -164,7 +164,7 @@ export class TaskExecutor {
    * ```js
    * const executor = await TaskExecutor.create({
    *   subnetTag: "public",
-   *   payment: { driver: "erc-20", network: "goerli" },
+   *   payment: { driver: "erc-20", network: "holesky" },
    *   package: "golem/alpine:3.18.2",
    * });
    * ```
@@ -282,7 +282,13 @@ export class TaskExecutor {
     ]).catch((e) => this.handleCriticalError(e));
 
     // Start listening to issues reported by the services
-    this.paymentService.events.on("error", (e) => this.handleCriticalError(e));
+    this.paymentService.events.on("error", (e) => {
+      if (e instanceof GolemUserError) {
+        this.handleCriticalError(e);
+      } else {
+        this.logger.error("An error occurred while processing the payment", e);
+      }
+    });
 
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
@@ -417,7 +423,7 @@ export class TaskExecutor {
       }
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
-        WorkErrorCode.TaskExecutionFailed,
+        WorkErrorCode.ScriptExecutionFailed,
         task?.getActivity()?.agreement,
         task?.getActivity(),
         task?.getActivity()?.getProviderInfo(),
@@ -466,7 +472,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.options.eventTarget?.dispatchEvent(new Events.ComputationFailed({ reason: err.toString() }));
+    this.events.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);

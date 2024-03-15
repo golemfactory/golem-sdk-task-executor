@@ -21,6 +21,11 @@ export interface TaskExecutorEventsDict {
   beforeEnd: (timestamp: number) => void;
 
   /**
+   * Fires when task executor encountered an unrecoverable error and is about to shut down.
+   */
+  criticalError: (err: Error) => void;
+
+  /**
    * Fires when task executor is completely terminated.
    */
   end: (timestamp: number) => void;
