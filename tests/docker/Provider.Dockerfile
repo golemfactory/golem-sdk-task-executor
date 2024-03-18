@@ -37,5 +37,6 @@ RUN apt-get update -q \
     && cp -R ya-runtime-vm-linux-${YA_VM_VERSION}/* ${YA_DIR_PLUGINS} \
     && rm -Rf ${YA_DIR_INSTALLER}
 COPY ./configureProvider.py /configureProvider.py
+COPY ./setProviderWhitelist.sh /setProviderWhitelist.sh
 
-CMD ["bash", "-c", "python3 /configureProvider.py && ya-provider rule set outbound everyone --mode whitelist && ya-provider whitelist add -p ipfs.io && golemsp run --payment-network testnet " ]
+CMD ["bash", "-c", "python3 /configureProvider.py && /setProviderWhitelist.sh && golemsp run --payment-network testnet " ]
