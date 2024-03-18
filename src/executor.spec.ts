@@ -187,6 +187,7 @@ describe("Task Executor", () => {
         activityReadySetupFunctions: [],
         maxRetries: 0,
         timeout: 300000,
+        startupTimeout: 120000,
       });
       await executor.shutdown();
     });
@@ -209,6 +210,7 @@ describe("Task Executor", () => {
         activityReadySetupFunctions: [],
         maxRetries: 0,
         timeout: 300000,
+        startupTimeout: 120000,
       });
       await executor.shutdown();
     });
