@@ -44,8 +44,7 @@
   },
   {
     "cmd": "node",
-    "path": "examples/docs-examples/examples/working-with-results/multi-command-fail.mjs",
-    "skip": true
+    "path": "examples/docs-examples/examples/working-with-results/multi-command-fail.mjs"
   },
   { "cmd": "node", "path": "examples/docs-examples/examples/working-with-results/single-command.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/working-with-results/single-command-fail.mjs" },
@@ -60,5 +59,10 @@
     "path": "examples/docs-examples/tutorials/running-parallel-tasks/index.mjs",
     "args": ["--mask", "?a?a", "--hash", "$P$5ZDzPE45CigTC6EY4cXbyJSLj/pGee0"],
     "timeout": 1000
-  }
+  },
+  { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/streams/stream-onclose.mjs" },
+  { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/streams/stream-waitforexit.mjs" },
+  { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/observing-events.mjs" },
+  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/npm-install.mjs" },
+  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/outbound-basic.mjs" }
 ]
