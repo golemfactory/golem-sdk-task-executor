@@ -3,7 +3,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 (async function main() {
   const executor = await TaskExecutor.create({
     // What do you want to run
-    package: "f4a261ea7b760a1da10f21f0ad8d704c25c8d2c75d0bf16300b9721e",
+    package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
     budget: 0.5,
