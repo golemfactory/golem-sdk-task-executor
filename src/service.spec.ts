@@ -8,7 +8,6 @@ import {
   NetworkService,
   PaymentService,
   Result,
-  ResultState,
   WorkContext,
   YagnaApi,
 } from "@golem-sdk/golem-js";
@@ -45,9 +44,7 @@ Activity.create = jest.fn(() => Promise.resolve(activity));
 describe("Task Service", () => {
   beforeEach(() => {
     queue = new TaskQueue();
-    const results = [
-      new Result({ index: 0, result: ResultState.Ok, stdout: "test", eventDate: new Date().toDateString() }),
-    ];
+    const results = [new Result({ index: 0, result: "Ok", stdout: "test", eventDate: new Date().toDateString() })];
     const readable = new Readable({
       objectMode: true,
       read() {

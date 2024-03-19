@@ -12,7 +12,6 @@ import {
   GolemConfigError,
   GolemWorkError,
   WorkErrorCode,
-  Yagna,
   Package,
   Activity,
   GftpStorageProvider,
@@ -33,7 +32,6 @@ jest.mock("./service");
 const paymentServiceMock = mock(PaymentService);
 const agreementPoolServiceMock = mock(AgreementPoolService);
 const marketServiceMock = mock(MarketService);
-const yagnaMock = mock(Yagna);
 const yagnaApiMock = imock<YagnaApi>();
 const packageMock = mock(Package);
 const allocationMock = imock<Allocation>();
@@ -46,8 +44,6 @@ Package.create = jest.fn();
 const paymentService = instance(paymentServiceMock);
 const agreementPoolService = instance(agreementPoolServiceMock);
 const marketService = instance(marketServiceMock);
-const yagna = instance(yagnaMock);
-const yagnaApi = instance(yagnaApiMock);
 const taskPackage = instance(packageMock);
 const allocation = instance(allocationMock);
 const gftpStorageProvider = instance(gftpStorageProviderMock);
@@ -60,10 +56,8 @@ const taskMock = mock(Task);
 const taskService = instance(taskServiceMock);
 const task = instance(taskMock);
 const activity = instance(activityMock);
+const yagnaApi = instance(yagnaApiMock);
 
-when(yagnaMock.getApi()).thenReturn(yagnaApi);
-when(yagnaMock.connect()).thenResolve(anything());
-when(yagnaMock.end()).thenResolve(anything());
 when(paymentServiceMock.createAllocation()).thenResolve(allocation);
 when(paymentServiceMock.run()).thenResolve(anything());
 when(paymentServiceMock.end()).thenResolve(anything());
@@ -90,7 +84,7 @@ jest.mock("@golem-sdk/golem-js", () => ({
   MarketService: jest.fn(() => marketService),
   PaymentService: jest.fn(() => paymentService),
   AgreementPoolService: jest.fn(() => agreementPoolService),
-  Yagna: jest.fn(() => yagna),
+  YagnaApi: jest.fn(() => yagnaApi),
   GftpStorageProvider: jest.fn(() => gftpStorageProvider),
   Package: jest.fn(() => taskPackage),
 }));
