@@ -64,5 +64,6 @@
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/streams/stream-waitforexit.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/observing-events.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/outbound/npm-install.mjs" },
-  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/outbound-basic.mjs" }
+  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/outbound-basic.mjs" },
+  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/whitelist-checker.mjs" }
 ]
