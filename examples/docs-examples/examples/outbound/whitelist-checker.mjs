@@ -42,10 +42,10 @@ const urls = await fetch(whitelistUrl)
 
 const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
 
-manifest.createdAt = today.toISOString().replace("Z", "+00:00");
-manifest.expiresAt = new Date(today.setDate(today.getDate() + 2)).toISOString().replace("Z", "+00:00");
+manifest.createdAt = today.toISOString();
+manifest.expiresAt = new Date(today.setDate(today.getDate() + 2)).toISOString();
 
-//urls.pop();   // line skips last entry from test
+//urls.pop();   // line skips last entry - for test only
 manifest.compManifest.net.inet.out.urls = urls;
 
 (async function main() {
