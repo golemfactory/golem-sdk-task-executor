@@ -1,5 +1,5 @@
 ARG UBUNTU_VERSION=22.04
-ARG YA_CORE_PROVIDER_VERSION=v0.12.3
+ARG YA_CORE_PROVIDER_VERSION=v0.14.0
 ARG YA_WASI_VERSION=v0.2.2
 ARG YA_VM_VERSION=v0.3.0
 
@@ -37,5 +37,6 @@ RUN apt-get update -q \
     && cp -R ya-runtime-vm-linux-${YA_VM_VERSION}/* ${YA_DIR_PLUGINS} \
     && rm -Rf ${YA_DIR_INSTALLER}
 COPY ./configureProvider.py /configureProvider.py
+COPY ./setProviderWhitelist.sh /setProviderWhitelist.sh
 
-CMD ["bash", "-c", "python3 /configureProvider.py && ya-provider rule set outbound everyone --mode whitelist && ya-provider whitelist add -p ipfs.io && golemsp run --payment-network testnet " ]
+CMD ["bash", "-c", "python3 /configureProvider.py && /setProviderWhitelist.sh && golemsp run --payment-network testnet " ]
