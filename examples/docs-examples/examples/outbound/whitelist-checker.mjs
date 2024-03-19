@@ -29,16 +29,12 @@ const manifest = {
 // get whitelist to urls array
 const whitelistUrl = "https://raw.githubusercontent.com/golemfactory/ya-installer-resources/main/whitelist/strict.lst";
 
-const urls = await fetch(whitelistUrl)
-  .then(async (res) => await res.text())
-  .then((data) => data.split("\n"))
-  .then((array) => {
-    const output = [];
-    for (let url of array) {
-      if (url != "") output.push("https://" + url);
-    }
-    return output;
-  });
+const urls = await fetch(whitelistUrl).then(async (res) =>
+  (await res.text())
+    .split("\n")
+    .filter((url) => !!url)
+    .map((url) => `https://${url}`),
+);
 
 const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
 
@@ -53,8 +49,7 @@ manifest.compManifest.net.inet.out.urls = urls;
     // What do you want to run
     capabilities: ["inet", "manifest-support"],
     manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
-
-    payment: { network: "holesky" },
+    logger: pinoPrettyLogger(),
     yagnaOptions: { apiKey: "try_golem" },
   });
 
