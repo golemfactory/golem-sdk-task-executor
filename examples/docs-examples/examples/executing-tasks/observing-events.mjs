@@ -5,12 +5,12 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
     package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
     taskTimeout: 20 * 60 * 1000, // 20 MIN
-    // yagnaOptions: { apiKey: "try_golem" },
+    yagnaOptions: { apiKey: "try_golem" },
   });
 
   // Golem-js core events
   executor.events.on("golemEvents", (event) => {
-    // console.log(event.name, event.detail);
+    console.log(event.name, event.detail);
   });
 
   // TaskExecutor specific events

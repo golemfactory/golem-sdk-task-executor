@@ -18,7 +18,7 @@ for (const i of [1, 2, 3, 4]) {
     await ctx.run(
       `echo 'counter=0; while [ $counter -lt 5 ]; do ls -ls ./script.sh non-existing-file; sleep 1; counter=$(($counter+1)); done' > script.sh`,
     );
-    //permissions are modified to be able to run the script
+    // permissions are modified to be able to run the script
     await ctx.run("chmod 700 ./script.sh");
 
     // script is run and stream results, stdout and stderr are processed
@@ -27,8 +27,11 @@ for (const i of [1, 2, 3, 4]) {
     remoteProcess.stdout.on("data", (data) => console.log(`iteration: ${i}:`, "stdout>", data));
     remoteProcess.stderr.on("data", (data) => console.error(`iteration: ${i}:`, "stderr>", data));
 
-    // For odd tasks, we set streaming timeout to 10 secs, (the script will end normally, for equal tasks we will exit the run method after 3 secs.
-    // The exit caused by timeout will terminate the activity on a provider, therefore the user cannot run another command on the provider. Task executor will run the next task on another provider.
+    // For odd tasks, we set streaming timeout to 10 secs,
+    // the script will end normally, for equal tasks we will exit the run method after 3 secs.
+    // The exit caused by timeout will terminate the activity on a provider,
+    // therefore the user cannot run another command on the provider.
+    // Task executor will run the next task on another provider.
 
     const timeout = i % 2 === 0 ? 3_000 : 10_000;
     const finalResult = await remoteProcess.waitForExit(timeout).catch(async (e) => {
@@ -43,7 +46,7 @@ for (const i of [1, 2, 3, 4]) {
       // if the spawn exited without timeout, the provider is still available
       console.log(`Iteration: ${i} results: ${finalResult?.result}. Provider: ${ctx.provider.name}`);
 
-      console.log("Running command after normal runAndStream exit is possible: ", (await ctx.run("ls -l")).stdout);
+      console.log("Running command after normal runAndStream exit is possible:", (await ctx.run("ls -l")).stdout);
     }
   });
 }
