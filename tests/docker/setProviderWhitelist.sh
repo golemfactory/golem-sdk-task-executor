@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ya-provider rule set outbound everyone --mode whitelist
 
 WHITELIST_URL="https://raw.githubusercontent.com/golemfactory/ya-installer-resources/main/whitelist/strict.lst"
