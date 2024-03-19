@@ -19,8 +19,10 @@ export enum TaskState {
 export type TaskOptions = {
   /** maximum number of retries if task failed due to provider reason, default = 5 */
   maxRetries?: number;
-  /** timeout in ms for task execution, including retries, default = 300_000 (5min) */
+  /** timeout in ms for task execution, measured for one attempt from start to stop, default = 300_000 (5min) */
   timeout?: number;
+  /** timeout in ms for task startup, measured from initialization to start, default = 120_000 (2min) */
+  startupTimeout?: number;
   /** array of setup functions to run on each activity */
   activityReadySetupFunctions?: Worker<unknown>[];
 };
@@ -37,6 +39,7 @@ export type TaskDetails = {
 const DEFAULTS = {
   MAX_RETRIES: 5,
   TIMEOUT: 1000 * 60 * 5,
+  STARTUP_TIMEOUT: 1000 * 60 * 2,
 };
 
 /**
@@ -51,7 +54,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private retriesCount = 0;
   private listeners = new Set<(state: TaskState) => void>();
   private timeoutId?: NodeJS.Timeout;
+  private startupTimeoutId?: NodeJS.Timeout;
   private readonly timeout: number;
+  private readonly startupTimeout: number;
   private readonly maxRetries: number;
   private readonly activityReadySetupFunctions: Worker<unknown>[];
   private activity?: Activity;
@@ -63,6 +68,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
     options?: TaskOptions,
   ) {
     this.timeout = options?.timeout ?? DEFAULTS.TIMEOUT;
+    this.startupTimeout = options?.startupTimeout ?? DEFAULTS.STARTUP_TIMEOUT;
     this.maxRetries = options?.maxRetries ?? DEFAULTS.MAX_RETRIES;
     this.activityReadySetupFunctions = options?.activityReadySetupFunctions ?? [];
     if (this.maxRetries < 0) {
@@ -79,10 +85,22 @@ export class Task<OutputType = unknown> implements QueueableTask {
   }
   init() {
     this.state = TaskState.Queued;
+    this.startupTimeoutId = setTimeout(
+      () =>
+        this.stop(
+          undefined,
+          new GolemTimeoutError(
+            `Task startup ${this.id} timeout. Failed to sign an agreement with the provider within the specified time`,
+          ),
+          true,
+        ),
+      this.startupTimeout,
+    );
   }
 
   start(activity: Activity, networkNode?: NetworkNode) {
     this.state = TaskState.Pending;
+    clearTimeout(this.startupTimeoutId);
     this.activity = activity;
     this.networkNode = networkNode;
     this.listeners.forEach((listener) => listener(this.state));
@@ -96,6 +114,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
       return;
     }
     clearTimeout(this.timeoutId);
+    clearTimeout(this.startupTimeoutId);
     if (error) {
       this.error = error;
       if (retry && this.retriesCount < this.maxRetries) {

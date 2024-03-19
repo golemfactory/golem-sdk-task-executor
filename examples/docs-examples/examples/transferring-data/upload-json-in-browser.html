@@ -27,9 +27,10 @@
       };
       async function run() {
         const executor = await TaskExecutor.create({
-          package: "dcd99a5904bebf7ca655a833b73cc42b67fd40b4a111572e3d2007c3",
+          package: "golem/alpine:latest",
           yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
           subnetTag: document.getElementById("SUBNET_TAG").value,
+          payment: { network: document.getElementById("PAYMENT_NETWORK").value },
           logger,
         }).catch((e) => logger.error(e));
 
@@ -62,6 +63,10 @@
           <div>
             <label for="SUBNET_TAG">Subnet Tag: </label>
             <input id="SUBNET_TAG" type="text" value="public" />
+          </div>
+          <div>
+            <label for="PAYMENT_NETWORK">Payment network: </label>
+            <input id="PAYMENT_NETWORK" type="text" value="holesky" />
           </div>
         </div>
         <h3>Actions</h3>

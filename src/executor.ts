@@ -77,6 +77,13 @@ export type ExecutorOptions = {
    */
   startupTimeout?: number;
   /**
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
+   * This parameter is expressed in ms. Default is 120_000 (2 minutes).
+   * If it is not possible to sign an agreement within the specified time,
+   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
+   */
+  taskStartupTimeout?: number;
+  /**
    * If set to `true`, the executor will exit with an error when no proposals are accepted.
    * You can customize how long the executor will wait for proposals using the `startupTimeout` parameter.
    * Default is `false`.
@@ -164,7 +171,7 @@ export class TaskExecutor {
    * ```js
    * const executor = await TaskExecutor.create({
    *   subnetTag: "public",
-   *   payment: { driver: "erc-20", network: "goerli" },
+   *   payment: { driver: "erc-20", network: "holesky" },
    *   package: "golem/alpine:3.18.2",
    * });
    * ```
@@ -403,6 +410,7 @@ export class TaskExecutor {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
         maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
         timeout: options?.timeout ?? this.options.taskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.startupTaskTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
       });
       this.taskQueue.addToEnd(task);
@@ -470,6 +478,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
+    this.events.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);

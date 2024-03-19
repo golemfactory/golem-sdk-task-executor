@@ -1,6 +1,7 @@
 import { Task, TaskState } from "./task";
-import { Activity, Result, ResultState } from "@golem-sdk/golem-js";
+import { Activity, GolemTimeoutError, Result, ResultState } from "@golem-sdk/golem-js";
 import { instance, mock } from "@johanblumenberg/ts-mockito";
+import { sleep } from "./utils";
 
 describe("Task", function () {
   const worker = async () => null;
@@ -51,5 +52,25 @@ describe("Task", function () {
     const error = new Error("test");
     task.stop(undefined, error, true);
     expect(task.getState()).toEqual(TaskState.Retry);
+  });
+
+  it("should stop the task with a timeout error if the task does not complete within the specified time", async () => {
+    const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 0 });
+    task.start(activity);
+    await sleep(2, true);
+    expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
+    expect(task.getState() === TaskState.Rejected);
+  });
+
+  it("should stop the task with a timeout error if the task does not started within the specified time", async () => {
+    const task = new Task<unknown>("1", worker, { startupTimeout: 1, maxRetries: 0 });
+    task.init();
+    await sleep(2, true);
+    expect(task.getError()).toEqual(
+      new GolemTimeoutError(
+        "Task startup 1 timeout. Failed to sign an agreement with the provider within the specified time",
+      ),
+    );
+    expect(task.getState() === TaskState.Rejected);
   });
 });
