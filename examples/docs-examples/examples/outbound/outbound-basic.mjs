@@ -1,4 +1,4 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/golem-js";
+import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 import { readFile } from "fs/promises";
 
 // The example is using url that is included in the outbound Whitelist.
