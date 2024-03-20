@@ -120,7 +120,7 @@ jobs:
         uses: ./.github/actions/prepare-tests
 
       - name: Copy docs examples
-        run: docker exec -t -d docker-requestor-1 /bin/sh -c '
+        run: docker exec -t docker-requestor-1 /bin/sh -c '
           cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/transfer-data-in-browser.html /golem-sdk-task-executor/examples/web/
           cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/upload-json-in-browser.html /golem-sdk-task-executor/examples/web/
           cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/index.html /golem-sdk-task-executor/examples/web/quickstart.html
