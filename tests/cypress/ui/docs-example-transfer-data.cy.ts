@@ -1,6 +1,6 @@
 describe("Docs Examples Transfer Data", () => {
   it("should transfer image file to provider", () => {
-    cy.visit("/docs-example-transfer-data");
+    cy.visit("/transfer-data-in-browser");
     cy.get("#YAGNA_API_BASEPATH").clear().type(Cypress.env("YAGNA_API_BASEPATH"));
     cy.get("#SUBNET_TAG").clear().type(Cypress.env("YAGNA_SUBNET"));
     cy.get("#PAYMENT_NETWORK").clear().type(Cypress.env("PAYMENT_NETWORK"));
