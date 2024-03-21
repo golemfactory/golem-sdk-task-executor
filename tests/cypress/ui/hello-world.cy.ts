@@ -7,5 +7,6 @@ describe("Test TaskExecutor API", () => {
     cy.get("#PAYMENT_NETWORK").clear().type(Cypress.env("PAYMENT_NETWORK"));
     cy.get("#echo").click();
     cy.get("#results").should("include.text", "Hello World", { timeout: 60000 });
+    cy.get("#results").should("include.text", "Finished the task", { timeout: 10000 });
   });
 });
