@@ -7,7 +7,6 @@ describe("Test TaskExecutor API", () => {
     cy.get("#PAYMENT_NETWORK").clear().type(Cypress.env("PAYMENT_NETWORK"));
     cy.fixture("golem.png", { encoding: null }).as("imageFile");
     cy.get("#MEME_IMG").selectFile("@imageFile");
-    cy.wait(1000);
     cy.get("#RUN").click();
     cy.get("#RESULT_MEME").should("have.attr", "src").and("contain", "blob:http://localhost:3000", { timeout: 60000 });
     cy.get("#logs").contains("Task computed");

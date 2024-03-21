@@ -68,7 +68,7 @@
     </div>
 
     <script type="module">
-      import { TaskExecutor } from "/dist/golem-js.min.js";
+      import { TaskExecutor } from "/dist/task-executor.min.js";
 
       let activity;
       const imgInput = document.getElementById("MEME_IMG");
@@ -106,7 +106,7 @@
         }
 
         // This line allows you to watch golem-js internal logs in the browser console!
-        localStorage.debug = "golem-js:*";
+        localStorage.debug = "task-executor:*";
 
         const fileData = await readFile(imgInput.files[0]);
         const extension = imgInput.files[0].name.split(".").pop();
