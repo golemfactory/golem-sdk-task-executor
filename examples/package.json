@@ -20,7 +20,9 @@
     "external-request": "tsx ./external-request/request.ts",
     "ssh": "tsx ./ssh/ssh.ts",
     "tag": "tsx ./simple-usage/tag.ts",
-    "web": "node ./web/app.mjs",
+    "preweb": "cp -r ../dist/ web/dist/",
+    "web": "serve web/",
+    "postweb": "rm -rf web/dist/",
     "server": "tsx ./express/server.ts",
     "proxy": "tsx ./proxy/proxy.ts",
     "reputation-basic": "tsx ./reputation/basic.ts",
@@ -39,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "20",
+    "serve": "^14.2.1",
     "typescript": "^5.3.3"
   }
 }

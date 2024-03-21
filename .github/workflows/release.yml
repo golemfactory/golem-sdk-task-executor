@@ -119,8 +119,15 @@ jobs:
       - name: Prepare providers and requestor
         uses: ./.github/actions/prepare-tests
 
+      - name: Copy docs examples
+        run: docker exec -t docker-requestor-1 /bin/sh -c '
+          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/transfer-data-in-browser.html /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/upload-json-in-browser.html /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/index.html /golem-sdk-task-executor/examples/web/quickstart.html &&
+          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/requestor.mjs /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/tutorials/running-from-browser/index.html /golem-sdk-task-executor/examples/web/tutorial.html'
       - name: Run web server
-        run: docker exec -t -d docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor/examples/web && node app.mjs"
+        run: docker exec -t -d docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor/examples && npm run web"
 
       - name: Run test suite
         run: docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor &&  npm run test:cypress -- --browser chromium"
