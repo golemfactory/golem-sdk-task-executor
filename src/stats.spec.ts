@@ -8,8 +8,8 @@ describe("Stats Service", function () {
   const events = new EventEmitter<TaskExecutorEventsDict>();
   const emitEvents = async (
     tasks: Array<{
-      invoiceReceivedAmount: number | null;
-      paid: number | null;
+      invoiceReceivedAmount: string | null;
+      paid: string | null;
       providerName?: string;
       agreementId?: string;
     }>,
@@ -38,7 +38,6 @@ describe("Stats Service", function () {
             agreementId: task.agreementId ?? `test-agreement-id-${id}`,
             provider,
             amount: task.invoiceReceivedAmount,
-            amountPrecise: `${task.invoiceReceivedAmount}`,
           }),
         );
       }
@@ -50,7 +49,6 @@ describe("Stats Service", function () {
             agreementId: task.agreementId ?? `test-agreement-id-${id}`,
             provider,
             amount: task.paid,
-            amountPrecise: `${task.paid}`,
           }),
         );
       }
@@ -72,10 +70,10 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       await emitEvents([
-        { invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { invoiceReceivedAmount: 8.88, paid: 8.88 },
+        { invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { invoiceReceivedAmount: "8.88", paid: "8.88" },
       ]);
-      expect(statsService.getAllCosts()).toEqual({ paid: 8.88 + 7.77, total: 8.88 + 7.77 });
+      expect(statsService.getAllCosts()).toEqual({ paid: `${8.88 + 7.77}`, total: `${8.88 + 7.77}` });
       await statsService.end();
     });
 
@@ -83,11 +81,11 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       await emitEvents([
-        { invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { invoiceReceivedAmount: 8.88, paid: 8.88 },
-        { invoiceReceivedAmount: 9.99, paid: null },
+        { invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { invoiceReceivedAmount: "8.88", paid: "8.88" },
+        { invoiceReceivedAmount: "9.99", paid: null },
       ]);
-      expect(statsService.getAllCosts()).toEqual({ total: 8.88 + 7.77 + 9.99, paid: 7.77 + 8.88 });
+      expect(statsService.getAllCosts()).toEqual({ total: `${8.88 + 7.77 + 9.99}`, paid: `${7.77 + 8.88}` });
       await statsService.end();
     });
   });
@@ -97,8 +95,8 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       const tasks = [
-        { invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { invoiceReceivedAmount: 8.88, paid: 8.88 },
+        { invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { invoiceReceivedAmount: "8.88", paid: "8.88" },
       ];
       await emitEvents(tasks);
       expect(statsService.getAllCostsSummary()).toEqual(
@@ -117,10 +115,10 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       const tasks = [
-        { agreementId: "id-1", providerName: "provider-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { agreementId: "id-2", providerName: "provider-2", invoiceReceivedAmount: 8.88, paid: 8.88 },
-        { agreementId: "id-3", providerName: "provider-3", invoiceReceivedAmount: 9.99, paid: null },
-        { agreementId: "id-4", providerName: "provider-4", invoiceReceivedAmount: 5.55, paid: null },
+        { agreementId: "id-1", providerName: "provider-1", invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { agreementId: "id-2", providerName: "provider-2", invoiceReceivedAmount: "8.88", paid: "8.88" },
+        { agreementId: "id-3", providerName: "provider-3", invoiceReceivedAmount: "9.99", paid: null },
+        { agreementId: "id-4", providerName: "provider-4", invoiceReceivedAmount: "5.55", paid: null },
       ];
       await emitEvents(tasks);
       expect(statsService.getAllCostsSummary()).toEqual(
@@ -139,10 +137,10 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       const tasks = [
-        { agreementId: "id-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { agreementId: "id-1", invoiceReceivedAmount: 8.88, paid: 8.88 },
-        { agreementId: "id-1", invoiceReceivedAmount: 9.99, paid: 9.99 },
-        { agreementId: "id-4", invoiceReceivedAmount: 5.55, paid: null },
+        { agreementId: "id-1", invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { agreementId: "id-1", invoiceReceivedAmount: "8.88", paid: "8.88" },
+        { agreementId: "id-1", invoiceReceivedAmount: "9.99", paid: "9.99" },
+        { agreementId: "id-4", invoiceReceivedAmount: "5.55", paid: null },
       ];
       await emitEvents(tasks);
       expect(statsService.getAllCostsSummary()).toEqual([
@@ -150,14 +148,14 @@ describe("Stats Service", function () {
           Agreement: "id-1",
           "Provider Name": "test-provider-name",
           "Task Computed": 3,
-          Cost: 7.77 + 8.88 + 9.99,
+          Cost: `${7.77 + 8.88 + 9.99}`,
           "Payment Status": "paid",
         },
         {
           Agreement: "id-4",
           "Provider Name": "test-provider-name",
           "Task Computed": 1,
-          Cost: 5.55,
+          Cost: "5.55",
           "Payment Status": "unpaid",
         },
       ]);
@@ -168,9 +166,9 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       const tasks = [
-        { agreementId: "id-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { agreementId: "id-1", invoiceReceivedAmount: 8.88, paid: null },
-        { agreementId: "id-1", invoiceReceivedAmount: 9.99, paid: 9.99 },
+        { agreementId: "id-1", invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { agreementId: "id-1", invoiceReceivedAmount: "8.88", paid: null },
+        { agreementId: "id-1", invoiceReceivedAmount: "9.99", paid: "9.99" },
       ];
       await emitEvents(tasks);
       expect(statsService.getAllCostsSummary()).toEqual([
@@ -178,7 +176,7 @@ describe("Stats Service", function () {
           Agreement: "id-1",
           "Provider Name": "test-provider-name",
           "Task Computed": 3,
-          Cost: 7.77 + 8.88 + 9.99,
+          Cost: `${7.77 + 8.88 + 9.99}`,
           "Payment Status": "partially-paid",
         },
       ]);
@@ -191,8 +189,8 @@ describe("Stats Service", function () {
       const statsService = new StatsService(events);
       await statsService.run();
       await emitEvents([
-        { invoiceReceivedAmount: 7.77, paid: 7.77 },
-        { invoiceReceivedAmount: 8.88, paid: 8.88 },
+        { invoiceReceivedAmount: "7.77", paid: "7.77" },
+        { invoiceReceivedAmount: "8.88", paid: "8.88" },
       ]);
       expect(statsService.getComputationTime()).toBeGreaterThan(0);
       await statsService.end();

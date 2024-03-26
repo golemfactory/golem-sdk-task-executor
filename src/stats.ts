@@ -64,10 +64,22 @@ export class StatsService {
     this.agreements.forEach((agreement) => {
       const invoices = this.invoices.get(agreement.id);
       const payments = this.payments.get(agreement.id);
-      costs.total +=
-        invoices?.reduce((sum, invoice) => new Decimal(invoice.amount).plus(new Decimal(sum)).toString(), "0") ?? "0";
-      costs.paid +=
-        payments?.reduce((sum, invoice) => new Decimal(invoice.amount).plus(new Decimal(sum)).toString(), "0") ?? "0";
+      costs.total = new Decimal(costs.total)
+        .add(
+          new Decimal(
+            invoices?.reduce((sum, invoice) => new Decimal(invoice.amount).add(new Decimal(sum)).toString(), "0") ??
+              "0",
+          ),
+        )
+        .toString();
+      costs.paid = new Decimal(costs.paid)
+        .add(
+          new Decimal(
+            payments?.reduce((sum, invoice) => new Decimal(invoice.amount).add(new Decimal(sum)).toString(), "0") ??
+              "0",
+          ),
+        )
+        .toString();
     });
     return costs;
   }
