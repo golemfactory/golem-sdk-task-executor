@@ -25,6 +25,7 @@ import { Allocation } from "@golem-sdk/golem-js/dist/payment";
 import { PaymentConfig } from "@golem-sdk/golem-js/dist/payment/config";
 interface PaymentServiceEvents {
   error: (err: Error) => void;
+  allocationCreated: (allocation: Allocation) => void;
 }
 
 jest.mock("./service");
