@@ -1,5 +1,5 @@
 import { Task, TaskState } from "./task";
-import { Activity, GolemTimeoutError, Result, ResultState } from "@golem-sdk/golem-js";
+import { Activity, GolemTimeoutError, Result } from "@golem-sdk/golem-js";
 import { instance, mock } from "@johanblumenberg/ts-mockito";
 import { sleep } from "./utils";
 
@@ -30,7 +30,7 @@ describe("Task", function () {
     const result = new Result<null>({
       index: 0,
       eventDate: new Date().toDateString(),
-      result: ResultState.Ok,
+      result: "Ok",
       stdout: "result",
     });
     task.stop(result);

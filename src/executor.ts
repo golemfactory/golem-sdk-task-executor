@@ -10,7 +10,7 @@ import {
   NetworkService,
   NetworkServiceOptions,
   Logger,
-  Yagna,
+  YagnaApi,
   GftpStorageProvider,
   NullStorageProvider,
   StorageProvider,
@@ -22,8 +22,6 @@ import {
   GolemConfigError,
   GolemInternalError,
   GolemTimeoutError,
-  EVENT_TYPE,
-  BaseEvent,
   GolemUserError,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
@@ -133,7 +131,7 @@ export class TaskExecutor {
   private configOptions: ExecutorOptions;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
-  private yagna: Yagna;
+  private yagnaApi: YagnaApi;
 
   /**
    * Signal handler reference, needed to remove handlers on exit.
@@ -194,23 +192,22 @@ export class TaskExecutor {
     this.configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorOptions;
     this.options = new ExecutorConfig(this.configOptions);
     this.logger = this.options.logger;
-    this.yagna = new Yagna(this.configOptions.yagnaOptions);
-    const yagnaApi = this.yagna.getApi();
+    this.yagnaApi = new YagnaApi(this.configOptions.yagnaOptions);
     this.taskQueue = new TaskQueue();
-    this.agreementPoolService = new AgreementPoolService(yagnaApi, {
+    this.agreementPoolService = new AgreementPoolService(this.yagnaApi, {
       ...this.options,
       logger: this.logger.child("agreement"),
     });
-    this.paymentService = new PaymentService(yagnaApi, {
+    this.paymentService = new PaymentService(this.yagnaApi, {
       ...this.options,
       logger: this.logger.child("payment"),
     });
-    this.marketService = new MarketService(this.agreementPoolService, yagnaApi, {
+    this.marketService = new MarketService(this.agreementPoolService, this.yagnaApi, {
       ...this.options,
       logger: this.logger.child("market"),
     });
     this.networkService = this.options.networkIp
-      ? new NetworkService(yagnaApi, { ...this.options, logger: this.logger.child("network") })
+      ? new NetworkService(this.yagnaApi, { ...this.options, logger: this.logger.child("network") })
       : undefined;
 
     // Initialize storage provider.
@@ -219,7 +216,7 @@ export class TaskExecutor {
     } else if (isNode) {
       this.storageProvider = new GftpStorageProvider(this.logger.child("storage"));
     } else if (isBrowser) {
-      this.storageProvider = new WebSocketBrowserStorageProvider(yagnaApi, {
+      this.storageProvider = new WebSocketBrowserStorageProvider(this.yagnaApi, {
         ...this.options,
         logger: this.logger.child("storage"),
       });
@@ -228,7 +225,7 @@ export class TaskExecutor {
     }
 
     this.taskService = new TaskService(
-      this.yagna.getApi(),
+      this.yagnaApi,
       this.taskQueue,
       this.events,
       this.agreementPoolService,
@@ -237,9 +234,6 @@ export class TaskExecutor {
       { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
     );
     this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
-    this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
-      this.events.emit("golemEvents", event as BaseEvent<unknown>),
-    );
     this.events.emit("start", Date.now());
   }
 
@@ -250,7 +244,7 @@ export class TaskExecutor {
    */
   async init() {
     try {
-      await this.yagna.connect();
+      await this.yagnaApi.connect();
     } catch (error) {
       this.logger.error("Initialization failed", error);
       throw error;
@@ -342,7 +336,6 @@ export class TaskExecutor {
     await this.networkService?.end();
     await Promise.all([this.taskService.end(), this.agreementPoolService.end(), this.marketService.end()]);
     await this.paymentService.end();
-    await this.yagna.end();
     // this.options.eventTarget?.dispatchEvent(new Events.ComputationFinished());
     this.printStats();
     await this.statsService.end();

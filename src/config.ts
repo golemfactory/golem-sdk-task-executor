@@ -43,7 +43,6 @@ export class ExecutorConfig {
   readonly packageOptions: Omit<PackageOptions, "imageHash" | "imageTag">;
   readonly yagnaOptions: { apiKey: string; basePath: string };
   readonly logger: Logger;
-  readonly eventTarget: EventTarget;
   readonly maxTaskRetries: number;
   readonly startupTimeout: number;
   readonly exitOnNoProposals: boolean;
@@ -98,7 +97,6 @@ export class ExecutorConfig {
       if (options.logger) return options.logger.child("task-executor");
       return defaultLogger("task-executor", { disableAutoPrefix: true });
     })();
-    this.eventTarget = options.eventTarget || new EventTarget();
     this.maxTaskRetries = options.maxTaskRetries ?? DEFAULTS.maxTaskRetries;
     this.startupTimeout = options.startupTimeout ?? DEFAULTS.startupTimeout;
     this.exitOnNoProposals = options.exitOnNoProposals ?? DEFAULTS.exitOnNoProposals;
