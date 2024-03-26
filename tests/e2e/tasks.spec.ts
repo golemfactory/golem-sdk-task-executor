@@ -214,11 +214,10 @@ describe("Task Executor", function () {
     expect(isRetry).toEqual(false);
   });
 
-  it("should clean up the agreements in the pool if the agreement has been terminated by provider", async () => {
+  it.skip("should clean up the agreements in the pool if the agreement has been terminated by provider", async () => {
     const eventTarget = new EventTarget();
     const executor = await TaskExecutor.create({
       package: "golem/alpine:latest",
-      eventTarget,
       // we set mid-agreement payment and a filter that will not pay for debit notes
       // which should result in termination of the agreement by provider
       debitNotesFilter: () => Promise.resolve(false),

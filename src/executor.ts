@@ -22,8 +22,6 @@ import {
   GolemConfigError,
   GolemInternalError,
   GolemTimeoutError,
-  EVENT_TYPE,
-  BaseEvent,
   GolemUserError,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
@@ -236,9 +234,6 @@ export class TaskExecutor {
       { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
     );
     this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
-    this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
-      this.events.emit("golemEvents", event as BaseEvent<unknown>),
-    );
     this.events.emit("start", Date.now());
   }
 

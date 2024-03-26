@@ -8,7 +8,7 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
+    const results = await executor.run(async (ctx) => {
       const res = await ctx
         .beginBatch()
         .run("cat /golem/input/output.txt > /golem/input/output.txt")
@@ -19,7 +19,13 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
       return res;
     });
 
-    console.log(result);
+    // TE will not be terminated on command error, user should review the results and take action
+    for (const commandResult of results) {
+      if (commandResult.result != "Ok") {
+        console.log("\n", "\x1b[31m", commandResult.message, "\n", "\x1b[0m");
+        break;
+      }
+    }
   } catch (error) {
     console.error("An error occurred:", error);
   } finally {
