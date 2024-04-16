@@ -1,4 +1,5 @@
 import {
+  Allocation,
   Package,
   PackageOptions,
   MarketOptions,
@@ -133,6 +134,7 @@ export class TaskExecutor {
   private startupTimeoutId?: NodeJS.Timeout;
   private yagnaApi: YagnaApi;
 
+  public allocation: Allocation = {} as Allocation;
   /**
    * Signal handler reference, needed to remove handlers on exit.
    * @param signal
@@ -272,9 +274,9 @@ export class TaskExecutor {
     }
 
     this.logger.debug("Initializing task executor services...");
-    const allocations = await this.paymentService.createAllocation();
+    this.allocation = await this.paymentService.createAllocation();
     await Promise.all([
-      this.marketService.run(taskPackage, allocations).then(() => this.setStartupTimeout()),
+      this.marketService.run(taskPackage, this.allocation).then(() => this.setStartupTimeout()),
       this.agreementPoolService.run(),
       this.paymentService.run(),
       this.networkService?.run(),
@@ -408,6 +410,7 @@ export class TaskExecutor {
         startupTimeout: options?.startupTimeout ?? this.options.startupTaskTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
       });
+
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());
       while (this.isRunning) {
