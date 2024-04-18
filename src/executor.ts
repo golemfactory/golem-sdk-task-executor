@@ -95,7 +95,6 @@ export type ExecutorOptions = {
   AgreementServiceOptions &
   Omit<WorkOptions, "yagnaOptions"> &
   TaskServiceOptions;
-
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
  */
@@ -273,8 +272,12 @@ export class TaskExecutor {
       }
     }
 
-    this.logger.debug("Initializing task executor services...");
-    this.allocation = await this.paymentService.createAllocation();
+    if (this.configOptions.allocation?.id) {
+      this.allocation = await this.paymentService.createAllocation(this.configOptions.allocation);
+    } else {
+      this.allocation = await this.paymentService.createAllocation(this.configOptions.allocation);
+    }
+
     await Promise.all([
       this.marketService.run(taskPackage, this.allocation).then(() => this.setStartupTimeout()),
       this.agreementPoolService.run(),
