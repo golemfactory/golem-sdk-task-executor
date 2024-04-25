@@ -179,6 +179,7 @@ export class TaskExecutor {
    * @return TaskExecutor
    */
   static async create(options: ExecutorOptionsMixin) {
+    console.log("CREATING TASK EXECUTOR");
     const executor = new TaskExecutor(options);
     await executor.init();
     return executor;
@@ -271,9 +272,11 @@ export class TaskExecutor {
         throw error;
       }
     }
-
+    console.log("this.configOptions.allocation", this.configOptions.allocation);
     if (this.configOptions.allocation?.id) {
-      this.allocation = await this.paymentService.createAllocation(this.configOptions.allocation);
+      console.log("resuing allocation", this.configOptions.allocation.id);
+      this.allocation = await this.paymentService.fromId(this.configOptions.allocation.id);
+      console.log("resuing allocation", this.allocation);
     } else {
       this.allocation = await this.paymentService.createAllocation(this.configOptions.allocation);
     }
