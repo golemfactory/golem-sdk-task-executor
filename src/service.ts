@@ -177,7 +177,9 @@ export class TaskService {
       attempt: task.getRetriesCount(),
       reason,
     });
-    this.tasksQueue.addToBegin(task);
+    if (!this.tasksQueue.has(task)) {
+      this.tasksQueue.addToBegin(task);
+    }
   }
 
   private async stopTask(task: Task) {

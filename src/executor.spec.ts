@@ -24,6 +24,7 @@ import {
 // temporarily until the import in golem-js is fixed
 import { Allocation } from "@golem-sdk/golem-js/dist/payment";
 import { PaymentConfig } from "@golem-sdk/golem-js/dist/payment/config";
+import { randomUUID } from "node:crypto";
 interface PaymentServiceEvents {
   error: (err: Error) => void;
 }
@@ -82,6 +83,7 @@ when(gftpStorageProviderMock.init()).thenResolve(anything());
 when(gftpStorageProviderMock.close()).thenResolve(anything());
 when(taskServiceMock.run()).thenResolve(anything());
 when(taskServiceMock.end()).thenResolve(anything());
+when(taskMock.id).thenCall(randomUUID);
 when(taskMock.getActivity()).thenReturn(activity);
 when(taskMock.getDetails()).thenReturn({ activityId: "1", agreementId: "1", id: "1", retriesCount: 0 });
 
@@ -246,6 +248,7 @@ describe("Task Executor", () => {
       when(taskMock.isRejected()).thenReturn(false).thenReturn(true).thenReturn(false);
       when(taskMock.getResults()).thenReturn("result 1").thenReturn("result 2");
       when(taskMock.getError()).thenReturn(new Error("error 1"));
+      when(taskMock.id).thenCall(randomUUID);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const executorShutdownSpy = jest.spyOn(executor as any, "doShutdown");
 
