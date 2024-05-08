@@ -8,4 +8,5 @@ export {
   AgreementCandidate,
   ProposalFilter,
   WorkContext,
+  ResultState,
 } from "@golem-sdk/golem-js";
