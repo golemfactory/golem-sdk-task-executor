@@ -40,6 +40,7 @@ export class TaskService {
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
+  private i = 0;
 
   constructor(
     private yagnaApi: YagnaApi,
@@ -97,13 +98,24 @@ export class TaskService {
     task.init();
     this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
     ++this.activeTasksCount;
-
+    // TODO: This should be able to be canceled if the task state has changed
     const agreement = await this.agreementPoolService.getAgreement();
     let activity: Activity | undefined;
     let networkNode: NetworkNode | undefined;
 
     try {
       this.startAcceptingAgreementPayments(agreement);
+      if (this.i < 3) await sleep(8_000, true);
+      this.i++;
+      // if the task is not queued, (it may have changed its state due to timeout), terminate agreement and exit execution
+      if (!task.isQueued()) {
+        await this.agreementPoolService
+          .releaseAgreement(agreement.id, false)
+          .catch((error) => this.logger.error(`Releasing agreement failed`, { agreementId: agreement.id, error }));
+        this.logger.warn(`Task ${task.id} cannot be started because it is in ${task.getState()} state`);
+        --this.activeTasksCount;
+        return;
+      }
       activity = await this.getOrCreateActivity(agreement);
       task.start(activity, networkNode);
       this.events.emit("taskStarted", task.getDetails());
@@ -179,6 +191,9 @@ export class TaskService {
     });
     if (!this.tasksQueue.has(task)) {
       this.tasksQueue.addToBegin(task);
+      this.logger.debug(`Task ${task.id} added to the queue`);
+    } else {
+      this.logger.warn(`Task ${task.id} has been already added to the queue`);
     }
   }
 

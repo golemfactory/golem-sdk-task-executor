@@ -18,14 +18,21 @@ describe("Task", function () {
 
   it("should start task", () => {
     const task = new Task("1", worker);
+    task.init();
     task.start(activity);
     expect(task.getState()).toEqual(TaskState.Pending);
     task.stop();
     task.cleanup();
   });
 
+  it("should not start task that is not queued", () => {
+    const task = new Task("1", worker);
+    expect(() => task.start(activity)).toThrow("You cannot start a task that is not queued");
+  });
+
   it("should complete task with results", () => {
     const task = new Task<unknown>("1", worker);
+    task.init();
     task.start(activity);
     const result = new Result<null>({
       index: 0,
@@ -40,6 +47,7 @@ describe("Task", function () {
 
   it("should complete task with error", () => {
     const task = new Task<unknown>("1", worker);
+    task.init();
     task.start(activity);
     const error = new Error("test");
     task.stop(undefined, error, false);
@@ -48,6 +56,7 @@ describe("Task", function () {
 
   it("should retry task", () => {
     const task = new Task<unknown>("1", worker);
+    task.init();
     task.start(activity);
     const error = new Error("test");
     task.stop(undefined, error, true);
@@ -56,6 +65,7 @@ describe("Task", function () {
 
   it("should stop the task with a timeout error if the task does not complete within the specified time", async () => {
     const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 0 });
+    task.init();
     task.start(activity);
     await sleep(2, true);
     expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));

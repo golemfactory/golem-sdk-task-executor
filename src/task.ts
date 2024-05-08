@@ -1,5 +1,12 @@
 import { QueueableTask } from "./queue";
-import { Activity, GolemConfigError, GolemTimeoutError, NetworkNode, Worker } from "@golem-sdk/golem-js";
+import {
+  Activity,
+  GolemConfigError,
+  GolemInternalError,
+  GolemTimeoutError,
+  NetworkNode,
+  Worker,
+} from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
   name: string;
@@ -99,6 +106,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   }
 
   start(activity: Activity, networkNode?: NetworkNode) {
+    if (this.state !== TaskState.Queued) {
+      throw new GolemInternalError("You cannot start a task that is not queued");
+    }
     this.state = TaskState.Pending;
     clearTimeout(this.startupTimeoutId);
     this.activity = activity;
