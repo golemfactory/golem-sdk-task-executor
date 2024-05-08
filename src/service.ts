@@ -40,7 +40,6 @@ export class TaskService {
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
-  private i = 0;
 
   constructor(
     private yagnaApi: YagnaApi,
@@ -105,8 +104,6 @@ export class TaskService {
 
     try {
       this.startAcceptingAgreementPayments(agreement);
-      if (this.i < 3) await sleep(8_000, true);
-      this.i++;
       // if the task is not queued, (it may have changed its state due to timeout), terminate agreement and exit execution
       if (!task.isQueued()) {
         await this.agreementPoolService
