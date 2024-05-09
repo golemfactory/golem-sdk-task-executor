@@ -102,7 +102,7 @@ export class TaskService {
       ++this.activeTasksCount;
 
       if (task.isFailed()) {
-        throw new GolemInternalError(`Task ${task.id} cannot be started because it is in ${task.getState()} state`);
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
       // TODO: This should be able to be canceled if the task state has changed
