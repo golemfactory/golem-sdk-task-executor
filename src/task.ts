@@ -45,8 +45,6 @@ export type TaskDetails = {
 
 const DEFAULTS = {
   MAX_RETRIES: 5,
-  TIMEOUT: 1000 * 60 * 5,
-  STARTUP_TIMEOUT: 1000 * 60 * 2,
 };
 
 /**
@@ -62,8 +60,8 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private listeners = new Set<(state: TaskState) => void>();
   private timeoutId?: NodeJS.Timeout;
   private startupTimeoutId?: NodeJS.Timeout;
-  private readonly timeout: number;
-  private readonly startupTimeout: number;
+  private readonly timeout?: number;
+  private readonly startupTimeout?: number;
   private readonly maxRetries: number;
   private readonly activityReadySetupFunctions: Worker<unknown>[];
   private activity?: Activity;
@@ -74,15 +72,14 @@ export class Task<OutputType = unknown> implements QueueableTask {
     private worker: Worker<OutputType>,
     options?: TaskOptions,
   ) {
-    this.timeout = options?.timeout ?? DEFAULTS.TIMEOUT;
-    this.startupTimeout = options?.startupTimeout ?? DEFAULTS.STARTUP_TIMEOUT;
+    this.timeout = options?.timeout;
+    this.startupTimeout = options?.startupTimeout;
     this.maxRetries = options?.maxRetries ?? DEFAULTS.MAX_RETRIES;
     this.activityReadySetupFunctions = options?.activityReadySetupFunctions ?? [];
     if (this.maxRetries < 0) {
       throw new GolemConfigError("The maxRetries parameter cannot be less than zero");
     }
   }
-
   onStateChange(listener: (state: TaskState) => void) {
     this.listeners.add(listener);
   }
@@ -92,17 +89,19 @@ export class Task<OutputType = unknown> implements QueueableTask {
   }
   init() {
     this.state = TaskState.Queued;
-    this.startupTimeoutId = setTimeout(
-      () =>
-        this.stop(
-          undefined,
-          new GolemTimeoutError(
-            `Task startup ${this.id} timeout. Failed to sign an agreement with the provider within the specified time`,
+    if (this.startupTimeout) {
+      this.startupTimeoutId = setTimeout(
+        () =>
+          this.stop(
+            undefined,
+            new GolemTimeoutError(
+              `Task startup ${this.id} timeout. Failed to sign an agreement with the provider within the specified time`,
+            ),
+            true,
           ),
-          true,
-        ),
-      this.startupTimeout,
-    );
+        this.startupTimeout,
+      );
+    }
   }
 
   start(activity: Activity, networkNode?: NetworkNode) {
@@ -114,10 +113,12 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.activity = activity;
     this.networkNode = networkNode;
     this.listeners.forEach((listener) => listener(this.state));
-    this.timeoutId = setTimeout(
-      () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), true),
-      this.timeout,
-    );
+    if (this.timeout) {
+      this.timeoutId = setTimeout(
+        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), true),
+        this.timeout,
+      );
+    }
   }
   stop(results?: OutputType, error?: Error, retry = true) {
     if (this.isFinished() || this.isRetry()) {
