@@ -95,7 +95,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
           this.stop(
             undefined,
             new GolemTimeoutError(
-              `Task startup ${this.id} timeout. Failed to sign an agreement with the provider within the specified time`,
+              `Task startup ${this.id} timeout. Failed to prepare the runtime environment within the specified time`,
             ),
             false,
           ),

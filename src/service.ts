@@ -14,6 +14,7 @@ import {
   Activity,
   ActivityOptions,
   GolemWorkError,
+  GolemInternalError,
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
@@ -95,26 +96,34 @@ export class TaskService {
   }
 
   private async startTask(task: Task) {
-    task.init();
-    this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
-    ++this.activeTasksCount;
-    // TODO: This should be able to be canceled if the task state has changed
-    const agreement = await this.agreementPoolService.getAgreement();
-    let activity: Activity | undefined;
-    let networkNode: NetworkNode | undefined;
-
     try {
+      task.init();
+      this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
+      ++this.activeTasksCount;
+
+      if (task.isFailed()) {
+        throw new GolemInternalError(`Task ${task.id} cannot be started because it is in ${task.getState()} state`);
+      }
+
+      // TODO: This should be able to be canceled if the task state has changed
+      const agreement = await this.agreementPoolService.getAgreement();
       this.startAcceptingAgreementPayments(agreement);
-      // if the task is not queued, (it may have changed its state due to timeout), terminate agreement and exit execution
-      if (!task.isQueued()) {
+
+      if (task.isFailed()) {
+        /**
+         * only in this case it is necessary to manually terminate the agreement,
+         * in other cases after the creation of the activity this will be done by the releaseTaskResources method
+         */
         await this.agreementPoolService
           .releaseAgreement(agreement.id, false)
-          .catch((error) => this.logger.error(`Releasing agreement failed`, { agreementId: agreement.id, error }));
-        this.logger.warn(`Task ${task.id} cannot be started because it is in ${task.getState()} state`);
-        --this.activeTasksCount;
-        return;
+          .catch((error) =>
+            this.logger.error(`Releasing agreement failed`, { agreementId: activity.agreement.id, error }),
+          );
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
-      activity = await this.getOrCreateActivity(agreement);
+
+      let networkNode: NetworkNode | undefined;
+      const activity = await this.getOrCreateActivity(agreement);
       task.start(activity, networkNode);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
@@ -139,11 +148,18 @@ export class TaskService {
         activityStateCheckingInterval: this.options.activityStateCheckingInterval,
       });
 
-      await ctx.before();
+      if (task.isFailed()) {
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
+      }
 
+      await ctx.before();
       if (activityReadySetupFunctions.length && !this.activitySetupDone.has(activity.id)) {
         this.activitySetupDone.add(activity.id);
         this.logger.debug(`Activity setup completed`, { activityId: activity.id });
+      }
+
+      if (task.isFailed()) {
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
       const results = await worker(ctx);
       task.stop(results);

@@ -78,7 +78,7 @@ describe("Task", function () {
     await sleep(2, true);
     expect(task.getError()).toEqual(
       new GolemTimeoutError(
-        "Task startup 1 timeout. Failed to sign an agreement with the provider within the specified time",
+        "Task startup 1 timeout. Failed to prepare the runtime environment within the specified time",
       ),
     );
     expect(task.getState() === TaskState.Rejected);
