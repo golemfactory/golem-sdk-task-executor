@@ -13,6 +13,7 @@ import {
   NetworkService,
   Activity,
   ActivityOptions,
+  GolemWorkError,
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
@@ -147,7 +148,7 @@ export class TaskService {
       const results = await worker(ctx);
       task.stop(results);
     } catch (error) {
-      task.stop(undefined, error);
+      task.stop(undefined, error, error instanceof GolemWorkError);
     } finally {
       --this.activeTasksCount;
     }
