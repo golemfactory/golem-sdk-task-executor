@@ -97,7 +97,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
             new GolemTimeoutError(
               `Task startup ${this.id} timeout. Failed to sign an agreement with the provider within the specified time`,
             ),
-            true,
+            false,
           ),
         this.startupTimeout,
       );
@@ -115,7 +115,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.listeners.forEach((listener) => listener(this.state));
     if (this.timeout) {
       this.timeoutId = setTimeout(
-        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), true),
+        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), false),
         this.timeout,
       );
     }
