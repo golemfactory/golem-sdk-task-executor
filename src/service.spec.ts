@@ -5,11 +5,13 @@ import {
   ActivityStateEnum,
   Agreement,
   AgreementPoolService,
+  GolemWorkError,
   NetworkService,
   PaymentService,
   Result,
   ResultState,
   WorkContext,
+  WorkErrorCode,
   YagnaApi,
 } from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
@@ -98,7 +100,33 @@ describe("Task Service", () => {
     await service.end();
   });
 
-  it("should retry task if it failed", async () => {
+  it("should retry task if a GolemWorkError occurred", async () => {
+    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
+    const task = new Task("1", worker, { maxRetries: 3 });
+    queue.addToEnd(task);
+    const readable = new Readable({
+      objectMode: true,
+      read() {
+        readable.destroy(new Error("Test error"));
+      },
+    });
+    const cb = jest.fn();
+    events.on("taskRetried", cb);
+    when(activityMock.execute(anything(), false, undefined)).thenReject(
+      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
+    );
+    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
+      taskRunningInterval: 10,
+      activityStateCheckingInterval: 10,
+    });
+    service.run().then();
+    await sleep(800, true);
+    expect(cb).toHaveBeenCalledTimes(3);
+    expect(task.isRejected()).toEqual(true);
+    await service.end();
+  });
+
+  it("should not retry task if a TypeError occurred", async () => {
     const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
     const task = new Task("1", worker, { maxRetries: 3 });
     queue.addToEnd(task);
@@ -117,7 +145,7 @@ describe("Task Service", () => {
     });
     service.run().then();
     await sleep(800, true);
-    expect(cb).toHaveBeenCalledTimes(3);
+    expect(cb).toHaveBeenCalledTimes(0);
     expect(task.isRejected()).toEqual(true);
     await service.end();
   });
@@ -150,7 +178,9 @@ describe("Task Service", () => {
     const task = new Task("1", worker, { maxRetries: 1 });
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
+    when(activityMock.execute(anything(), false, undefined)).thenReject(
+      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
+    );
     const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
       taskRunningInterval: 10,
       activityStateCheckingInterval: 10,
