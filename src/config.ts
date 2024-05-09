@@ -20,7 +20,7 @@ const DEFAULTS = Object.freeze({
   maxParallelTasks: 5,
   maxTaskRetries: 3,
   taskTimeout: 1000 * 60 * 5, // 5 min,
-  startupTaskTimeout: 1000 * 60 * 2, // 2 min,
+  taskStartupTimeout: 1000 * 60 * 2, // 2 min,
   enableLogging: true,
   startupTimeout: 1000 * 90, // 90 sec
   exitOnNoProposals: false,
@@ -36,7 +36,7 @@ export class ExecutorConfig {
   readonly package?: Package | string;
   readonly maxParallelTasks: number;
   readonly taskTimeout: number;
-  readonly startupTaskTimeout: number;
+  readonly taskStartupTimeout: number;
   readonly budget: number;
   readonly subnetTag: string;
   readonly networkIp?: string;
@@ -89,7 +89,7 @@ export class ExecutorConfig {
     this.budget = options.budget || DEFAULTS.budget;
     this.maxParallelTasks = options.maxParallelTasks || DEFAULTS.maxParallelTasks;
     this.taskTimeout = options.taskTimeout || DEFAULTS.taskTimeout;
-    this.startupTaskTimeout = options.startupTimeout || DEFAULTS.startupTaskTimeout;
+    this.taskStartupTimeout = options.taskStartupTimeout || DEFAULTS.taskStartupTimeout;
     this.subnetTag = options.subnetTag || processEnv.env?.YAGNA_SUBNET || DEFAULTS.subnetTag;
     this.networkIp = options.networkIp;
     this.logger = (() => {

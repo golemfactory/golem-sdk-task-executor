@@ -412,7 +412,7 @@ export class TaskExecutor {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
         maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
         timeout: options?.timeout ?? this.options.taskTimeout,
-        startupTimeout: options?.startupTimeout ?? this.options.startupTaskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
       });
       this.taskQueue.addToEnd(task);
