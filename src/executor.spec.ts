@@ -188,8 +188,6 @@ describe("Task Executor", () => {
       expect(Task).toHaveBeenCalledWith("1", worker, {
         activityReadySetupFunctions: [],
         maxRetries: 0,
-        timeout: 300000,
-        startupTimeout: 120000,
         retryOnTimeout: false,
       });
       await executor.shutdown();
@@ -212,8 +210,6 @@ describe("Task Executor", () => {
       expect(Task).toHaveBeenCalledWith("1", worker, {
         activityReadySetupFunctions: [],
         maxRetries: 0,
-        timeout: 300000,
-        startupTimeout: 120000,
         retryOnTimeout: false,
       });
       await executor.shutdown();
