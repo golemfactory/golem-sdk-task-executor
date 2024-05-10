@@ -5,6 +5,7 @@ import { GolemInternalError } from "@golem-sdk/golem-js";
  * @internal
  */
 export interface QueueableTask {
+  id: string;
   isQueueable(): boolean;
 }
 
@@ -32,7 +33,16 @@ export class TaskQueue<T extends QueueableTask = Task> {
     return this.itemsStack.shift();
   }
 
+  has(task: T) {
+    return this.itemsStack.some((t) => t.id === task.id);
+  }
+
   private checkIfTaskIsEligibleForAdd(task: T) {
-    if (!task.isQueueable()) throw new GolemInternalError("You cannot add a task that is not in the correct state");
+    if (!task.isQueueable()) {
+      throw new GolemInternalError("You cannot add a task that is not in the correct state");
+    }
+    if (this.has(task)) {
+      throw new GolemInternalError(`Task ${task.id} has already been added to the queue`);
+    }
   }
 }

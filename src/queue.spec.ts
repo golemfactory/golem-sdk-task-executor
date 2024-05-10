@@ -5,6 +5,7 @@ import { instance, mock, reset, when } from "@johanblumenberg/ts-mockito";
 describe("Task Queue", function () {
   let testQueue: TaskQueue<Task>;
   const taskMock = mock(Task);
+  const testWorker = async () => null;
   beforeEach(function () {
     testQueue = new TaskQueue<Task>();
     reset(taskMock);
@@ -12,12 +13,12 @@ describe("Task Queue", function () {
   });
   describe("Adding", () => {
     it("should allow to add Task to the queue", () => {
-      const task = instance(taskMock);
+      const task = new Task("1", testWorker);
       testQueue.addToEnd(task);
       expect(testQueue.size).toEqual(1);
     });
     it("should add new task on the end of the queue", () => {
-      const tasksToAdd = ["A", "B", "C"].map(() => instance(taskMock));
+      const tasksToAdd = ["A", "B", "C"].map((id) => new Task(id, testWorker));
       // Add tree different tasks to the queue
       tasksToAdd.forEach((task) => testQueue.addToEnd(task));
       // Check if the order is the same
@@ -27,7 +28,7 @@ describe("Task Queue", function () {
       });
     });
     it("should add task on the beginning of the queue", () => {
-      const tasksToAdd = ["A", "B", "C"].map(() => instance(taskMock));
+      const tasksToAdd = ["A", "B", "C"].map((id) => new Task(id, testWorker));
       // Add tree different tasks to the queue
       tasksToAdd.forEach((task) => testQueue.addToBegin(task));
       // Reverse expectation and check
@@ -40,6 +41,11 @@ describe("Task Queue", function () {
       const task = instance(taskMock);
       when(taskMock.isQueueable()).thenReturn(false);
       expect(() => testQueue.addToEnd(task)).toThrow("You cannot add a task that is not in the correct state");
+    });
+    it("should throws error if adding an existing task", () => {
+      const task = new Task("A", testWorker);
+      testQueue.addToEnd(task);
+      expect(() => testQueue.addToEnd(task)).toThrow("Task A has already been added to the queue");
     });
   });
 
@@ -59,9 +65,9 @@ describe("Task Queue", function () {
 
     it("should return correct number of items in the queue ", () => {
       // Add 3 tasks to the queue
-      testQueue.addToEnd(instance(taskMock));
-      testQueue.addToEnd(instance(taskMock));
-      testQueue.addToEnd(instance(taskMock));
+      testQueue.addToEnd(new Task("1", testWorker));
+      testQueue.addToEnd(new Task("2", testWorker));
+      testQueue.addToEnd(new Task("3", testWorker));
       // Check if is eq 3
       expect(testQueue.size).toEqual(3);
       // Get one
@@ -77,6 +83,12 @@ describe("Task Queue", function () {
       testQueue.get();
       // Check if still is eq 0
       expect(testQueue.size).toEqual(0);
+    });
+
+    it("should check if task belongs to the queue", () => {
+      const task = instance(taskMock);
+      testQueue.addToEnd(task);
+      expect(testQueue.has(task)).toEqual(true);
     });
   });
 });

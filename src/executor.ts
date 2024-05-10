@@ -89,6 +89,8 @@ export type ExecutorOptions = {
    * Default is `false`.
    */
   exitOnNoProposals?: boolean;
+
+  taskRetryOnTimeout?: boolean;
 } & Omit<PackageOptions, "imageHash" | "imageTag"> &
   MarketOptions &
   PaymentOptions &
@@ -231,6 +233,7 @@ export class TaskExecutor {
       this.yagna.getApi(),
       this.taskQueue,
       this.events,
+      this.marketService,
       this.agreementPoolService,
       this.paymentService,
       this.networkService,
@@ -350,11 +353,11 @@ export class TaskExecutor {
     this.events.emit("end", Date.now());
   }
 
-  /**
-   * @Deprecated This feature is no longer supported. It will be removed in the next release.
-   */
   getStats() {
-    return [];
+    return {
+      ...this.statsService.getAll(),
+      retries: this.taskService.getRetryCount(),
+    };
   }
 
   /**
@@ -412,8 +415,9 @@ export class TaskExecutor {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
         maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
         timeout: options?.timeout ?? this.options.taskTimeout,
-        startupTimeout: options?.startupTimeout ?? this.options.startupTaskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
+        retryOnTimeout: options?.retryOnTimeout ?? this.options.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());
