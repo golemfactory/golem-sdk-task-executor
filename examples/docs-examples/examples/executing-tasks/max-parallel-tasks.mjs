@@ -11,8 +11,14 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
   try {
     const data = [1, 2, 3, 4, 5];
     const futureResults = data.map((item) => executor.run((ctx) => ctx.run(`echo "${item}"`)));
-    const results = await Promise.all(futureResults);
-    results.forEach((result) => console.log(result.stdout));
+    const results = await Promise.allSettled(futureResults);
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        console.log("Success", result.value.stdout);
+      } else {
+        console.log("Failure", result.value.reason);
+      }
+    });
   } catch (err) {
     console.error("Error occurred during task execution:", err);
   } finally {
