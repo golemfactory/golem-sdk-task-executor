@@ -167,4 +167,16 @@ export class StatsService {
   private unsubscribeAllEvents() {
     this.listeners.forEach((listener, event) => this.events.removeListener(event, listener));
   }
+
+  getAll() {
+    return {
+      providers: this.providers.size,
+      agreements: this.agreements.size,
+      invoicesReceived: this.invoices.size,
+      invoicesPaid: this.payments.size,
+      invoicesUnpaid: this.invoices.size - this.payments.size,
+      invoicesMissing: this.agreements.size - this.invoices.size,
+      invoicePaymentRate: this.payments.size / this.agreements.size,
+    };
+  }
 }

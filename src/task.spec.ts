@@ -63,24 +63,49 @@ describe("Task", function () {
     expect(task.getState()).toEqual(TaskState.Retry);
   });
 
-  it("should stop the task with a timeout error if the task does not complete within the specified time", async () => {
-    const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 0 });
-    task.init();
-    task.start(activity);
-    await sleep(2, true);
-    expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
-    expect(task.getState() === TaskState.Rejected);
+  describe("task execution timeout", () => {
+    it("should stop the task with a timeout error if the task does not complete within the specified time", async () => {
+      const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 0 });
+      task.init();
+      task.start(activity);
+      await sleep(2, true);
+      expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
+      expect(task.getState() === TaskState.Rejected);
+    });
+
+    it("should retry the task if the retryOnTimeout is set to 'true'", async () => {
+      const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 1, retryOnTimeout: true });
+      task.init();
+      task.start(activity);
+      await sleep(2, true);
+      expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
+      expect(task.getState() === TaskState.Retry);
+    });
   });
 
-  it("should stop the task with a timeout error if the task does not started within the specified time", async () => {
-    const task = new Task<unknown>("1", worker, { startupTimeout: 1, maxRetries: 0 });
-    task.init();
-    await sleep(2, true);
-    expect(task.getError()).toEqual(
-      new GolemTimeoutError(
-        "Task startup 1 timeout. Failed to prepare the runtime environment within the specified time",
-      ),
-    );
-    expect(task.getState() === TaskState.Rejected);
+  describe("task startup timeout", () => {
+    it("should stop the task with a timeout error if the task does not started within the specified time", async () => {
+      const task = new Task<unknown>("1", worker, { startupTimeout: 1, maxRetries: 0 });
+      task.init();
+      await sleep(2, true);
+      expect(task.getError()).toEqual(
+        new GolemTimeoutError(
+          "Task 1 startup timeout. Failed to prepare the runtime environment within the specified time.",
+        ),
+      );
+      expect(task.getState() === TaskState.Rejected);
+    });
+
+    it("should retry the task if the retryOnTimeout is set to 'true'", async () => {
+      const task = new Task<unknown>("1", worker, { startupTimeout: 1, maxRetries: 1, retryOnTimeout: true });
+      task.init();
+      await sleep(2, true);
+      expect(task.getError()).toEqual(
+        new GolemTimeoutError(
+          "Task 1 startup timeout. Failed to prepare the runtime environment within the specified time.",
+        ),
+      );
+      expect(task.getState() === TaskState.Retry);
+    });
   });
 });

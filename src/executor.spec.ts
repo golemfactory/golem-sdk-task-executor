@@ -190,6 +190,7 @@ describe("Task Executor", () => {
         maxRetries: 0,
         timeout: 300000,
         startupTimeout: 120000,
+        retryOnTimeout: false,
       });
       await executor.shutdown();
     });
@@ -213,6 +214,7 @@ describe("Task Executor", () => {
         maxRetries: 0,
         timeout: 300000,
         startupTimeout: 120000,
+        retryOnTimeout: false,
       });
       await executor.shutdown();
     });
