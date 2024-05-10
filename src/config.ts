@@ -21,6 +21,7 @@ const DEFAULTS = Object.freeze({
   maxTaskRetries: 3,
   taskTimeout: 1000 * 60 * 5, // 5 min,
   taskStartupTimeout: 1000 * 60 * 2, // 2 min,
+  taskRetryOnTimeout: false,
   enableLogging: true,
   startupTimeout: 1000 * 90, // 90 sec
   exitOnNoProposals: false,
@@ -48,6 +49,7 @@ export class ExecutorConfig {
   readonly startupTimeout: number;
   readonly exitOnNoProposals: boolean;
   readonly agreementMaxPoolSize: number;
+  readonly taskRetryOnTimeout: boolean;
 
   constructor(options: ExecutorOptions & TaskServiceOptions) {
     const processEnv = !isBrowser
@@ -91,6 +93,7 @@ export class ExecutorConfig {
     this.taskTimeout = options.taskTimeout || DEFAULTS.taskTimeout;
     this.taskStartupTimeout = options.taskStartupTimeout || DEFAULTS.taskStartupTimeout;
     this.subnetTag = options.subnetTag || processEnv.env?.YAGNA_SUBNET || DEFAULTS.subnetTag;
+    this.taskRetryOnTimeout = options.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout;
     this.networkIp = options.networkIp;
     this.logger = (() => {
       const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;

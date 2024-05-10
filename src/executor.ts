@@ -89,6 +89,8 @@ export type ExecutorOptions = {
    * Default is `false`.
    */
   exitOnNoProposals?: boolean;
+
+  taskRetryOnTimeout?: boolean;
 } & Omit<PackageOptions, "imageHash" | "imageTag"> &
   MarketOptions &
   PaymentOptions &
@@ -350,11 +352,11 @@ export class TaskExecutor {
     this.events.emit("end", Date.now());
   }
 
-  /**
-   * @Deprecated This feature is no longer supported. It will be removed in the next release.
-   */
   getStats() {
-    return [];
+    return {
+      ...this.statsService.getAll(),
+      retries: this.taskService.getRetryCount(),
+    };
   }
 
   /**
@@ -414,6 +416,7 @@ export class TaskExecutor {
         timeout: options?.timeout ?? this.options.taskTimeout,
         startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
+        retryOnTimeout: options?.retryOnTimeout ?? this.options.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());

@@ -15,6 +15,7 @@ import {
   ActivityOptions,
   GolemWorkError,
   GolemInternalError,
+  GolemTimeoutError,
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
@@ -42,6 +43,10 @@ export class TaskService {
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
+  private retryOnTimeout: boolean = true;
+
+  /** To keep track of the stat */
+  private retryCount = 0;
 
   constructor(
     private yagnaApi: YagnaApi,
@@ -92,7 +97,11 @@ export class TaskService {
           .catch((error) => this.logger.warn(`Stopping activity failed`, { activityId: activity.id, error })),
       ),
     );
-    this.logger.info("Task Service has been stopped");
+    this.logger.info("Task Service has been stopped", {
+      stats: {
+        retryCount: this.retryCount,
+      },
+    });
   }
 
   private async startTask(task: Task) {
@@ -164,7 +173,11 @@ export class TaskService {
       const results = await worker(ctx);
       task.stop(results);
     } catch (error) {
-      task.stop(undefined, error, error instanceof GolemWorkError);
+      task.stop(
+        undefined,
+        error,
+        error instanceof GolemWorkError || (error instanceof GolemTimeoutError && this.retryOnTimeout),
+      );
     } finally {
       --this.activeTasksCount;
     }
@@ -204,6 +217,7 @@ export class TaskService {
       reason,
     });
     if (!this.tasksQueue.has(task)) {
+      this.retryCount++;
       this.tasksQueue.addToBegin(task);
       this.logger.debug(`Task ${task.id} added to the queue`);
     } else {
@@ -259,5 +273,9 @@ export class TaskService {
         .removeNode(networkNode.id)
         .catch((error) => this.logger.error(`Removing network node failed`, { nodeId: networkNode.id, error }));
     }
+  }
+
+  getRetryCount() {
+    return this.retryCount;
   }
 }

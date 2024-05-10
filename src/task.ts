@@ -26,10 +26,20 @@ export enum TaskState {
 export type TaskOptions = {
   /** maximum number of retries if task failed due to provider reason, default = 5 */
   maxRetries?: number;
+
+  /**
+   * Opt-in for retries of the tasks when the {@link TaskOptions.timeout} {@link TaskOptions.startupTimeout} are reached
+   *
+   * @default false
+   */
+  retryOnTimeout?: boolean;
+
   /** timeout in ms for task execution, measured for one attempt from start to stop, default = 300_000 (5min) */
   timeout?: number;
+
   /** timeout in ms for task startup, measured from initialization to start, default = 120_000 (2min) */
   startupTimeout?: number;
+
   /** array of setup functions to run on each activity */
   activityReadySetupFunctions?: Worker<unknown>[];
 };
@@ -57,6 +67,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private results?: OutputType;
   private error?: Error;
   private retriesCount = 0;
+  private retryOnTimeout;
   private listeners = new Set<(state: TaskState) => void>();
   private timeoutId?: NodeJS.Timeout;
   private startupTimeoutId?: NodeJS.Timeout;
@@ -75,7 +86,11 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.timeout = options?.timeout;
     this.startupTimeout = options?.startupTimeout;
     this.maxRetries = options?.maxRetries ?? DEFAULTS.MAX_RETRIES;
+
+    this.retryOnTimeout = options?.retryOnTimeout ?? false;
+
     this.activityReadySetupFunctions = options?.activityReadySetupFunctions ?? [];
+
     if (this.maxRetries < 0) {
       throw new GolemConfigError("The maxRetries parameter cannot be less than zero");
     }
@@ -88,16 +103,16 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.listeners.clear();
   }
   init() {
-    this.state = TaskState.Queued;
+    this.updateState(TaskState.Queued);
     if (this.startupTimeout) {
       this.startupTimeoutId = setTimeout(
         () =>
           this.stop(
             undefined,
             new GolemTimeoutError(
-              `Task startup ${this.id} timeout. Failed to prepare the runtime environment within the specified time`,
+              `Task ${this.id} startup timeout. Failed to prepare the runtime environment within the specified time.`,
             ),
-            false,
+            this.retryOnTimeout,
           ),
         this.startupTimeout,
       );
@@ -108,14 +123,13 @@ export class Task<OutputType = unknown> implements QueueableTask {
     if (this.state !== TaskState.Queued) {
       throw new GolemInternalError("You cannot start a task that is not queued");
     }
-    this.state = TaskState.Pending;
+    this.updateState(TaskState.Pending);
     clearTimeout(this.startupTimeoutId);
     this.activity = activity;
     this.networkNode = networkNode;
-    this.listeners.forEach((listener) => listener(this.state));
     if (this.timeout) {
       this.timeoutId = setTimeout(
-        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), false),
+        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), this.retryOnTimeout),
         this.timeout,
       );
     }
@@ -126,19 +140,19 @@ export class Task<OutputType = unknown> implements QueueableTask {
     }
     clearTimeout(this.timeoutId);
     clearTimeout(this.startupTimeoutId);
+
     if (error) {
       this.error = error;
       if (retry && this.retriesCount < this.maxRetries) {
-        this.state = TaskState.Retry;
+        this.updateState(TaskState.Retry);
         ++this.retriesCount;
       } else {
-        this.state = TaskState.Rejected;
+        this.updateState(TaskState.Rejected);
       }
     } else {
-      this.state = TaskState.Done;
+      this.updateState(TaskState.Done);
       this.results = results;
     }
-    this.listeners.forEach((listener) => listener(this.state));
   }
   isQueueable(): boolean {
     return this.state === TaskState.New || this.state === TaskState.Retry;
@@ -191,6 +205,12 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getState(): TaskState {
     return this.state;
   }
+
+  private updateState(newSate: TaskState) {
+    this.state = newSate;
+    this.listeners.forEach((listener) => listener(this.state));
+  }
+
   getDetails(): TaskDetails {
     return {
       id: this.id,
