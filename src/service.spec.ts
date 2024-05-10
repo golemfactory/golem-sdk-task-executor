@@ -6,6 +6,7 @@ import {
   Agreement,
   AgreementPoolService,
   GolemWorkError,
+  MarketService,
   NetworkService,
   PaymentService,
   Result,
@@ -23,10 +24,12 @@ import { sleep } from "./utils";
 
 let queue: TaskQueue;
 const paymentServiceMock = mock(PaymentService);
+const marketServiceMock = mock(MarketService);
 const agreementPoolServiceMock = mock(AgreementPoolService);
 const networkServiceMock = mock(NetworkService);
 const paymentService = instance(paymentServiceMock);
 const agreementPoolService = instance(agreementPoolServiceMock);
+const marketService = instance(marketServiceMock);
 const networkService = instance(networkServiceMock);
 const yagnaApiMock = imock<YagnaApi>();
 const yagnaApi = instance(yagnaApiMock);
@@ -36,6 +39,7 @@ const activityMock = mock(Activity);
 const agreement = instance(agreementMock);
 const activity = instance(activityMock);
 when(agreementPoolServiceMock.getAgreement()).thenResolve(agreement);
+when(marketServiceMock.getProposalsCount()).thenReturn({ confirmed: 1, initial: 1, rejected: 0 });
 when(agreementPoolServiceMock.releaseAgreement(anything(), anything())).thenResolve();
 when(activityMock.agreement).thenReturn(agreement);
 when(activityMock.getState()).thenResolve(ActivityStateEnum.Ready);
@@ -65,10 +69,19 @@ describe("Task Service", () => {
     const cb = jest.fn();
     events.on("taskStarted", cb);
     events.on("taskCompleted", cb);
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+      },
+    );
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
     expect(task.isFinished()).toEqual(true);
@@ -87,11 +100,20 @@ describe("Task Service", () => {
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-      maxParallelTasks: 2,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+        maxParallelTasks: 2,
+      },
+    );
     service.run().catch((e) => console.error(e));
     expect(task1.isQueued()).toEqual(true);
     expect(task2.isQueued()).toEqual(true);
@@ -115,10 +137,19 @@ describe("Task Service", () => {
     when(activityMock.execute(anything(), false, undefined)).thenReject(
       new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
     );
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+      },
+    );
     service.run().then();
     await sleep(800, true);
     expect(cb).toHaveBeenCalledTimes(3);
@@ -139,10 +170,19 @@ describe("Task Service", () => {
     const cb = jest.fn();
     events.on("taskRetried", cb);
     when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+      },
+    );
     service.run().then();
     await sleep(800, true);
     expect(cb).toHaveBeenCalledTimes(0);
@@ -155,10 +195,19 @@ describe("Task Service", () => {
     const task = new Task("1", worker, { maxRetries: 0 });
     queue.addToEnd(task);
     when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+      },
+    );
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
     expect(task.isRetry()).toEqual(false);
@@ -181,10 +230,19 @@ describe("Task Service", () => {
     when(activityMock.execute(anything(), false, undefined)).thenReject(
       new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
     );
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+      },
+    );
     queue.addToEnd(task);
     service.run().catch((e) => console.error(e));
     await sleep(500, true);
@@ -204,11 +262,20 @@ describe("Task Service", () => {
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(yagnaApi, queue, events, agreementPoolService, paymentService, networkService, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
-      maxParallelTasks: 2,
-    });
+    const service = new TaskService(
+      yagnaApi,
+      queue,
+      events,
+      marketService,
+      agreementPoolService,
+      paymentService,
+      networkService,
+      {
+        taskRunningInterval: 10,
+        activityStateCheckingInterval: 10,
+        maxParallelTasks: 2,
+      },
+    );
     const activitySetupDoneSpy = spy(service["activitySetupDone"]);
     service.run().then();
     await sleep(500, true);

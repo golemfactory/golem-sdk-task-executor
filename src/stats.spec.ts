@@ -38,7 +38,6 @@ describe("Stats Service", function () {
             agreementId: task.agreementId ?? `test-agreement-id-${id}`,
             provider,
             amount: task.invoiceReceivedAmount,
-            amountPrecise: `${task.invoiceReceivedAmount}`,
           }),
         );
       }
@@ -50,7 +49,6 @@ describe("Stats Service", function () {
             agreementId: task.agreementId ?? `test-agreement-id-${id}`,
             provider,
             amount: task.paid,
-            amountPrecise: `${task.paid}`,
           }),
         );
       }

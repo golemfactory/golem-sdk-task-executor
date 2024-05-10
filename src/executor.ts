@@ -135,7 +135,6 @@ export class TaskExecutor {
   private configOptions: ExecutorOptions;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
-  private waitingForProposalIntervalId?: NodeJS.Timeout;
   private yagna: Yagna;
 
   /**
@@ -234,6 +233,7 @@ export class TaskExecutor {
       this.yagna.getApi(),
       this.taskQueue,
       this.events,
+      this.marketService,
       this.agreementPoolService,
       this.paymentService,
       this.networkService,
@@ -300,9 +300,7 @@ export class TaskExecutor {
       }
     });
 
-    this.waitForAtLeastOneConfirmedProposal().then(() =>
-      this.taskService.run().catch((e) => this.handleCriticalError(e)),
-    );
+    this.taskService.run().catch((e) => this.handleCriticalError(e));
 
     if (isNode) this.installSignalHandlers();
     // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
@@ -343,7 +341,6 @@ export class TaskExecutor {
     this.events.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
-    clearInterval(this.waitingForProposalIntervalId);
     if (!this.configOptions.storageProvider) await this.storageProvider?.close();
     await this.networkService?.end();
     await Promise.all([this.taskService.end(), this.agreementPoolService.end(), this.marketService.end()]);
@@ -546,17 +543,5 @@ export class TaskExecutor {
         }
       }
     }, this.options.startupTimeout);
-  }
-
-  private async waitForAtLeastOneConfirmedProposal() {
-    return new Promise((res) => {
-      this.waitingForProposalIntervalId = setInterval(async () => {
-        const proposalsCount = this.marketService.getProposalsCount();
-        if (proposalsCount.confirmed > 0) {
-          clearInterval(this.waitingForProposalIntervalId);
-          res(true);
-        }
-      }, 2_000);
-    });
   }
 }

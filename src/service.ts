@@ -16,6 +16,7 @@ import {
   GolemWorkError,
   GolemInternalError,
   GolemTimeoutError,
+  MarketService,
 } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
@@ -52,6 +53,7 @@ export class TaskService {
     private yagnaApi: YagnaApi,
     private tasksQueue: TaskQueue,
     private events: EventEmitter<TaskExecutorEventsDict>,
+    private marketService: MarketService,
     private agreementPoolService: AgreementPoolService,
     private paymentService: PaymentService,
     private networkService?: NetworkService,
@@ -65,7 +67,8 @@ export class TaskService {
     this.isRunning = true;
     this.logger.info("Task Service has started");
     while (this.isRunning) {
-      if (this.activeTasksCount >= this.options.maxParallelTasks) {
+      const proposalsCount = this.marketService.getProposalsCount();
+      if (this.activeTasksCount >= this.options.maxParallelTasks || proposalsCount.confirmed === 0) {
         await sleep(this.options.taskRunningInterval, true);
         continue;
       }
