@@ -1,25 +1,13 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import {
-  WorkContext,
-  defaultLogger,
-  Logger,
-  YagnaApi,
-  StorageProvider,
-  Agreement,
-  AgreementPoolService,
-  PaymentService,
-  NetworkNode,
-  NetworkService,
-  Activity,
-  ActivityOptions,
-} from "@golem-sdk/golem-js";
+import { defaultLogger, Logger, StorageProvider, LeaseProcess, LeaseProcessPool } from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 
-export interface TaskServiceOptions extends ActivityOptions {
+// TODO: to verify which are needed now
+export interface TaskServiceOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
   maxParallelTasks?: number;
   taskRunningInterval?: number;
@@ -35,19 +23,16 @@ export interface TaskServiceOptions extends ActivityOptions {
  */
 export class TaskService {
   private activeTasksCount = 0;
-  private activities = new Map<string, Activity>();
+  private leaseProcesses = new Map<string, LeaseProcess>();
   private activitySetupDone: Set<string> = new Set();
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
 
   constructor(
-    private yagnaApi: YagnaApi,
     private tasksQueue: TaskQueue,
+    private leaseProcessPool: LeaseProcessPool,
     private events: EventEmitter<TaskExecutorEventsDict>,
-    private agreementPoolService: AgreementPoolService,
-    private paymentService: PaymentService,
-    private networkService?: NetworkService,
     options?: TaskServiceOptions,
   ) {
     this.options = new TaskConfig(options);
@@ -82,12 +67,14 @@ export class TaskService {
 
   async end() {
     this.isRunning = false;
-    this.logger.debug(`Trying to stop all activities`, { size: this.activities.size });
+    this.logger.debug(`Trying to destroy all lease process`, { size: this.leaseProcesses.size });
     await Promise.all(
-      [...this.activities.values()].map((activity) =>
-        activity
-          .stop()
-          .catch((error) => this.logger.warn(`Stopping activity failed`, { activityId: activity.id, error })),
+      [...this.leaseProcesses.values()].map((lease) =>
+        lease
+          .finalize()
+          .catch((error) =>
+            this.logger.warn(`Stopping lease process failed`, { agreementId: lease.agreement.id, error }),
+          ),
       ),
     );
     this.logger.info("Task Service has been stopped");
@@ -98,41 +85,33 @@ export class TaskService {
     this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
     ++this.activeTasksCount;
 
-    const agreement = await this.agreementPoolService.getAgreement();
-    let activity: Activity | undefined;
-    let networkNode: NetworkNode | undefined;
+    const leaseProcess = await this.leaseProcessPool.acquire();
+    this.leaseProcesses.set(leaseProcess.agreement.id, leaseProcess);
 
     try {
-      activity = await this.getOrCreateActivity(agreement);
-      task.start(activity, networkNode);
+      const ctx = await leaseProcess.getExeUnit();
+      task.start(leaseProcess);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
         taskId: task.id,
-        providerName: agreement.getProviderInfo().name,
-        activityId: activity.id,
+        providerName: ctx.provider.name,
+        activityId: ctx.activity.id,
       });
 
       const activityReadySetupFunctions = task.getActivityReadySetupFunctions();
       const worker = task.getWorker();
-      if (this.networkService && !this.networkService.hasNode(agreement.getProviderInfo().id)) {
-        networkNode = await this.networkService.addNode(agreement.getProviderInfo().id);
-      }
 
-      const ctx = new WorkContext(activity, {
-        yagnaOptions: this.yagnaApi.yagnaOptions,
-        activityReadySetupFunctions: this.activitySetupDone.has(activity.id) ? [] : activityReadySetupFunctions,
-        storageProvider: this.options.storageProvider,
-        networkNode,
-        logger: this.logger,
-        activityPreparingTimeout: this.options.activityPreparingTimeout,
-        activityStateCheckingInterval: this.options.activityStateCheckingInterval,
-      });
+      // TODO: how to express the need to get a leaseProcess belonging to a network (which has a networkNode in it).
+      //  Maybe every leaseProcess belongs to the network if it was added in the deployment builder?
+      // if (this.networkService && !this.networkService.hasNode(agreement.getProviderInfo().id)) {
+      //   networkNode = await this.networkService.addNode(agreement.getProviderInfo().id);
+      // }
 
       await ctx.before();
 
-      if (activityReadySetupFunctions.length && !this.activitySetupDone.has(activity.id)) {
-        this.activitySetupDone.add(activity.id);
-        this.logger.debug(`Activity setup completed`, { activityId: activity.id });
+      if (activityReadySetupFunctions.length && !this.activitySetupDone.has(ctx.activity.id)) {
+        this.activitySetupDone.add(ctx.activity.id);
+        this.logger.debug(`Activity setup completed`, { activityId: ctx.activity.id });
       }
       const results = await worker(ctx);
       task.stop(results);
@@ -140,23 +119,6 @@ export class TaskService {
       task.stop(undefined, error);
     } finally {
       --this.activeTasksCount;
-    }
-  }
-
-  private async stopActivity(activity: Activity) {
-    await activity.stop();
-    this.activities.delete(activity.agreement.id);
-  }
-
-  private async getOrCreateActivity(agreement: Agreement) {
-    const previous = this.activities.get(agreement.id);
-    if (previous) {
-      return previous;
-    } else {
-      const activity = await Activity.create(agreement, this.yagnaApi, this.options);
-      this.activities.set(agreement.id, activity);
-      this.paymentService.acceptPayments(agreement);
-      return activity;
     }
   }
 
@@ -183,44 +145,26 @@ export class TaskService {
         taskId: task.id,
         reason: task.getError()?.message,
         retries: task.getRetriesCount(),
-        providerName: task.getActivity()?.getProviderInfo().name,
+        providerName: task.getLeaseProcess()?.agreement?.getProviderInfo()?.name,
       });
     } else {
       this.events.emit("taskCompleted", task.getDetails());
       this.logger.info(`Task computed`, {
         taskId: task.id,
         retries: task.getRetriesCount(),
-        providerName: task.getActivity()?.getProviderInfo().name,
+        providerName: task.getLeaseProcess()?.agreement?.getProviderInfo()?.name,
       });
     }
   }
 
   private async releaseTaskResources(task: Task) {
-    const activity = task.getActivity();
-    if (activity) {
+    const leaseProcess = task.getLeaseProcess();
+    if (leaseProcess) {
       if (task.isFailed()) {
-        /**
-         * Activity should only be terminated when the task fails.
-         * We assume that the next attempt should be performed on a new activity instance.
-         * For successfully completed tasks, activities remain in the ready state
-         * and are ready to be used for other tasks.
-         * For them, termination will be completed with the end of service
-         */
-        await this.stopActivity(activity).catch((error) =>
-          this.logger.error(`Stopping activity failed`, { activityId: activity.id, error }),
-        );
+        await this.leaseProcessPool.destroy(leaseProcess);
+      } else {
+        await this.leaseProcessPool.release(leaseProcess);
       }
-      await this.agreementPoolService
-        .releaseAgreement(activity.agreement.id, task.isDone())
-        .catch((error) =>
-          this.logger.error(`Releasing agreement failed`, { agreementId: activity.agreement.id, error }),
-        );
-    }
-    const networkNode = task.getNetworkNode();
-    if (this.networkService && networkNode) {
-      await this.networkService
-        .removeNode(networkNode.id)
-        .catch((error) => this.logger.error(`Removing network node failed`, { nodeId: networkNode.id, error }));
     }
   }
 }

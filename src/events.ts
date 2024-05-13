@@ -1,5 +1,5 @@
 import { TaskDetails } from "./task";
-import { BaseEvent } from "@golem-sdk/golem-js";
+// import { BaseEvent } from "@golem-sdk/golem-js";
 
 /**
  * This interface describes events emitted by `TaskExecutor` through `TaskExecutor.events` object.
@@ -67,5 +67,5 @@ export interface TaskExecutorEventsDict {
    *
    * @param event
    */
-  golemEvents: (event: BaseEvent<unknown>) => void;
+  // golemEvents: (event: BaseEvent<unknown>) => void;
 }

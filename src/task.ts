@@ -1,5 +1,5 @@
 import { QueueableTask } from "./queue";
-import { Activity, GolemConfigError, GolemTimeoutError, NetworkNode, Worker } from "@golem-sdk/golem-js";
+import { GolemConfigError, GolemTimeoutError, LeaseProcess, Worker } from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
   name: string;
@@ -54,8 +54,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private readonly timeout: number;
   private readonly maxRetries: number;
   private readonly activityReadySetupFunctions: Worker<unknown>[];
-  private activity?: Activity;
-  private networkNode?: NetworkNode;
+  private leaseProcess?: LeaseProcess;
 
   constructor(
     public readonly id: string,
@@ -81,10 +80,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.state = TaskState.Queued;
   }
 
-  start(activity: Activity, networkNode?: NetworkNode) {
+  start(leaseProcess: LeaseProcess) {
     this.state = TaskState.Pending;
-    this.activity = activity;
-    this.networkNode = networkNode;
+    this.leaseProcess = leaseProcess;
     this.listeners.forEach((listener) => listener(this.state));
     this.timeoutId = setTimeout(
       () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), true),
@@ -152,11 +150,8 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getError(): Error | undefined {
     return this.error;
   }
-  getActivity(): Activity | undefined {
-    return this.activity;
-  }
-  getNetworkNode(): NetworkNode | undefined {
-    return this.networkNode;
+  getLeaseProcess(): LeaseProcess | undefined {
+    return this.leaseProcess;
   }
   getState(): TaskState {
     return this.state;
@@ -164,9 +159,10 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getDetails(): TaskDetails {
     return {
       id: this.id,
-      activityId: this.getActivity()?.id,
-      agreementId: this.getActivity()?.agreement?.id,
-      provider: this.getActivity()?.getProviderInfo(),
+      // TODO: leaseProcess.getActivity(): Activity | undefined
+      // activityId: this.leaseProcess?.getActivity()?.id, getAgreement()
+      // agreementId: this.leaseProcess?.agreement?.id,
+      // provider: this.leaseProcess?.agreement?.getProviderInfo(),
       retriesCount: this.getRetriesCount(),
       error: this.getError(),
     };

@@ -36,7 +36,7 @@ export class TaskQueue<T extends QueueableTask = Task> {
     if (!task.isQueueable())
       throw new GolemWorkError(
         "You cannot add a task that is not in the correct state",
-        WorkErrorCode.TaskAddingFailed,
+        WorkErrorCode.ActivityCreationFailed,
       );
   }
 }

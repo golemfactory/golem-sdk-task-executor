@@ -1,7 +1,7 @@
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 import { ProviderInfo, TaskDetails } from "./task";
-import { BaseEvent, defaultLogger, Events as GolemEvents, Logger } from "@golem-sdk/golem-js";
+import { defaultLogger, Logger } from "@golem-sdk/golem-js";
 
 export interface AgreementInfo {
   id: string;
@@ -132,36 +132,37 @@ export class StatsService {
     this.listeners.set("taskCompleted", taskListener);
   }
 
+  // TODO: when we implement events in golem-js
   private subscribeGolemEvents() {
-    const golemEventsListener = (event: BaseEvent<unknown>) => {
-      if (event instanceof GolemEvents.AgreementCreated) {
-        this.agreements.set(event.detail.id, {
-          id: event.detail.id,
-          provider: event.detail.provider,
-          proposalId: event.detail.proposalId,
-        });
-        this.providers.set(event.detail.provider.id, event.detail.provider);
-        this.logger.debug("AgreementCreated event collected", { agreement: event.detail });
-      } else if (event instanceof GolemEvents.InvoiceReceived) {
-        let invoices = this.invoices.get(event.detail.agreementId);
-        if (!invoices) {
-          invoices = [];
-          this.invoices.set(event.detail.agreementId, invoices);
-        }
-        invoices.push(event.detail);
-        this.logger.debug("InvoiceReceived event collected", { agreement: event.detail });
-      } else if (event instanceof GolemEvents.PaymentAccepted) {
-        let payments = this.payments.get(event.detail.agreementId);
-        if (!payments) {
-          payments = [];
-          this.payments.set(event.detail.agreementId, payments);
-        }
-        payments.push(event.detail);
-        this.logger.debug("InvoiceAccepted event collected", { agreement: event.detail });
-      }
-    };
-    this.events.on("golemEvents", golemEventsListener);
-    this.listeners.set("golemEvents", golemEventsListener);
+    // const golemEventsListener = (event: BaseEvent<unknown>) => {
+    //   if (event instanceof GolemEvents.AgreementCreated) {
+    //     this.agreements.set(event.detail.id, {
+    //       id: event.detail.id,
+    //       provider: event.detail.provider,
+    //       proposalId: event.detail.proposalId,
+    //     });
+    //     this.providers.set(event.detail.provider.id, event.detail.provider);
+    //     this.logger.debug("AgreementCreated event collected", { agreement: event.detail });
+    //   } else if (event instanceof GolemEvents.InvoiceReceived) {
+    //     let invoices = this.invoices.get(event.detail.agreementId);
+    //     if (!invoices) {
+    //       invoices = [];
+    //       this.invoices.set(event.detail.agreementId, invoices);
+    //     }
+    //     invoices.push(event.detail);
+    //     this.logger.debug("InvoiceReceived event collected", { agreement: event.detail });
+    //   } else if (event instanceof GolemEvents.PaymentAccepted) {
+    //     let payments = this.payments.get(event.detail.agreementId);
+    //     if (!payments) {
+    //       payments = [];
+    //       this.payments.set(event.detail.agreementId, payments);
+    //     }
+    //     payments.push(event.detail);
+    //     this.logger.debug("InvoiceAccepted event collected", { agreement: event.detail });
+    //   }
+    // };
+    // this.events.on("golemEvents", golemEventsListener);
+    // this.listeners.set("golemEvents", golemEventsListener);
   }
 
   private unsubscribeAllEvents() {

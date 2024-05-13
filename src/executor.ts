@@ -1,46 +1,29 @@
 import {
-  Package,
-  PackageOptions,
-  MarketOptions,
-  MarketService,
-  AgreementPoolService,
-  AgreementServiceOptions,
-  PaymentOptions,
-  PaymentService,
-  NetworkService,
-  NetworkServiceOptions,
   Logger,
-  Yagna,
-  GftpStorageProvider,
-  NullStorageProvider,
   StorageProvider,
-  WebSocketBrowserStorageProvider,
-  Events,
   GolemWorkError,
   WorkErrorCode,
-  WorkOptions,
   Worker,
-  GolemConfigError,
   GolemInternalError,
   GolemTimeoutError,
-  EVENT_TYPE,
-  BaseEvent,
+  GolemNetwork,
+  LeaseProcessPool,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
-import { RequireAtLeastOne } from "./types";
 import { TaskExecutorEventsDict } from "./events";
 import { EventEmitter } from "eventemitter3";
 import { TaskService, TaskServiceOptions } from "./service";
 import { TaskQueue } from "./queue";
-import { isBrowser, isNode, sleep } from "./utils";
+import { isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
 import { StatsService } from "./stats";
+import { CreateActivityPoolOptions, Deployment } from "@golem-sdk/golem-js/dist/experimental";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 
 export type ExecutorOptions = {
   /** Image hash or image tag as string, otherwise Package object */
-  package?: string | Package;
+  package?: string;
   /** Timeout for execute one task in ms. Default is 300_000 (5 minutes). */
   taskTimeout?: number;
   /** Subnet Tag */
@@ -82,13 +65,7 @@ export type ExecutorOptions = {
    * Default is `false`.
    */
   exitOnNoProposals?: boolean;
-} & Omit<PackageOptions, "imageHash" | "imageTag"> &
-  MarketOptions &
-  PaymentOptions &
-  NetworkServiceOptions &
-  AgreementServiceOptions &
-  Omit<WorkOptions, "yagnaOptions"> &
-  TaskServiceOptions;
+} & TaskServiceOptions;
 
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
@@ -111,22 +88,19 @@ export class TaskExecutor {
   readonly events: EventEmitter<TaskExecutorEventsDict> = new EventEmitter();
 
   private readonly options: ExecutorConfig;
-  private marketService: MarketService;
-  private agreementPoolService: AgreementPoolService;
   private taskService: TaskService;
-  private paymentService: PaymentService;
-  private networkService?: NetworkService;
   private statsService: StatsService;
   private activityReadySetupFunctions: Worker<unknown>[] = [];
   private taskQueue: TaskQueue;
-  private storageProvider?: StorageProvider;
   private logger: Logger;
   private lastTaskIndex = 0;
   private isRunning = true;
   private configOptions: ExecutorOptions;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
-  private yagna: Yagna;
+  private golemNetwork: GolemNetwork;
+  private deployment?: Deployment;
+  private leaseProcessPool?: LeaseProcessPool;
 
   /**
    * Signal handler reference, needed to remove handlers on exit.
@@ -187,52 +161,23 @@ export class TaskExecutor {
     this.configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorOptions;
     this.options = new ExecutorConfig(this.configOptions);
     this.logger = this.options.logger;
-    this.yagna = new Yagna(this.configOptions.yagnaOptions);
-    const yagnaApi = this.yagna.getApi();
     this.taskQueue = new TaskQueue();
-    this.agreementPoolService = new AgreementPoolService(yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("agreement"),
-    });
-    this.paymentService = new PaymentService(yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("payment"),
-    });
-    this.marketService = new MarketService(this.agreementPoolService, yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("market"),
-    });
-    this.networkService = this.options.networkIp
-      ? new NetworkService(yagnaApi, { ...this.options, logger: this.logger.child("network") })
-      : undefined;
+    // TODO: map ExecutorOptions -> GolemNetworkOptions
+    const golemNetworkOptions = {};
+    this.golemNetwork = new GolemNetwork({ logger: this.logger, ...golemNetworkOptions });
+    const builder = this.golemNetwork.creteDeploymentBuilder();
+    // TODO: map ExecutorOptions -> ActivityPoolOptions
+    const activityPoolOptions = {} as CreateActivityPoolOptions;
+    builder.createActivityPool("task-executor", activityPoolOptions);
+    this.deployment = builder.getDeployment();
+    this.leaseProcessPool = this.deployment.getLeaseProcessPool("task-executor");
 
-    // Initialize storage provider.
-    if (this.configOptions.storageProvider) {
-      this.storageProvider = this.configOptions.storageProvider;
-    } else if (isNode) {
-      this.storageProvider = new GftpStorageProvider(this.logger.child("storage"));
-    } else if (isBrowser) {
-      this.storageProvider = new WebSocketBrowserStorageProvider(yagnaApi, {
-        ...this.options,
-        logger: this.logger.child("storage"),
-      });
-    } else {
-      this.storageProvider = new NullStorageProvider();
-    }
-
-    this.taskService = new TaskService(
-      this.yagna.getApi(),
-      this.taskQueue,
-      this.events,
-      this.agreementPoolService,
-      this.paymentService,
-      this.networkService,
-      { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
-    );
+    this.taskService = new TaskService(this.taskQueue, this.leaseProcessPool, this.events, {
+      ...this.options,
+      logger: this.logger.child("work"),
+    });
     this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
-    this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
-      this.events.emit("golemEvents", event as BaseEvent<unknown>),
-    );
+    // TODO: events handling
     this.events.emit("start", Date.now());
   }
 
@@ -242,47 +187,17 @@ export class TaskExecutor {
    * @description Method responsible initialize all executor services.
    */
   async init() {
+    this.logger.debug("Initializing task executor...");
     try {
-      await this.yagna.connect();
+      await this.golemNetwork.connect();
+      await this.deployment?.start();
+      await this.leaseProcessPool?.ready();
+      await this.taskService.run();
+      await this.statsService.run();
     } catch (error) {
       this.logger.error("Initialization failed", error);
       throw error;
     }
-    const manifest = this.options.packageOptions.manifest;
-    const packageReference = this.options.package;
-    let taskPackage: Package;
-
-    if (manifest) {
-      taskPackage = await this.createPackage({
-        manifest,
-      });
-    } else {
-      if (packageReference) {
-        if (typeof packageReference === "string") {
-          taskPackage = await this.createPackage(Package.getImageIdentifier(packageReference));
-        } else {
-          taskPackage = packageReference;
-        }
-      } else {
-        const error = new GolemConfigError("No package or manifest provided");
-        this.logger.error("No package or manifest provided", error);
-        throw error;
-      }
-    }
-
-    this.logger.debug("Initializing task executor services...");
-    const allocations = await this.paymentService.createAllocation();
-    await Promise.all([
-      this.marketService.run(taskPackage, allocations).then(() => this.setStartupTimeout()),
-      this.agreementPoolService.run(),
-      this.paymentService.run(),
-      this.networkService?.run(),
-      this.statsService.run(),
-      this.storageProvider?.init(),
-    ]).catch((e) => this.handleCriticalError(e));
-
-    // Start listening to issues reported by the services
-    this.paymentService.events.on("error", (e) => this.handleCriticalError(e));
 
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
@@ -290,8 +205,9 @@ export class TaskExecutor {
     // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
     this.logger.info(`Task Executor has started`, {
       subnet: this.options.subnetTag,
-      network: this.paymentService.config.payment.network,
-      driver: this.paymentService.config.payment.driver,
+      // TODO: get netowrk and driver from golemNetwork ... ?
+      // network: this.paymentService.config.payment.network,
+      // driver: this.paymentService.config.payment.driver,
     });
     this.events.emit("ready", Date.now());
   }
@@ -325,12 +241,9 @@ export class TaskExecutor {
     this.events.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
-    if (!this.configOptions.storageProvider) await this.storageProvider?.close();
-    await this.networkService?.end();
-    await Promise.all([this.taskService.end(), this.agreementPoolService.end(), this.marketService.end()]);
-    await this.paymentService.end();
-    await this.yagna.end();
-    // this.options.eventTarget?.dispatchEvent(new Events.ComputationFinished());
+    await this.taskService.end();
+    await this.deployment?.stop();
+    await this.golemNetwork.disconnect();
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
@@ -384,15 +297,6 @@ export class TaskExecutor {
     return this.executeTask<OutputType>(worker, options);
   }
 
-  private async createPackage(
-    packageReference: RequireAtLeastOne<
-      { imageHash: string; manifest: string; imageTag: string },
-      "manifest" | "imageTag" | "imageHash"
-    >,
-  ): Promise<Package> {
-    return Package.create({ ...this.options.packageOptions, ...packageReference });
-  }
-
   private async executeTask<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
     let task;
     try {
@@ -417,10 +321,10 @@ export class TaskExecutor {
       }
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
-        WorkErrorCode.TaskExecutionFailed,
-        task?.getActivity()?.agreement,
-        task?.getActivity(),
-        task?.getActivity()?.getProviderInfo(),
+        WorkErrorCode.ScriptExecutionFailed,
+        task?.getLeaseProcess()?.agreement,
+        undefined, // task?.getLeaseProcess()?.getActivity(),
+        task?.getLeaseProcess()?.agreement?.getProviderInfo(),
         error,
       );
     }
@@ -466,7 +370,6 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.options.eventTarget?.dispatchEvent(new Events.ComputationFailed({ reason: err.toString() }));
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);
@@ -509,7 +412,10 @@ export class TaskExecutor {
    */
   private setStartupTimeout() {
     this.startupTimeoutId = setTimeout(() => {
-      const proposalsCount = this.marketService.getProposalsCount();
+      // TODO: get stats for demand / pool
+      // const proposalsCount = this.leaseProcessPool.getProposalsCount();
+      // TODO: tmp mock - FIXME
+      const proposalsCount = { confirmed: 1, initial: 1, rejected: 0 };
       if (proposalsCount.confirmed === 0) {
         const hint =
           proposalsCount.initial === 0 && proposalsCount.confirmed === 0

@@ -1,16 +1,7 @@
 import { ExecutorOptions } from "./executor";
 import { isBrowser } from "./utils";
 import { TaskServiceOptions } from "./service";
-import {
-  GolemConfigError,
-  Logger,
-  nullLogger,
-  Package,
-  PackageOptions,
-  StorageProvider,
-  ActivityConfig,
-  defaultLogger,
-} from "@golem-sdk/golem-js";
+import { GolemConfigError, Logger, nullLogger, StorageProvider, defaultLogger } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
   payment: { driver: "erc20", network: "goerli" },
@@ -32,20 +23,20 @@ const DEFAULTS = Object.freeze({
  * @internal
  */
 export class ExecutorConfig {
-  readonly package?: Package | string;
+  // readonly package?: string;
   readonly maxParallelTasks: number;
   readonly taskTimeout: number;
-  readonly budget: number;
+  // readonly budget: number;
   readonly subnetTag: string;
   readonly networkIp?: string;
-  readonly packageOptions: Omit<PackageOptions, "imageHash" | "imageTag">;
+  // readonly packageOptions: Omit<PackageOptions, "imageHash" | "imageTag">;
   readonly yagnaOptions: { apiKey: string; basePath: string };
   readonly logger: Logger;
-  readonly eventTarget: EventTarget;
+  // readonly eventTarget: EventTarget;
   readonly maxTaskRetries: number;
   readonly startupTimeout: number;
   readonly exitOnNoProposals: boolean;
-  readonly agreementMaxPoolSize: number;
+  // readonly agreementMaxPoolSize: number;
 
   constructor(options: ExecutorOptions & TaskServiceOptions) {
     const processEnv = !isBrowser
@@ -71,31 +62,31 @@ export class ExecutorConfig {
       apiKey,
       basePath: options.yagnaOptions?.basePath || processEnv.env.YAGNA_API_URL || DEFAULTS.basePath,
     };
-    this.package = options.package;
-    this.packageOptions = {
-      engine: options.engine,
-      minMemGib: options.minMemGib,
-      minStorageGib: options.minStorageGib,
-      minCpuThreads: options.minCpuThreads,
-      minCpuCores: options.minCpuCores,
-      capabilities: options.capabilities,
-      manifest: options.manifest,
-      manifestSig: options.manifestSig,
-      manifestSigAlgorithm: options.manifestSigAlgorithm,
-      manifestCert: options.manifestCert,
-    };
-    this.budget = options.budget || DEFAULTS.budget;
+    // this.package = options.package;
+    // this.packageOptions = {
+    //   engine: options.engine,
+    //   minMemGib: options.minMemGib,
+    //   minStorageGib: options.minStorageGib,
+    //   minCpuThreads: options.minCpuThreads,
+    //   minCpuCores: options.minCpuCores,
+    //   capabilities: options.capabilities,
+    //   manifest: options.manifest,
+    //   manifestSig: options.manifestSig,
+    //   manifestSigAlgorithm: options.manifestSigAlgorithm,
+    //   manifestCert: options.manifestCert,
+    // };
+    // this.budget = options.budget || DEFAULTS.budget;
     this.maxParallelTasks = options.maxParallelTasks || DEFAULTS.maxParallelTasks;
     this.taskTimeout = options.taskTimeout || DEFAULTS.taskTimeout;
     this.subnetTag = options.subnetTag || processEnv.env?.YAGNA_SUBNET || DEFAULTS.subnetTag;
-    this.networkIp = options.networkIp;
+    // this.networkIp = options.networkIp;
     this.logger = (() => {
       const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;
       if (!isLoggingEnabled) return nullLogger();
       if (options.logger) return options.logger.child("task-executor");
       return defaultLogger("task-executor", { disableAutoPrefix: true });
     })();
-    this.eventTarget = options.eventTarget || new EventTarget();
+    // this.eventTarget = options.eventTarget || new EventTarget();
     this.maxTaskRetries = options.maxTaskRetries ?? DEFAULTS.maxTaskRetries;
     this.startupTimeout = options.startupTimeout ?? DEFAULTS.startupTimeout;
     this.exitOnNoProposals = options.exitOnNoProposals ?? DEFAULTS.exitOnNoProposals;
@@ -104,14 +95,14 @@ export class ExecutorConfig {
      * This means that the pool will contain a maximum number of agreements ready for reuse equal to the maximum number of tasks executed simultaneously.
      * This will avoid the situation of keeping unused agreements and activities and, consequently, unnecessary costs.
      */
-    this.agreementMaxPoolSize = options.agreementMaxPoolSize ?? DEFAULTS.maxParallelTasks;
+    // this.agreementMaxPoolSize = options.agreementMaxPoolSize ?? DEFAULTS.maxParallelTasks;
   }
 }
 
 /**
  * @internal
  */
-export class TaskConfig extends ActivityConfig {
+export class TaskConfig {
   public readonly maxParallelTasks: number;
   public readonly taskRunningInterval: number;
   public readonly taskTimeout: number;
@@ -121,8 +112,8 @@ export class TaskConfig extends ActivityConfig {
   public readonly logger: Logger;
 
   constructor(options?: TaskServiceOptions) {
-    const activityExecuteTimeout = options?.activityExecuteTimeout || options?.taskTimeout || DEFAULTS.taskTimeout;
-    super({ ...options, activityExecuteTimeout });
+    // const activityExecuteTimeout = options?.activityExecuteTimeout || options?.taskTimeout || DEFAULTS.taskTimeout;
+    // super({ ...options, activityExecuteTimeout });
     this.maxParallelTasks = options?.maxParallelTasks || DEFAULTS.maxParallelTasks;
     this.taskRunningInterval = options?.taskRunningInterval || DEFAULTS.taskRunningInterval;
     this.taskTimeout = options?.taskTimeout || DEFAULTS.taskTimeout;

@@ -1,11 +1,11 @@
 import { Task, TaskState } from "./task";
-import { Activity, Result, ResultState } from "@golem-sdk/golem-js";
+import { LeaseProcess, Result } from "@golem-sdk/golem-js";
 import { instance, mock } from "@johanblumenberg/ts-mockito";
 
 describe("Task", function () {
   const worker = async () => null;
-  const activityMock = mock(Activity);
-  const activity = instance(activityMock);
+  const leaseProcessMock = mock(LeaseProcess);
+  const leaseProcess = instance(leaseProcessMock);
 
   it("should init task", () => {
     const task = new Task("1", worker);
@@ -17,7 +17,7 @@ describe("Task", function () {
 
   it("should start task", () => {
     const task = new Task("1", worker);
-    task.start(activity);
+    task.start(leaseProcess);
     expect(task.getState()).toEqual(TaskState.Pending);
     task.stop();
     task.cleanup();
@@ -25,11 +25,11 @@ describe("Task", function () {
 
   it("should complete task with results", () => {
     const task = new Task<unknown>("1", worker);
-    task.start(activity);
+    task.start(leaseProcess);
     const result = new Result<null>({
       index: 0,
       eventDate: new Date().toDateString(),
-      result: ResultState.Ok,
+      result: "Ok",
       stdout: "result",
     });
     task.stop(result);
@@ -39,7 +39,7 @@ describe("Task", function () {
 
   it("should complete task with error", () => {
     const task = new Task<unknown>("1", worker);
-    task.start(activity);
+    task.start(leaseProcess);
     const error = new Error("test");
     task.stop(undefined, error, false);
     expect(task.getState()).toEqual(TaskState.Rejected);
@@ -47,7 +47,7 @@ describe("Task", function () {
 
   it("should retry task", () => {
     const task = new Task<unknown>("1", worker);
-    task.start(activity);
+    task.start(leaseProcess);
     const error = new Error("test");
     task.stop(undefined, error, true);
     expect(task.getState()).toEqual(TaskState.Retry);
