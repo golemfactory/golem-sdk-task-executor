@@ -1,5 +1,10 @@
 import { TaskExecutor } from "../../src";
 import fs from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const blenderParams = (frame) => ({
   scene_file: "/golem/resource/scene.blend",
@@ -29,7 +34,7 @@ describe("Blender rendering", function () {
       });
 
       executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(__dirname + "/../fixtures/cubes.blend");
+        const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/cubes.blend"));
         await ctx.uploadFile(sourcePath, "/golem/resource/scene.blend");
       });
 

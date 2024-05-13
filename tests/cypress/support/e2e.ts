@@ -18,7 +18,7 @@
 
 beforeEach(() => {
   cy.intercept("GET", "https://unpkg.com/@golem-sdk/task-executor", (req) => {
-    req.url = "http://localhost:3000/task-executor.min.js";
+    req.url = "http://localhost:3000/dist/task-executor.min.js";
     req.continue();
   });
 });

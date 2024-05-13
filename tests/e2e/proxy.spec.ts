@@ -1,6 +1,11 @@
 import { TaskExecutor } from "../../src";
 import { sleep } from "../../src/utils";
 import fs from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe("TcpProxy", function () {
   it("should send and receive message to the http server on the provider", async () => {
@@ -12,7 +17,10 @@ describe("TcpProxy", function () {
     let response;
     let providerStdout = "";
     await executor.run(async (ctx) => {
-      await ctx.uploadFile(fs.realpathSync(__dirname + "../../../examples/proxy/server.js"), "/golem/work/server.js");
+      await ctx.uploadFile(
+        fs.realpathSync(resolve(__dirname + "../../../examples/proxy/server.js")),
+        "/golem/work/server.js",
+      );
       const server = await ctx.runAndStream("node /golem/work/server.js");
       server.stdout.on("data", (data) => (providerStdout += data.toString()));
       const proxy = ctx.createTcpProxy(80);

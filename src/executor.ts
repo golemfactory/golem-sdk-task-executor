@@ -8,6 +8,9 @@ import {
   GolemTimeoutError,
   GolemNetwork,
   LeaseProcessPool,
+  Proposal,
+  PaymentFilters,
+  AgreementSelector,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { TaskExecutorEventsDict } from "./events";
@@ -60,12 +63,131 @@ export type ExecutorOptions = {
    */
   startupTimeout?: number;
   /**
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
+   * This parameter is expressed in ms. Default is 120_000 (2 minutes).
+   * If it is not possible to sign an agreement within the specified time,
+   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
+   */
+  taskStartupTimeout?: number;
+  /**
    * If set to `true`, the executor will exit with an error when no proposals are accepted.
    * You can customize how long the executor will wait for proposals using the `startupTimeout` parameter.
    * Default is `false`.
    */
   exitOnNoProposals?: boolean;
-} & TaskServiceOptions;
+
+  taskRetryOnTimeout?: boolean;
+} & TaskServiceOptions &
+  TmpServiceOptionsReplacement;
+
+interface TmpServiceOptionsReplacement {
+  //  --------------- PACKAGE OPTIONS -------------------
+  /** Type of engine required: vm, emscripten, sgx, sgx-js, sgx-wasm, sgx-wasi */
+  engine?: string;
+  /** Minimum required memory to execute application GB */
+  minMemGib?: number;
+  /** Minimum required disk storage to execute tasks in GB */
+  minStorageGib?: number;
+  /** Minimum required CPU threads */
+  minCpuThreads?: number;
+  /** Minimum required CPU cores */
+  minCpuCores?: number;
+  /** Required providers capabilities to run application */
+  capabilities?: string[];
+  /**  finds package by its contents hash */
+  imageHash?: string;
+  /**  finds package by registry tag  */
+  imageTag?: string;
+  manifest?: string;
+  /** Signature of base64 encoded Computation Payload Manifest **/
+  manifestSig?: string;
+  /** Algorithm of manifest signature, e.g. "sha256" **/
+  manifestSigAlgorithm?: string;
+  /** Certificate - base64 encoded public certificate (DER or PEM) matching key used to generate signature **/
+  manifestCert?: string;
+
+  //  --------------- MARKET SERVICE OPTIONS -------------------
+  /**
+   * A custom filter checking the proposal from the market for each provider and its hardware configuration.
+   * Duplicate proposals from one provider are reduced to the cheapest one.
+   */
+  proposalFilter?: ProposalFilter;
+  /** The minimum number of proposals after which the batch of proposal will be processed in order to avoid duplicates */
+  minProposalsBatchSize?: number;
+  /** The maximum waiting time for proposals to be batched in order to avoid duplicates */
+  proposalsBatchReleaseTimeoutMs?: number;
+
+  //  --------------- PAYMENT SERVICE OPTIONS -------------------
+
+  /** Interval for checking new invoices */
+  invoiceFetchingInterval?: number;
+  /** Interval for checking new debit notes */
+  debitNotesFetchingInterval?: number;
+  /** Maximum number of invoice events per one fetching */
+  maxInvoiceEvents?: number;
+  /** Maximum number of debit notes events per one fetching */
+  maxDebitNotesEvents?: number;
+  /** A custom filter that checks every debit notes coming from providers */
+  debitNotesFilter?: () => boolean;
+  /** A custom filter that checks every invoices coming from providers */
+  invoiceFilter?: () => boolean;
+  budget?: number;
+  payment?: { driver?: string; network?: string };
+  paymentTimeout?: number;
+  paymentRequestTimeout?: number;
+  unsubscribeTimeoutMs?: number;
+
+  //  --------------- ACTIVITY SERVICE OPTIONS -------------------
+
+  /** timeout for sending and creating batch */
+  activityRequestTimeout?: number;
+  /** timeout for executing batch */
+  activityExecuteTimeout?: number;
+  /** interval for fetching batch results while polling */
+  activityExeBatchResultPollIntervalSeconds?: number;
+
+  //  --------------- AGREEMENT SERVICE OPTIONS -------------------
+
+  /** The selector used when choosing a provider from a pool of existing offers (from the market or already used before) */
+  agreementSelector?: AgreementSelector;
+  /** The maximum number of events fetched in one request call  */
+  agreementMaxEvents?: number;
+  /** interval for fetching agreement events */
+  agreementEventsFetchingIntervalSec?: number;
+  /** The maximum number of agreements stored in the pool */
+  agreementMaxPoolSize?: number;
+
+  //  --------------- NETWORK OPTIONS -------------------
+
+  /** the IP address of the network. May contain netmask, e.g. "192.168.0.0/24" */
+  networkIp?: string;
+  /** the desired IP address of the requestor node within the newly-created network */
+  networkOwnerIp?: string;
+  /** optional netmask (only if not provided within the `ip` argument) */
+  networkMask?: string;
+  /** optional gateway address for the network */
+  networkGateway?: string;
+
+  //  --------------- DEMAND OPTIONS -------------------
+
+  subnetTag?: string;
+
+  expirationSec?: number;
+
+  maxOfferEvents?: number;
+
+  offerFetchingIntervalSec?: number;
+
+  proposalTimeout?: number;
+
+  debitNotesAcceptanceTimeoutSec?: number;
+
+  midAgreementDebitNoteIntervalSec?: number;
+
+  midAgreementPaymentTimeoutSec?: number;
+}
+
+export type ProposalFilter = (proposal: Proposal) => boolean;
 
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
@@ -138,7 +260,7 @@ export class TaskExecutor {
    * ```js
    * const executor = await TaskExecutor.create({
    *   subnetTag: "public",
-   *   payment: { driver: "erc-20", network: "goerli" },
+   *   payment: { driver: "erc-20", network: "holesky" },
    *   package: "golem/alpine:3.18.2",
    * });
    * ```
@@ -250,11 +372,11 @@ export class TaskExecutor {
     this.events.emit("end", Date.now());
   }
 
-  /**
-   * @Deprecated This feature is no longer supported. It will be removed in the next release.
-   */
   getStats() {
-    return [];
+    return {
+      ...this.statsService.getAll(),
+      retries: this.taskService.getRetryCount(),
+    };
   }
 
   /**
@@ -303,7 +425,9 @@ export class TaskExecutor {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
         maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
         timeout: options?.timeout ?? this.options.taskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
+        retryOnTimeout: options?.retryOnTimeout ?? this.options.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());
@@ -370,6 +494,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
+    this.events.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);

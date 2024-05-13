@@ -1,6 +1,13 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import { defaultLogger, Logger, StorageProvider, LeaseProcess, LeaseProcessPool } from "@golem-sdk/golem-js";
+import {
+  defaultLogger,
+  Logger,
+  StorageProvider,
+  LeaseProcess,
+  LeaseProcessPool,
+  GolemInternalError,
+} from "@golem-sdk/golem-js";
 import { TaskConfig } from "./config";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
@@ -28,6 +35,10 @@ export class TaskService {
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
+  private retryOnTimeout: boolean = true;
+
+  /** To keep track of the stat */
+  private retryCount = 0;
 
   constructor(
     private tasksQueue: TaskQueue,
@@ -43,6 +54,9 @@ export class TaskService {
     this.isRunning = true;
     this.logger.info("Task Service has started");
     while (this.isRunning) {
+      // TODO: this.leaseProcessPool.getProposalsCount()
+      // const proposalsCount = this.leaseProcessPool.getProposalsCount();
+      // if (this.activeTasksCount >= this.options.maxParallelTasks || proposalsCount.confirmed === 0) {
       if (this.activeTasksCount >= this.options.maxParallelTasks) {
         await sleep(this.options.taskRunningInterval, true);
         continue;
@@ -77,18 +91,30 @@ export class TaskService {
           ),
       ),
     );
-    this.logger.info("Task Service has been stopped");
+    this.logger.info("Task Service has been stopped", {
+      stats: {
+        retryCount: this.retryCount,
+      },
+    });
   }
 
   private async startTask(task: Task) {
-    task.init();
-    this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
-    ++this.activeTasksCount;
-
-    const leaseProcess = await this.leaseProcessPool.acquire();
-    this.leaseProcesses.set(leaseProcess.agreement.id, leaseProcess);
-
     try {
+      task.init();
+      this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
+      ++this.activeTasksCount;
+
+      if (task.isFailed()) {
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
+      }
+
+      // TODO: This should be able to be canceled if the task state has changed
+      const leaseProcess = await this.leaseProcessPool.acquire();
+      this.leaseProcesses.set(leaseProcess.agreement.id, leaseProcess);
+
+      if (task.isFailed()) {
+        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
+      }
       const ctx = await leaseProcess.getExeUnit();
       task.start(leaseProcess);
       this.events.emit("taskStarted", task.getDetails());
@@ -133,7 +159,13 @@ export class TaskService {
       attempt: task.getRetriesCount(),
       reason,
     });
-    this.tasksQueue.addToBegin(task);
+    if (!this.tasksQueue.has(task)) {
+      this.retryCount++;
+      this.tasksQueue.addToBegin(task);
+      this.logger.debug(`Task ${task.id} added to the queue`);
+    } else {
+      this.logger.warn(`Task ${task.id} has been already added to the queue`);
+    }
   }
 
   private async stopTask(task: Task) {
@@ -166,5 +198,9 @@ export class TaskService {
         await this.leaseProcessPool.release(leaseProcess);
       }
     }
+  }
+
+  getRetryCount() {
+    return this.retryCount;
   }
 }

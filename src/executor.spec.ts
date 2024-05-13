@@ -15,6 +15,7 @@ import {
   LeaseProcess,
   LeaseProcessPool,
 } from "@golem-sdk/golem-js";
+import { randomUUID } from "node:crypto";
 
 jest.mock("./service");
 
@@ -49,6 +50,7 @@ when(statsServiceMock.getComputationTime()).thenReturn(anything());
 when(taskServiceMock.run()).thenResolve(anything());
 when(taskServiceMock.end()).thenResolve(anything());
 when(taskMock.getDetails()).thenReturn({ activityId: "1", agreementId: "1", id: "1", retriesCount: 0 });
+when(taskMock.id).thenCall(randomUUID);
 
 jest.mock("@golem-sdk/golem-js", () => ({
   ...jest.requireActual("@golem-sdk/golem-js"),
@@ -124,7 +126,7 @@ describe("Task Executor", () => {
       expect(Task).toHaveBeenCalledWith("1", worker, {
         activityReadySetupFunctions: [],
         maxRetries: 0,
-        timeout: 300000,
+        retryOnTimeout: false,
       });
       await executor.shutdown();
     });
@@ -146,7 +148,7 @@ describe("Task Executor", () => {
       expect(Task).toHaveBeenCalledWith("1", worker, {
         activityReadySetupFunctions: [],
         maxRetries: 0,
-        timeout: 300000,
+        retryOnTimeout: false,
       });
       await executor.shutdown();
     });
@@ -183,6 +185,7 @@ describe("Task Executor", () => {
       when(taskMock.isRejected()).thenReturn(false).thenReturn(true).thenReturn(false);
       when(taskMock.getResults()).thenReturn("result 1").thenReturn("result 2");
       when(taskMock.getError()).thenReturn(new Error("error 1"));
+      when(taskMock.id).thenCall(randomUUID);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const executorShutdownSpy = jest.spyOn(executor as any, "doShutdown");
 

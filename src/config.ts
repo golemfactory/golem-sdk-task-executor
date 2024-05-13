@@ -4,13 +4,13 @@ import { TaskServiceOptions } from "./service";
 import { GolemConfigError, Logger, nullLogger, StorageProvider, defaultLogger } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
-  payment: { driver: "erc20", network: "goerli" },
+  payment: { driver: "erc20", network: "holesky" },
   budget: 1.0,
   subnetTag: "public",
   basePath: "http://127.0.0.1:7465",
   maxParallelTasks: 5,
   maxTaskRetries: 3,
-  taskTimeout: 1000 * 60 * 5, // 5 min,
+  taskRetryOnTimeout: false,
   enableLogging: true,
   startupTimeout: 1000 * 90, // 90 sec
   exitOnNoProposals: false,
@@ -25,7 +25,9 @@ const DEFAULTS = Object.freeze({
 export class ExecutorConfig {
   // readonly package?: string;
   readonly maxParallelTasks: number;
-  readonly taskTimeout: number;
+  // readonly budget: number;
+  readonly taskTimeout?: number;
+  readonly taskStartupTimeout?: number;
   // readonly budget: number;
   readonly subnetTag: string;
   readonly networkIp?: string;
@@ -37,6 +39,7 @@ export class ExecutorConfig {
   readonly startupTimeout: number;
   readonly exitOnNoProposals: boolean;
   // readonly agreementMaxPoolSize: number;
+  readonly taskRetryOnTimeout: boolean;
 
   constructor(options: ExecutorOptions & TaskServiceOptions) {
     const processEnv = !isBrowser
@@ -77,8 +80,11 @@ export class ExecutorConfig {
     // };
     // this.budget = options.budget || DEFAULTS.budget;
     this.maxParallelTasks = options.maxParallelTasks || DEFAULTS.maxParallelTasks;
-    this.taskTimeout = options.taskTimeout || DEFAULTS.taskTimeout;
+    this.taskTimeout = options.taskTimeout;
+    this.taskStartupTimeout = options.taskStartupTimeout;
     this.subnetTag = options.subnetTag || processEnv.env?.YAGNA_SUBNET || DEFAULTS.subnetTag;
+    // this.networkIp = options.networkIp;
+    this.taskRetryOnTimeout = options.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout;
     // this.networkIp = options.networkIp;
     this.logger = (() => {
       const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;
@@ -105,7 +111,7 @@ export class ExecutorConfig {
 export class TaskConfig {
   public readonly maxParallelTasks: number;
   public readonly taskRunningInterval: number;
-  public readonly taskTimeout: number;
+  public readonly taskTimeout?: number;
   public readonly activityStateCheckingInterval: number;
   public readonly activityPreparingTimeout: number;
   public readonly storageProvider?: StorageProvider;
@@ -116,7 +122,7 @@ export class TaskConfig {
     // super({ ...options, activityExecuteTimeout });
     this.maxParallelTasks = options?.maxParallelTasks || DEFAULTS.maxParallelTasks;
     this.taskRunningInterval = options?.taskRunningInterval || DEFAULTS.taskRunningInterval;
-    this.taskTimeout = options?.taskTimeout || DEFAULTS.taskTimeout;
+    this.taskTimeout = options?.taskTimeout;
     this.activityStateCheckingInterval =
       options?.activityStateCheckingInterval || DEFAULTS.activityStateCheckingInterval;
     this.logger = options?.logger || defaultLogger("work", { disableAutoPrefix: true });

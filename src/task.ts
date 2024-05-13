@@ -1,5 +1,5 @@
 import { QueueableTask } from "./queue";
-import { GolemConfigError, GolemTimeoutError, LeaseProcess, Worker } from "@golem-sdk/golem-js";
+import { GolemConfigError, GolemInternalError, GolemTimeoutError, LeaseProcess, Worker } from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
   name: string;
@@ -19,8 +19,20 @@ export enum TaskState {
 export type TaskOptions = {
   /** maximum number of retries if task failed due to provider reason, default = 5 */
   maxRetries?: number;
-  /** timeout in ms for task execution, including retries, default = 300_000 (5min) */
+
+  /**
+   * Opt-in for retries of the tasks when the {@link TaskOptions.timeout} {@link TaskOptions.startupTimeout} are reached
+   *
+   * @default false
+   */
+  retryOnTimeout?: boolean;
+
+  /** timeout in ms for task execution, measured for one attempt from start to stop, default = 300_000 (5min) */
   timeout?: number;
+
+  /** timeout in ms for task startup, measured from initialization to start, default = 120_000 (2min) */
+  startupTimeout?: number;
+
   /** array of setup functions to run on each activity */
   activityReadySetupFunctions?: Worker<unknown>[];
 };
@@ -36,7 +48,6 @@ export type TaskDetails = {
 
 const DEFAULTS = {
   MAX_RETRIES: 5,
-  TIMEOUT: 1000 * 60 * 5,
 };
 
 /**
@@ -49,9 +60,12 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private results?: OutputType;
   private error?: Error;
   private retriesCount = 0;
+  private retryOnTimeout;
   private listeners = new Set<(state: TaskState) => void>();
   private timeoutId?: NodeJS.Timeout;
-  private readonly timeout: number;
+  private startupTimeoutId?: NodeJS.Timeout;
+  private readonly timeout?: number;
+  private readonly startupTimeout?: number;
   private readonly maxRetries: number;
   private readonly activityReadySetupFunctions: Worker<unknown>[];
   private leaseProcess?: LeaseProcess;
@@ -61,14 +75,18 @@ export class Task<OutputType = unknown> implements QueueableTask {
     private worker: Worker<OutputType>,
     options?: TaskOptions,
   ) {
-    this.timeout = options?.timeout ?? DEFAULTS.TIMEOUT;
+    this.timeout = options?.timeout;
+    this.startupTimeout = options?.startupTimeout;
     this.maxRetries = options?.maxRetries ?? DEFAULTS.MAX_RETRIES;
+
+    this.retryOnTimeout = options?.retryOnTimeout ?? false;
+
     this.activityReadySetupFunctions = options?.activityReadySetupFunctions ?? [];
+
     if (this.maxRetries < 0) {
       throw new GolemConfigError("The maxRetries parameter cannot be less than zero");
     }
   }
-
   onStateChange(listener: (state: TaskState) => void) {
     this.listeners.add(listener);
   }
@@ -77,36 +95,55 @@ export class Task<OutputType = unknown> implements QueueableTask {
     this.listeners.clear();
   }
   init() {
-    this.state = TaskState.Queued;
+    this.updateState(TaskState.Queued);
+    if (this.startupTimeout) {
+      this.startupTimeoutId = setTimeout(
+        () =>
+          this.stop(
+            undefined,
+            new GolemTimeoutError(
+              `Task ${this.id} startup timeout. Failed to prepare the runtime environment within the specified time.`,
+            ),
+            this.retryOnTimeout,
+          ),
+        this.startupTimeout,
+      );
+    }
   }
 
   start(leaseProcess: LeaseProcess) {
-    this.state = TaskState.Pending;
+    if (this.state !== TaskState.Queued) {
+      throw new GolemInternalError("You cannot start a task that is not queued");
+    }
+    this.updateState(TaskState.Pending);
+    clearTimeout(this.startupTimeoutId);
     this.leaseProcess = leaseProcess;
-    this.listeners.forEach((listener) => listener(this.state));
-    this.timeoutId = setTimeout(
-      () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), true),
-      this.timeout,
-    );
+    if (this.timeout) {
+      this.timeoutId = setTimeout(
+        () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), this.retryOnTimeout),
+        this.timeout,
+      );
+    }
   }
   stop(results?: OutputType, error?: Error, retry = true) {
     if (this.isFinished() || this.isRetry()) {
       return;
     }
     clearTimeout(this.timeoutId);
+    clearTimeout(this.startupTimeoutId);
+
     if (error) {
       this.error = error;
       if (retry && this.retriesCount < this.maxRetries) {
-        this.state = TaskState.Retry;
+        this.updateState(TaskState.Retry);
         ++this.retriesCount;
       } else {
-        this.state = TaskState.Rejected;
+        this.updateState(TaskState.Rejected);
       }
     } else {
-      this.state = TaskState.Done;
+      this.updateState(TaskState.Done);
       this.results = results;
     }
-    this.listeners.forEach((listener) => listener(this.state));
   }
   isQueueable(): boolean {
     return this.state === TaskState.New || this.state === TaskState.Retry;
@@ -156,6 +193,12 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getState(): TaskState {
     return this.state;
   }
+
+  private updateState(newSate: TaskState) {
+    this.state = newSate;
+    this.listeners.forEach((listener) => listener(this.state));
+  }
+
   getDetails(): TaskDetails {
     return {
       id: this.id,
