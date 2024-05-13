@@ -9,7 +9,6 @@ import {
   GolemNetwork,
   LeaseProcessPool,
   Proposal,
-  PaymentFilters,
   AgreementSelector,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
@@ -221,7 +220,7 @@ export class TaskExecutor {
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
   private golemNetwork: GolemNetwork;
-  private deployment?: Deployment;
+  private deployment: Deployment;
   private leaseProcessPool?: LeaseProcessPool;
 
   /**
@@ -292,7 +291,6 @@ export class TaskExecutor {
     const activityPoolOptions = {} as CreateActivityPoolOptions;
     builder.createActivityPool("task-executor", activityPoolOptions);
     this.deployment = builder.getDeployment();
-    this.leaseProcessPool = this.deployment.getLeaseProcessPool("task-executor");
 
     this.taskService = new TaskService(this.taskQueue, this.leaseProcessPool, this.events, {
       ...this.options,
@@ -312,7 +310,8 @@ export class TaskExecutor {
     this.logger.debug("Initializing task executor...");
     try {
       await this.golemNetwork.connect();
-      await this.deployment?.start();
+      await this.deployment.start();
+      this.leaseProcessPool = this.deployment.getLeaseProcessPool("task-executor");
       await this.leaseProcessPool?.ready();
       await this.taskService.run();
       await this.statsService.run();
