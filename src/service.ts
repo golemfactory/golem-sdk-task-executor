@@ -44,10 +44,9 @@ export class TaskService {
   private isRunning = false;
   private logger: Logger;
   private options: TaskConfig;
-  private retryOnTimeout: boolean = true;
 
   /** To keep track of the stat */
-  private retryCount = 0;
+  private retryCountTotal = 0;
 
   constructor(
     private yagnaApi: YagnaApi,
@@ -102,7 +101,7 @@ export class TaskService {
     );
     this.logger.info("Task Service has been stopped", {
       stats: {
-        retryCount: this.retryCount,
+        retryCountTotal: this.retryCountTotal,
       },
     });
   }
@@ -179,7 +178,7 @@ export class TaskService {
       task.stop(
         undefined,
         error,
-        error instanceof GolemWorkError || (error instanceof GolemTimeoutError && this.retryOnTimeout),
+        error instanceof GolemWorkError || (error instanceof GolemTimeoutError && task.retryOnTimeout),
       );
     } finally {
       --this.activeTasksCount;
@@ -220,7 +219,7 @@ export class TaskService {
       reason,
     });
     if (!this.tasksQueue.has(task)) {
-      this.retryCount++;
+      this.retryCountTotal++;
       this.tasksQueue.addToBegin(task);
       this.logger.debug(`Task ${task.id} added to the queue`);
     } else {
@@ -278,7 +277,7 @@ export class TaskService {
     }
   }
 
-  getRetryCount() {
-    return this.retryCount;
+  getTotalRetryCount() {
+    return this.retryCountTotal;
   }
 }

@@ -67,7 +67,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private results?: OutputType;
   private error?: Error;
   private retriesCount = 0;
-  private retryOnTimeout;
+  public readonly retryOnTimeout: boolean;
   private listeners = new Set<(state: TaskState) => void>();
   private timeoutId?: NodeJS.Timeout;
   private startupTimeoutId?: NodeJS.Timeout;
