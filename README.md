@@ -5,6 +5,27 @@
 ![node-current](https://img.shields.io/node/v/@golem-sdk/task-executor)
 ![npm type definitions](https://img.shields.io/npm/types/@golem-sdk/task-executor)
 
+<!-- TOC -->
+
+- [Task Executor](#task-executor)
+  - [What's TaskExecutor?](#whats-taskexecutor)
+  - [System requirements](#system-requirements)
+    - [Simplified installation steps](#simplified-installation-steps)
+      - [Join the network as a requestor and obtain test tokens](#join-the-network-as-a-requestor-and-obtain-test-tokens)
+      - [Obtain your `app-key` to use with TaskExecutor](#obtain-your-app-key-to-use-with-taskexecutor)
+  - [Installation](#installation)
+  - [Building](#building)
+  - [Usage](#usage)
+    - [Hello World example](#hello-world-example)
+    - [More examples](#more-examples)
+  - [Supported environments](#supported-environments)
+  - [Documentation](#documentation)
+  - [Debugging](#debugging)
+  - [Testing](#testing)
+  - [Contributing](#contributing)
+  - [See also](#see-also)
+  <!-- TOC -->
+
 ## What's TaskExecutor?
 
 TaskExecutor facilitates building of applications that utilize the computational power of the Golem Network
@@ -113,112 +134,10 @@ the [JavaScript API section of the Golem Network Docs](https://docs.golem.networ
 The library is designed to work with LTS versions of Node (starting from 18)
 and with browsers.
 
-## Golem Network Market Basics
+## Documentation
 
-The Golem Network provides an open marketplace where anyone can join as a Provider and supply the network with their
-computing power. In return for their service, they are billing Requestors (users of this library) according to the pricing
-that they define.
-
-As a Requestor, you might want to:
-
-- control the limit price so that you're not going to over-spend your funds
-- control the interactions with the providers if you have a list of the ones which you like or the ones which you would
-  like to avoid
-
-To make this easy, we provided you with a set of predefined market proposal filters, which you can combine to implement
-your own market strategy (described below).
-
-### Mid-agreement payments to the Providers for used resources
-
-When you obtain resources from the Provider and start using them, the billing cycle will start immediately.
-Since reliable service and payments are important for all actors in the Golem Network,
-the library makes use of the mid-agreement payments model and implements best practices for the market, which include:
-
-- responding and accepting debit notes for activities that last longer than 30 minutes
-- issuing mid-agreement payments (pay-as-you-go)
-
-By default, the library will:
-
-- accept debit notes sent by the Providers within two minutes of receipt (so that the Provider knows that we're alive,
-  and it will continue serving the resources)
-- issue a mid-agreement payment every 12 hours (so that the provider will be paid on a regular interval for serving the
-  resources for more than 10 hours)
-
-You can learn more about
-the [mid-agreement and other payment models from the official docs](https://docs.golem.network/docs/golem/payments).
-
-These values are defaults and can be influenced by the following settings:
-
-- `DemandOptions.expirationSec`
-- `DemandOptions.debitNotesAcceptanceTimeoutSec`
-- `DemandOptions.midAgreementPaymentTimeoutSec`
-
-If you're using `TaskExecutor` to run tasks on Golem, you can pass them as part of the configuration object accepted
-by `TaskExecutor.create`.
-
-### Limit price limits to filter out offers that are too expensive
-
-```typescript
-import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
-
-const executor = await TaskExecutor.create({
-  // What do you want to run
-  package: "golem/alpine:3.18.2",
-
-  // How much you wish to spend
-  budget: 2.0,
-  proposalFilter: ProposalFilterFactory.limitPriceFilter({
-    start: 1.0,
-    cpuPerSec: 1.0 / 3600,
-    envPerSec: 1.0 / 3600,
-  }),
-
-  // Where you want to spend
-  payment: {
-    network: "polygon",
-  },
-});
-```
-
-To learn more about other filters, please check
-the [API reference of the market/strategy module](https://docs.golem.network/docs/golem-js/reference/modules/market_strategy)
-
-### Work with reliable providers
-
-The `getHealthyProvidersWhiteList` helper will provide you with a list of Provider ID's that were checked with basic
-health-checks. Using this whitelist will increase the chance of working with a reliable provider. Please note, that you
-can also build up your own list of favourite providers and use it in a similar fashion.
-
-```typescript
-import { MarketHelpers, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/task-executor";
-
-// Collect the whitelist
-const verifiedProviders = await MarketHelpers.getHealthyProvidersWhiteList();
-
-// Prepare the whitelist filter
-const whiteList = ProposalFilterFactory.allowProvidersById(verifiedProviders);
-
-// Prepare the price filter
-const acceptablePrice = ProposalFilterFactory.limitPriceFilter({
-  start: 1.0,
-  cpuPerSec: 1.0 / 3600,
-  envPerSec: 1.0 / 3600,
-});
-
-const executor = await TaskExecutor.create({
-  // What do you want to run
-  package: "golem/alpine:3.18.2",
-
-  // How much you wish to spend
-  budget: 2.0,
-  proposalFilter: (proposal) => acceptablePrice(proposal) && whiteList(proposal),
-
-  // Where you want to spend
-  payment: {
-    network: "polygon",
-  },
-});
-```
+- Learn about the Task Executor basic building block - the _task function_ in the [Task Model documentation](./docs/TaskModel.md)
+- Learn the [Golem Market Basics](./docs/GolemMarketBasics.md) to optimize your interactions with the Providers
 
 ## Debugging
 
