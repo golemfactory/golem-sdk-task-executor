@@ -356,7 +356,7 @@ export class TaskExecutor {
   getStats() {
     return {
       ...this.statsService.getAll(),
-      retries: this.taskService.getRetryCount(),
+      retries: this.taskService.getTotalRetryCount(),
     };
   }
 
