@@ -15,8 +15,9 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
       }),
     );
 
-    const results = await Promise.all(futureResults);
-    console.log(results);
+    const results = await Promise.allSettled(futureResults);
+    const successResults = results.filter((res) => res.status === "fulfilled");
+    console.log("Results:", successResults);
   } catch (err) {
     console.error("An error occurred:", err);
   } finally {
