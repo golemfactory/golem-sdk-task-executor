@@ -28,7 +28,7 @@ const manifest = await readFile(`./manifest_npm_install.json`);
       console.log((await ctx.run("npm install moment")).stdout);
       console.log((await ctx.run(`cat ./package.json`)).stdout);
 
-      return 1;
+      return 0;
     });
 
     console.log("task completed");
