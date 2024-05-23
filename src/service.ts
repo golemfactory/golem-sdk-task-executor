@@ -81,16 +81,6 @@ export class TaskService {
 
   async end() {
     this.isRunning = false;
-    this.logger.debug(`Trying to destroy all lease process`, { size: this.leaseProcesses.size });
-    await Promise.all(
-      [...this.leaseProcesses.values()].map((lease) =>
-        lease
-          .finalize()
-          .catch((error) =>
-            this.logger.warn(`Stopping lease process failed`, { agreementId: lease.agreement.id, error }),
-          ),
-      ),
-    );
     this.logger.info("Task Service has been stopped", {
       stats: {
         retryCount: this.retryCount,

@@ -1,15 +1,16 @@
 import {
-  Logger,
-  StorageProvider,
-  GolemWorkError,
-  WorkErrorCode,
-  Worker,
+  Allocation,
+  DemandSpec,
   GolemInternalError,
-  GolemTimeoutError,
   GolemNetwork,
+  GolemNetworkOptions,
+  GolemTimeoutError,
+  GolemWorkError,
   LeaseProcessPool,
-  Proposal,
-  AgreementSelector,
+  Logger,
+  Worker,
+  WorkErrorCode,
+  DraftOfferProposalPool
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { TaskExecutorEventsDict } from "./events";
@@ -19,29 +20,17 @@ import { TaskQueue } from "./queue";
 import { isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
 import { StatsService } from "./stats";
-import { CreateActivityPoolOptions, Deployment } from "@golem-sdk/golem-js/dist/experimental";
+import { Subscription } from "rxjs";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 
 export type ExecutorOptions = {
-  /** Image hash or image tag as string, otherwise Package object */
-  package?: string;
   /** Timeout for execute one task in ms. Default is 300_000 (5 minutes). */
   taskTimeout?: number;
-  /** Subnet Tag */
-  subnetTag?: string;
-  /** Logger module */
-  logger?: Logger;
   /** Set to `false` to completely disable logging (even if a logger is provided) */
   enableLogging?: boolean;
-  /** Yagna Options */
-  yagnaOptions?: YagnaOptions;
   /** The maximum number of retries when the job failed on the provider */
   maxTaskRetries?: number;
-  /** Custom Storage Provider used for transfer files */
-  storageProvider?: StorageProvider;
-  /** Timeout for preparing activity - creating and deploy commands */
-  activityPreparingTimeout?: number;
   /**
    * Do not install signal handlers for SIGINT, SIGTERM, SIGBREAK, SIGHUP.
    *
@@ -76,127 +65,15 @@ export type ExecutorOptions = {
   exitOnNoProposals?: boolean;
 
   taskRetryOnTimeout?: boolean;
-} & TaskServiceOptions &
-  TmpServiceOptionsReplacement;
 
-interface TmpServiceOptionsReplacement {
-  //  --------------- PACKAGE OPTIONS -------------------
-  /** Type of engine required: vm, emscripten, sgx, sgx-js, sgx-wasm, sgx-wasi */
-  engine?: string;
-  /** Minimum required memory to execute application GB */
-  minMemGib?: number;
-  /** Minimum required disk storage to execute tasks in GB */
-  minStorageGib?: number;
-  /** Minimum required CPU threads */
-  minCpuThreads?: number;
-  /** Minimum required CPU cores */
-  minCpuCores?: number;
-  /** Required providers capabilities to run application */
-  capabilities?: string[];
-  /**  finds package by its contents hash */
-  imageHash?: string;
-  /**  finds package by registry tag  */
-  imageTag?: string;
-  manifest?: string;
-  /** Signature of base64 encoded Computation Payload Manifest **/
-  manifestSig?: string;
-  /** Algorithm of manifest signature, e.g. "sha256" **/
-  manifestSigAlgorithm?: string;
-  /** Certificate - base64 encoded public certificate (DER or PEM) matching key used to generate signature **/
-  manifestCert?: string;
-
-  //  --------------- MARKET SERVICE OPTIONS -------------------
-  /**
-   * A custom filter checking the proposal from the market for each provider and its hardware configuration.
-   * Duplicate proposals from one provider are reduced to the cheapest one.
-   */
-  proposalFilter?: ProposalFilter;
-  /** The minimum number of proposals after which the batch of proposal will be processed in order to avoid duplicates */
-  minProposalsBatchSize?: number;
-  /** The maximum waiting time for proposals to be batched in order to avoid duplicates */
-  proposalsBatchReleaseTimeoutMs?: number;
-
-  //  --------------- PAYMENT SERVICE OPTIONS -------------------
-
-  /** Interval for checking new invoices */
-  invoiceFetchingInterval?: number;
-  /** Interval for checking new debit notes */
-  debitNotesFetchingInterval?: number;
-  /** Maximum number of invoice events per one fetching */
-  maxInvoiceEvents?: number;
-  /** Maximum number of debit notes events per one fetching */
-  maxDebitNotesEvents?: number;
-  /** A custom filter that checks every debit notes coming from providers */
-  debitNotesFilter?: () => boolean;
-  /** A custom filter that checks every invoices coming from providers */
-  invoiceFilter?: () => boolean;
-  budget?: number;
-  payment?: { driver?: string; network?: string };
-  paymentTimeout?: number;
-  paymentRequestTimeout?: number;
-  unsubscribeTimeoutMs?: number;
-
-  //  --------------- ACTIVITY SERVICE OPTIONS -------------------
-
-  /** timeout for sending and creating batch */
-  activityRequestTimeout?: number;
-  /** timeout for executing batch */
-  activityExecuteTimeout?: number;
-  /** interval for fetching batch results while polling */
-  activityExeBatchResultPollIntervalSeconds?: number;
-
-  //  --------------- AGREEMENT SERVICE OPTIONS -------------------
-
-  /** The selector used when choosing a provider from a pool of existing offers (from the market or already used before) */
-  agreementSelector?: AgreementSelector;
-  /** The maximum number of events fetched in one request call  */
-  agreementMaxEvents?: number;
-  /** interval for fetching agreement events */
-  agreementEventsFetchingIntervalSec?: number;
-  /** The maximum number of agreements stored in the pool */
-  agreementMaxPoolSize?: number;
-
-  //  --------------- NETWORK OPTIONS -------------------
-
-  /** the IP address of the network. May contain netmask, e.g. "192.168.0.0/24" */
-  networkIp?: string;
-  /** the desired IP address of the requestor node within the newly-created network */
-  networkOwnerIp?: string;
-  /** optional netmask (only if not provided within the `ip` argument) */
-  networkMask?: string;
-  /** optional gateway address for the network */
-  networkGateway?: string;
-
-  //  --------------- DEMAND OPTIONS -------------------
-
-  subnetTag?: string;
-
-  expirationSec?: number;
-
-  maxOfferEvents?: number;
-
-  offerFetchingIntervalSec?: number;
-
-  proposalTimeout?: number;
-
-  debitNotesAcceptanceTimeoutSec?: number;
-
-  midAgreementDebitNoteIntervalSec?: number;
-
-  midAgreementPaymentTimeoutSec?: number;
-}
-
-export type ProposalFilter = (proposal: Proposal) => boolean;
+} & TaskServiceOptions
+  & Partial<GolemNetworkOptions>
+  & DemandSpec;
 
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
  */
 export type ExecutorOptionsMixin = string | ExecutorOptions;
-
-export type YagnaOptions = {
-  apiKey?: string;
-  basePath?: string;
-};
 
 /**
  * A high-level module for defining and executing tasks in the golem network
@@ -209,7 +86,7 @@ export class TaskExecutor {
   readonly events: EventEmitter<TaskExecutorEventsDict> = new EventEmitter();
 
   private readonly options: ExecutorConfig;
-  private taskService: TaskService;
+  private taskService?: TaskService;
   private statsService: StatsService;
   private activityReadySetupFunctions: Worker<unknown>[] = [];
   private taskQueue: TaskQueue;
@@ -220,7 +97,6 @@ export class TaskExecutor {
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
   private golemNetwork: GolemNetwork;
-  private deployment: Deployment;
   private leaseProcessPool?: LeaseProcessPool;
 
   /**
@@ -235,6 +111,8 @@ export class TaskExecutor {
    * It will be resolved when the executor is fully stopped.
    */
   private shutdownPromise?: Promise<void>;
+  private proposalSubscription?: Subscription;
+  private allocation?: Allocation;
 
   /**
    * Create a new Task Executor
@@ -283,19 +161,7 @@ export class TaskExecutor {
     this.options = new ExecutorConfig(this.configOptions);
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();
-    // TODO: map ExecutorOptions -> GolemNetworkOptions
-    const golemNetworkOptions = {};
-    this.golemNetwork = new GolemNetwork({ logger: this.logger, ...golemNetworkOptions });
-    const builder = this.golemNetwork.creteDeploymentBuilder();
-    // TODO: map ExecutorOptions -> ActivityPoolOptions
-    const activityPoolOptions = {} as CreateActivityPoolOptions;
-    builder.createActivityPool("task-executor", activityPoolOptions);
-    this.deployment = builder.getDeployment();
-
-    this.taskService = new TaskService(this.taskQueue, this.leaseProcessPool, this.events, {
-      ...this.options,
-      logger: this.logger.child("work"),
-    });
+    this.golemNetwork = new GolemNetwork(this.options);
     this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
     // TODO: events handling
     this.events.emit("start", Date.now());
@@ -310,10 +176,28 @@ export class TaskExecutor {
     this.logger.debug("Initializing task executor...");
     try {
       await this.golemNetwork.connect();
-      await this.deployment.start();
-      this.leaseProcessPool = this.deployment.getLeaseProcessPool("task-executor");
+      this.allocation = await this.golemNetwork.payment.createAllocation({
+        budget: 1,
+        expirationSec: 60 * 60, // 60 minutes
+      });
+      const proposalPool = new DraftOfferProposalPool({ minCount: 1 });
+      const demandSpecification = await this.golemNetwork.market.buildDemandDetails(this.configOptions.demand, this.allocation);
+
+      const proposals$ = this.golemNetwork.market.startCollectingProposals({
+        demandSpecification,
+      });
+
+      this.proposalSubscription = proposalPool.readFrom(proposals$);
+
+      this.leaseProcessPool = this.golemNetwork.market.createLeaseProcessPool(proposalPool, this.allocation, {
+        replicas: { min: 1, max: this.options.maxParallelTasks },
+      });
+
+      this.taskService = new TaskService(this.taskQueue, this.leaseProcessPool, this.events, {
+        ...this.options,
+        logger: this.logger.child("work"),
+      });
       await this.leaseProcessPool?.ready();
-      await this.taskService.run();
       await this.statsService.run();
     } catch (error) {
       this.logger.error("Initialization failed", error);
@@ -325,10 +209,9 @@ export class TaskExecutor {
     if (isNode) this.installSignalHandlers();
     // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
     this.logger.info(`Task Executor has started`, {
-      subnet: this.options.subnetTag,
-      // TODO: get netowrk and driver from golemNetwork ... ?
-      // network: this.paymentService.config.payment.network,
-      // driver: this.paymentService.config.payment.driver,
+      subnet: this.configOptions.demand.basic?.subnetTag,
+      // network: this.configOptions.payment.network,
+      // driver: this.configOptions.payment.driver,
     });
     this.events.emit("ready", Date.now());
   }
@@ -362,9 +245,13 @@ export class TaskExecutor {
     this.events.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
-    await this.taskService.end();
-    await this.deployment?.stop();
+    this.proposalSubscription?.unsubscribe();
+    await this.taskService?.end();
+    await this.leaseProcessPool?.drainAndClear();
     await this.golemNetwork.disconnect();
+    if (this.allocation) {
+      await this.golemNetwork.payment.releaseAllocation(this.allocation);
+    }
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
@@ -374,7 +261,7 @@ export class TaskExecutor {
   getStats() {
     return {
       ...this.statsService.getAll(),
-      retries: this.taskService.getRetryCount(),
+      retries: this.taskService?.getRetryCount(),
     };
   }
 
