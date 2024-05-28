@@ -3,21 +3,22 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    demand: { activity: { imageTag: "golem/alpine:latest" }},
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
     market: {
-      rentHours: 1,
+      maxAgreements: 1,
+      rentHours: 0.5,
       pricing: {
         model: "linear",
-        maxStartPrice: 1,
-        maxCpuPerHourPrice: 1,
-        maxEnvPerHourPrice: 1,
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
       },
-      withProviders: ["0x123123"],
-      withoutProviders: ["0x123123"],
-      withOperators: ["0x123123"],
-      withoutOperators: ["0x123123"],
     },
-    logger: pinoPrettyLogger({ level: "info"}),
   });
   try {
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));

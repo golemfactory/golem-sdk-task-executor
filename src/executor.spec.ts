@@ -10,8 +10,6 @@ import {
   GolemWorkError,
   WorkErrorCode,
   Logger,
-  GolemDeploymentBuilder,
-  Deployment,
   LeaseProcess,
   LeaseProcessPool,
 } from "@golem-sdk/golem-js";
@@ -20,13 +18,9 @@ import { randomUUID } from "node:crypto";
 jest.mock("./service");
 
 const golemNetworkMock = mock(GolemNetwork);
-const deploymentBuilderMock = mock(GolemDeploymentBuilder);
-const deploymentMock = mock(Deployment);
 const leaseProcessPoolMock = mock(LeaseProcessPool);
 const leaseProcessMock = mock(LeaseProcess);
 const golemNetwork = instance(golemNetworkMock);
-const deploymentBuilder = instance(deploymentBuilderMock);
-const deployment = instance(deploymentMock);
 const leaseProcessPool = instance(leaseProcessPoolMock);
 const leaseProcess = instance(leaseProcessMock);
 const statsServiceMock = mock(StatsService);
@@ -36,11 +30,9 @@ const taskMock = mock(Task);
 const taskService = instance(taskServiceMock);
 const task = instance(taskMock);
 
-when(golemNetworkMock.creteDeploymentBuilder()).thenReturn(deploymentBuilder);
 when(golemNetworkMock.connect()).thenResolve();
 when(golemNetworkMock.disconnect()).thenResolve();
-when(deploymentBuilderMock.getDeployment()).thenReturn(deployment);
-when(deploymentMock.getLeaseProcessPool(anything())).thenReturn(leaseProcessPool);
+when(golemNetworkMock.manyOf(anything())).thenResolve(leaseProcessPool);
 when(leaseProcessPoolMock.acquire()).thenResolve(leaseProcess);
 when(statsServiceMock.run()).thenResolve();
 when(statsServiceMock.end()).thenResolve();
@@ -73,7 +65,6 @@ describe("Task Executor", () => {
   const loggerMock = imock<Logger>();
   const logger = instance(loggerMock);
   when(loggerMock.child(anything())).thenReturn(logger);
-  const yagnaOptions = { apiKey: "test" };
   beforeEach(() => {
     reset(taskMock);
     jest.clearAllMocks();
@@ -82,22 +73,47 @@ describe("Task Executor", () => {
 
   describe("init()", () => {
     it("should run all set services", async () => {
-      const executor = await TaskExecutor.create({ package: "test", logger, yagnaOptions });
+      const executor = await TaskExecutor.create({
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
+      });
       verify(golemNetworkMock.connect()).called();
       verify(statsServiceMock.run()).called();
       expect(executor).toBeDefined();
       await executor.shutdown();
     });
-    it.skip("should handle a critical error if startup timeout is reached and exitOnNoProposals is enabled", async () => {
+    it.skip("should handle a critical error if startup timeout is reached", async () => {
       const executor = await TaskExecutor.create({
-        package: "test",
-        startupTimeout: 0,
-        exitOnNoProposals: true,
-        logger,
-        yagnaOptions,
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
-      // TODO:
-      // when(leaseProcessMock.getProposalsCount()).thenReturn({ confirmed: 0, initial: 0, rejected: 0 });
+      when(statsServiceMock.getProposalsCount()).thenReturn({ confirmed: 0, initial: 0, rejected: 0 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handleErrorSpy = jest.spyOn(executor as any, "handleCriticalError").mockImplementation((error) => {
         expect((error as Error).message).toEqual(
@@ -111,10 +127,24 @@ describe("Task Executor", () => {
 
     it("should pass zero for the Task entity if the maxTaskRetires option is zero", async () => {
       const executor = await TaskExecutor.create({
-        package: "test",
-        maxTaskRetries: 0,
-        logger,
-        yagnaOptions,
+        task: {
+          maxTaskRetries: 0,
+        },
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       when(taskMock.isQueueable()).thenReturn(true);
       when(taskMock.isFinished()).thenReturn(true);
@@ -133,10 +163,21 @@ describe("Task Executor", () => {
 
     it("should pass zero for the Task entity if the maxRetires params in run method is zero", async () => {
       const executor = await TaskExecutor.create({
-        package: "test",
-        maxTaskRetries: 7,
-        logger,
-        yagnaOptions,
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       when(taskMock.isQueueable()).thenReturn(true);
       when(taskMock.isFinished()).thenReturn(true);
@@ -155,10 +196,24 @@ describe("Task Executor", () => {
 
     it("should throw an error if the value of maxTaskRetries is less than zero", async () => {
       const executorPromise = TaskExecutor.create({
-        package: "test",
-        maxTaskRetries: -1,
-        logger,
-        yagnaOptions,
+        task: {
+          maxTaskRetries: -1,
+        },
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       await expect(executorPromise).rejects.toThrow(
         new GolemConfigError("The maxTaskRetries parameter cannot be less than zero"),
@@ -167,7 +222,23 @@ describe("Task Executor", () => {
 
     it('should emit "ready" event after init() completes', async () => {
       const ready = jest.fn();
-      const executor = new TaskExecutor({ package: "test", logger, yagnaOptions });
+      const executor = new TaskExecutor({
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
+      });
       executor.events.on("ready", ready);
       await executor.init();
       expect(ready).toHaveBeenCalledTimes(1);
@@ -177,7 +248,23 @@ describe("Task Executor", () => {
 
   describe("run()", () => {
     it("should run all tasks even if some fail", async () => {
-      const executor = await TaskExecutor.create({ package: "test", logger, yagnaOptions });
+      const executor = await TaskExecutor.create({
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
+      });
 
       when(taskMock.getLeaseProcess()).thenReturn(instance(mock(LeaseProcess)));
       when(taskMock.isQueueable()).thenReturn(true);
@@ -208,34 +295,28 @@ describe("Task Executor", () => {
 
       await executor.shutdown();
     });
-
-    it.skip("should only warn the user if startup timeout is reached and exitOnNoProposals is disabled", async () => {
-      const executor = await TaskExecutor.create({
-        package: "test",
-        startupTimeout: 10,
-        exitOnNoProposals: false,
-        logger,
-        yagnaOptions,
-      });
-      // TODO
-      // when(leaseProcessMock.getProposalsCount()).thenReturn({ confirmed: 0, initial: 0, rejected: 0 });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const handleErrorSpy = jest.spyOn(executor as any, "handleCriticalError");
-      const consoleErrorSpy = jest.spyOn(globalThis.console, "error").mockImplementation(() => {});
-
-      await sleep(10, true);
-
-      expect(handleErrorSpy).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Could not start any work on Golem. Processed 0 initial proposals from yagna, filters accepted 0. Check your demand if it's not too restrictive or restart yagna.",
-      );
-      await executor.shutdown();
-    });
   });
 
   describe("end()", () => {
     it("should call shutdown()", async () => {
-      const executor = await TaskExecutor.create({ package: "test", startupTimeout: 0, logger, yagnaOptions });
+      const executor = await TaskExecutor.create({
+        startupTimeout: 0,
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
+      });
       const spy = jest.spyOn(executor, "shutdown");
       await executor.shutdown();
       expect(spy).toHaveBeenCalled();
@@ -246,9 +327,21 @@ describe("Task Executor", () => {
     it("should allow multiple calls", async () => {
       // Implementation details: the same promise is always used, so it's safe to call end() multiple times.
       const executor = await TaskExecutor.create({
-        package: "test",
-        logger,
-        yagnaOptions,
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       const p = Promise.resolve();
       const originalDoShutdown = executor["doShutdown"].bind(executor);
@@ -272,9 +365,21 @@ describe("Task Executor", () => {
 
     it('it should emit "beforeEnd" and "end" events', async () => {
       const executor = await TaskExecutor.create({
-        package: "test",
-        logger,
-        yagnaOptions,
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       const beforeEnd = jest.fn();
       const end = jest.fn();

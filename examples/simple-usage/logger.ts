@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoLogger, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger, pinoLogger } from "@golem-sdk/pino-logger";
 import { nullLogger } from "@golem-sdk/golem-js";
 import { program, Option } from "commander";
 
@@ -33,7 +34,21 @@ function createLogger(options) {
 
 (async function main(options) {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
     logger: createLogger(options),
   });
 

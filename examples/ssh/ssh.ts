@@ -1,16 +1,33 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 import crypto from "crypto";
 
 async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100) {
   const executor = await TaskExecutor.create({
-    package: "golem/examples-ssh:latest",
+    vpn: true,
+    task: {
+      maxParallelTasks: count,
+    },
     logger: pinoPrettyLogger(),
-    capabilities: ["vpn"],
-    networkIp: "192.168.0.0/24",
-    maxParallelTasks: count,
-    subnetTag,
     payment: { driver, network },
+    demand: {
+      workload: {
+        imageTag: "golem/examples-ssh:latest",
+        capabilities: ["vpn"],
+      },
+      subnetTag,
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
   const appKey = process.env["YAGNA_APPKEY"];
   const runningTasks: Promise<void>[] = [];

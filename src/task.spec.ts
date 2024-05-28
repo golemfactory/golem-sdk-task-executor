@@ -1,5 +1,5 @@
 import { Task, TaskState } from "./task";
-import { LeaseProcess, GolemTimeoutError, Result } from "@golem-sdk/golem-js";
+import { LeaseProcess, GolemTimeoutError, Result, WorkContext } from "@golem-sdk/golem-js";
 import { instance, mock } from "@johanblumenberg/ts-mockito";
 import { sleep } from "./utils";
 
@@ -7,6 +7,7 @@ describe("Task", function () {
   const worker = async () => null;
   const leaseProcessMock = mock(LeaseProcess);
   const leaseProcess = instance(leaseProcessMock);
+  const ctx = instance(mock(WorkContext));
 
   it("should init task", () => {
     const task = new Task("1", worker);
@@ -19,7 +20,7 @@ describe("Task", function () {
   it("should start task", () => {
     const task = new Task("1", worker);
     task.init();
-    task.start(leaseProcess);
+    task.start(leaseProcess, ctx);
     expect(task.getState()).toEqual(TaskState.Pending);
     task.stop();
     task.cleanup();
@@ -27,13 +28,13 @@ describe("Task", function () {
 
   it("should not start task that is not queued", () => {
     const task = new Task("1", worker);
-    expect(() => task.start(leaseProcess)).toThrow("You cannot start a task that is not queued");
+    expect(() => task.start(leaseProcess, ctx)).toThrow("You cannot start a task that is not queued");
   });
 
   it("should complete task with results", () => {
     const task = new Task<unknown>("1", worker);
     task.init();
-    task.start(leaseProcess);
+    task.start(leaseProcess, ctx);
     const result = new Result<null>({
       index: 0,
       eventDate: new Date().toDateString(),
@@ -48,7 +49,7 @@ describe("Task", function () {
   it("should complete task with error", () => {
     const task = new Task<unknown>("1", worker);
     task.init();
-    task.start(leaseProcess);
+    task.start(leaseProcess, ctx);
     const error = new Error("test");
     task.stop(undefined, error, false);
     expect(task.getState()).toEqual(TaskState.Rejected);
@@ -57,7 +58,7 @@ describe("Task", function () {
   it("should retry task", () => {
     const task = new Task<unknown>("1", worker);
     task.init();
-    task.start(leaseProcess);
+    task.start(leaseProcess, ctx);
     const error = new Error("test");
     task.stop(undefined, error, true);
     expect(task.getState()).toEqual(TaskState.Retry);
@@ -67,7 +68,7 @@ describe("Task", function () {
     it("should stop the task with a timeout error if the task does not complete within the specified time", async () => {
       const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 0 });
       task.init();
-      task.start(leaseProcess);
+      task.start(leaseProcess, ctx);
       await sleep(2, true);
       expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
       expect(task.getState() === TaskState.Rejected);
@@ -76,7 +77,7 @@ describe("Task", function () {
     it("should retry the task if the retryOnTimeout is set to 'true'", async () => {
       const task = new Task<unknown>("1", worker, { timeout: 1, maxRetries: 1, retryOnTimeout: true });
       task.init();
-      task.start(leaseProcess);
+      task.start(leaseProcess, ctx);
       await sleep(2, true);
       expect(task.getError()).toEqual(new GolemTimeoutError("Task 1 timeout."));
       expect(task.getState() === TaskState.Retry);

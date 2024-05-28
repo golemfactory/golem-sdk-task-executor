@@ -6,9 +6,23 @@ describe("SSH connection", function () {
   let executor: TaskExecutor;
   it("should connect to provider via ssh", async () => {
     executor = await TaskExecutor.create({
-      package: "golem/examples-ssh:latest",
-      capabilities: ["vpn"],
-      networkIp: "192.168.0.0/24",
+      vpn: { ip: "192.168.0.0/24" },
+      demand: {
+        workload: {
+          imageTag: "golem/examples-ssh:latest",
+          capabilities: ["vpn"],
+        },
+      },
+      market: {
+        maxAgreements: 1,
+        rentHours: 0.5,
+        pricing: {
+          model: "linear",
+          maxStartPrice: 0.5,
+          maxCpuPerHourPrice: 1.0,
+          maxEnvPerHourPrice: 0.5,
+        },
+      },
     });
     let websocketUri;
     const password = crypto.randomBytes(3).toString("hex");

@@ -1,5 +1,12 @@
 import { QueueableTask } from "./queue";
-import { GolemConfigError, GolemInternalError, GolemTimeoutError, LeaseProcess, Worker } from "@golem-sdk/golem-js";
+import {
+  GolemConfigError,
+  GolemInternalError,
+  GolemTimeoutError,
+  LeaseProcess,
+  WorkContext,
+  Worker,
+} from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
   name: string;
@@ -69,6 +76,7 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private readonly maxRetries: number;
   private readonly activityReadySetupFunctions: Worker<unknown>[];
   private leaseProcess?: LeaseProcess;
+  private ctx?: WorkContext;
 
   constructor(
     public readonly id: string,
@@ -111,13 +119,14 @@ export class Task<OutputType = unknown> implements QueueableTask {
     }
   }
 
-  start(leaseProcess: LeaseProcess) {
+  start(leaseProcess: LeaseProcess, ctx: WorkContext) {
     if (this.state !== TaskState.Queued) {
       throw new GolemInternalError("You cannot start a task that is not queued");
     }
     this.updateState(TaskState.Pending);
     clearTimeout(this.startupTimeoutId);
     this.leaseProcess = leaseProcess;
+    this.ctx = ctx;
     if (this.timeout) {
       this.timeoutId = setTimeout(
         () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), this.retryOnTimeout),
@@ -190,6 +199,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getLeaseProcess(): LeaseProcess | undefined {
     return this.leaseProcess;
   }
+  getWorkContext(): WorkContext | undefined {
+    return this.ctx;
+  }
   getState(): TaskState {
     return this.state;
   }
@@ -202,10 +214,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getDetails(): TaskDetails {
     return {
       id: this.id,
-      // TODO: leaseProcess.getActivity(): Activity | undefined
-      // activityId: this.leaseProcess?.getActivity()?.id, getAgreement()
-      // agreementId: this.leaseProcess?.agreement?.id,
-      // provider: this.leaseProcess?.agreement?.getProviderInfo(),
+      activityId: this.ctx?.activity.id,
+      agreementId: this.leaseProcess?.agreement?.id,
+      provider: this.leaseProcess?.agreement?.getProviderInfo(),
       retriesCount: this.getRetriesCount(),
       error: this.getError(),
     };

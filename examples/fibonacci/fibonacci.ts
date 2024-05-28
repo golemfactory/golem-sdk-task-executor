@@ -1,9 +1,10 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 
 type MainOptions = {
   subnetTag: string;
-  paymentDriver: string;
+  paymentDriver: "erc20";
   paymentNetwork: string;
   tasksCount: number;
   fibonacciNumber: number;
@@ -17,9 +18,23 @@ program
   .option("--payment-network, --network <network>", "network name, for example 'holesky'", "holesky")
   .action(async (options: MainOptions) => {
     const executor = await TaskExecutor.create({
-      package: "golem/js-fibonacci:latest",
-      logger: pinoPrettyLogger(),
-      subnetTag: options.subnetTag,
+      logger: pinoPrettyLogger({ level: "info" }),
+      demand: {
+        workload: {
+          imageTag: "golem/js-fibonacci:latest",
+        },
+        subnetTag: options.subnetTag,
+      },
+      market: {
+        maxAgreements: 1,
+        rentHours: 0.5,
+        pricing: {
+          model: "linear",
+          maxStartPrice: 0.5,
+          maxCpuPerHourPrice: 1.0,
+          maxEnvPerHourPrice: 0.5,
+        },
+      },
       payment: { driver: options.paymentDriver, network: options.paymentNetwork },
     });
 

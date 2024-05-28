@@ -1,6 +1,7 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { ReputationSystem } from "@golem-sdk/golem-js/experimental";
 import { sleep } from "@golem-sdk/golem-js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * This example uses the reputation system to filter out proposals from providers with low reputation and ones that were not tested yet.
@@ -24,10 +25,25 @@ import { sleep } from "@golem-sdk/golem-js";
   console.log("Listed providers:", reputation.getData().testedProviders.length);
 
   const executor = await TaskExecutor.create({
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      // TODO:
+      // proposalFilter: reputation.proposalFilter(),
+    },
     payment: { network: "polygon" },
-    package: "golem/alpine:latest",
-    proposalFilter: reputation.proposalFilter(),
-    agreementSelector: reputation.agreementSelector(),
   });
 
   try {

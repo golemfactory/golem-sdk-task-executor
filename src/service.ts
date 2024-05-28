@@ -1,28 +1,14 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import {
-  defaultLogger,
-  Logger,
-  StorageProvider,
-  LeaseProcess,
-  LeaseProcessPool,
-  GolemInternalError,
-} from "@golem-sdk/golem-js";
-import { TaskConfig } from "./config";
+import { Logger, LeaseProcess, LeaseProcessPool, GolemInternalError } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 
-// TODO: to verify which are needed now
 export interface TaskServiceOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
-  maxParallelTasks?: number;
-  taskRunningInterval?: number;
-  activityStateCheckingInterval?: number;
-  activityPreparingTimeout?: number;
-  taskTimeout?: number;
-  logger?: Logger;
-  storageProvider?: StorageProvider;
+  maxParallelTasks: number;
+  taskRunningIntervalMs?: number;
 }
 
 /**
@@ -33,9 +19,7 @@ export class TaskService {
   private leaseProcesses = new Map<string, LeaseProcess>();
   private activitySetupDone: Set<string> = new Set();
   private isRunning = false;
-  private logger: Logger;
-  private options: TaskConfig;
-  private retryOnTimeout: boolean = true;
+  private taskRunningIntervalMs: number;
 
   /** To keep track of the stat */
   private retryCount = 0;
@@ -44,26 +28,24 @@ export class TaskService {
     private tasksQueue: TaskQueue,
     private leaseProcessPool: LeaseProcessPool,
     private events: EventEmitter<TaskExecutorEventsDict>,
-    options?: TaskServiceOptions,
+    private logger: Logger,
+    private options: TaskServiceOptions,
   ) {
-    this.options = new TaskConfig(options);
-    this.logger = options?.logger || defaultLogger("work");
+    this.taskRunningIntervalMs = options.taskRunningIntervalMs ?? 1000;
   }
 
   public async run() {
     this.isRunning = true;
     this.logger.info("Task Service has started");
+    await this.leaseProcessPool.ready();
     while (this.isRunning) {
-      // TODO: this.leaseProcessPool.getProposalsCount()
-      // const proposalsCount = this.leaseProcessPool.getProposalsCount();
-      // if (this.activeTasksCount >= this.options.maxParallelTasks || proposalsCount.confirmed === 0) {
       if (this.activeTasksCount >= this.options.maxParallelTasks) {
-        await sleep(this.options.taskRunningInterval, true);
+        await sleep(this.taskRunningIntervalMs, true);
         continue;
       }
       const task = this.tasksQueue.get();
       if (!task) {
-        await sleep(this.options.taskRunningInterval, true);
+        await sleep(this.taskRunningIntervalMs, true);
         continue;
       }
       task.onStateChange(() => {
@@ -106,7 +88,7 @@ export class TaskService {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
       const ctx = await leaseProcess.getExeUnit();
-      task.start(leaseProcess);
+      task.start(leaseProcess, ctx);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
         taskId: task.id,
@@ -116,12 +98,6 @@ export class TaskService {
 
       const activityReadySetupFunctions = task.getActivityReadySetupFunctions();
       const worker = task.getWorker();
-
-      // TODO: how to express the need to get a leaseProcess belonging to a network (which has a networkNode in it).
-      //  Maybe every leaseProcess belongs to the network if it was added in the deployment builder?
-      // if (this.networkService && !this.networkService.hasNode(agreement.getProviderInfo().id)) {
-      //   networkNode = await this.networkService.addNode(agreement.getProviderInfo().id);
-      // }
 
       await ctx.before();
 
@@ -167,14 +143,14 @@ export class TaskService {
         taskId: task.id,
         reason: task.getError()?.message,
         retries: task.getRetriesCount(),
-        providerName: task.getLeaseProcess()?.agreement?.getProviderInfo()?.name,
+        providerName: task.getWorkContext()?.provider.name,
       });
     } else {
       this.events.emit("taskCompleted", task.getDetails());
       this.logger.info(`Task computed`, {
         taskId: task.id,
         retries: task.getRetriesCount(),
-        providerName: task.getLeaseProcess()?.agreement?.getProviderInfo()?.name,
+        providerName: task.getWorkContext()?.provider.name,
       });
     }
   }

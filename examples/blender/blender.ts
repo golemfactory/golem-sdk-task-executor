@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 import { fileURLToPath } from "url";
 
@@ -23,13 +24,27 @@ const blenderParams = (frame) => ({
   OUTPUT_DIR: "/golem/output",
 });
 
-async function main(subnetTag: string, driver?: string, network?: string, maxParallelTasks?: number) {
+async function main(subnetTag: string, driver?: "erc20", network?: string, maxParallelTasks?: number) {
   const executor = await TaskExecutor.create({
-    subnetTag,
-    payment: { driver, network },
-    package: "golem/blender:latest",
-    maxParallelTasks,
+    task: {
+      maxParallelTasks,
+    },
     logger: pinoPrettyLogger(),
+    payment: { driver, network },
+    demand: {
+      workload: { imageTag: "golem/blender:latest" },
+      subnetTag,
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {

@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 
 type MainOptions = {
@@ -6,7 +7,7 @@ type MainOptions = {
   subnetTag: string;
   paymentNetwork: string;
   mask: string;
-  paymentDriver: string;
+  paymentDriver: "erc20";
   hash: string;
 };
 
@@ -19,14 +20,29 @@ program
   .requiredOption("--hash <hash>")
   .action(async (args: MainOptions) => {
     const executor = await TaskExecutor.create({
-      package: "golem/examples-hashcat:latest",
-      logger: pinoPrettyLogger(),
-      maxParallelTasks: args.numberOfProviders,
-      minMemGib: 0.5,
-      minStorageGib: 2,
-      budget: 10,
-      subnetTag: args.subnetTag,
-      taskTimeout: 1000 * 60 * 8, // 8 min
+      logger: pinoPrettyLogger({ level: "info" }),
+      demand: {
+        workload: {
+          imageTag: "golem/examples-hashcat:latest",
+          minMemGib: 0.5,
+          minStorageGib: 2,
+        },
+        subnetTag: args.subnetTag,
+      },
+      market: {
+        maxAgreements: args.numberOfProviders,
+        rentHours: 0.5,
+        pricing: {
+          model: "linear",
+          maxStartPrice: 0.5,
+          maxCpuPerHourPrice: 1.0,
+          maxEnvPerHourPrice: 0.5,
+        },
+      },
+      task: {
+        maxParallelTasks: args.numberOfProviders,
+        taskTimeout: 1000 * 60 * 8, // 8 min
+      },
       payment: { driver: args.paymentDriver, network: args.paymentNetwork },
     });
 

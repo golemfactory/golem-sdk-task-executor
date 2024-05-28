@@ -14,14 +14,23 @@ describe("Password cracking", function () {
       const mask = "?a?a";
       const hash = "$P$5ZDzPE45CigTC6EY4cXbyJSLj/pGee0";
       executor = await TaskExecutor.create({
-        /**
-         * Using the latest yacat image tag `golem/examples-hashcat:latest`
-         * causes problems with providers in Goth:
-         * Error: `Device #1: Not enough allocatable device memory for this attack`,
-         * So for now we leave the old version with image hash for Goth test
-         */
-        package: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
-        budget: 10,
+        demand: {
+          workload: {
+            imageTag: "golem/examples-hashcat:latest",
+            minMemGib: 0.5,
+            minStorageGib: 2,
+          },
+        },
+        market: {
+          maxAgreements: 3,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
       const keyspace = await executor.run<number>(async (ctx) => {
         const result = await ctx.run(`hashcat --keyspace -a 3 ${mask} -m 400`);

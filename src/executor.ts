@@ -1,6 +1,5 @@
 import {
-  Allocation,
-  DemandSpec,
+  MarketOrderSpec,
   GolemInternalError,
   GolemNetwork,
   GolemNetworkOptions,
@@ -10,27 +9,47 @@ import {
   Logger,
   Worker,
   WorkErrorCode,
-  DraftOfferProposalPool
+  Network,
+  NetworkOptions,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { TaskExecutorEventsDict } from "./events";
 import { EventEmitter } from "eventemitter3";
-import { TaskService, TaskServiceOptions } from "./service";
+import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
 import { isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
 import { StatsService } from "./stats";
-import { Subscription } from "rxjs";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 
-export type ExecutorOptions = {
+export interface TaskSpecificOptions {
+  /** Number of maximum parallel running task on one TaskExecutor instance. Default is 5 */
+  maxParallelTasks?: number;
+
   /** Timeout for execute one task in ms. Default is 300_000 (5 minutes). */
   taskTimeout?: number;
-  /** Set to `false` to completely disable logging (even if a logger is provided) */
-  enableLogging?: boolean;
+
   /** The maximum number of retries when the job failed on the provider */
   maxTaskRetries?: number;
+
+  /**
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
+   * This parameter is expressed in ms.
+   * If it is not possible to sign an agreement within the specified time,
+   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
+   */
+  taskStartupTimeout?: number;
+
+  /**
+   * Set to false by default. If enabled, timeouts will be retried in case of timeout errors.
+   */
+  taskRetryOnTimeout?: boolean;
+}
+
+export type ExecutorMainOptions = {
+  /** Set to `false` to completely disable logging (even if a logger is provided) */
+  enableLogging?: boolean;
   /**
    * Do not install signal handlers for SIGINT, SIGTERM, SIGBREAK, SIGHUP.
    *
@@ -50,29 +69,24 @@ export type ExecutorOptions = {
    * that meets these criteria may take a bit longer.
    */
   startupTimeout?: number;
-  /**
-   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
-   * This parameter is expressed in ms. Default is 120_000 (2 minutes).
-   * If it is not possible to sign an agreement within the specified time,
-   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
-   */
-  taskStartupTimeout?: number;
-  /**
-   * If set to `true`, the executor will exit with an error when no proposals are accepted.
-   * You can customize how long the executor will wait for proposals using the `startupTimeout` parameter.
-   * Default is `false`.
-   */
-  exitOnNoProposals?: boolean;
 
-  taskRetryOnTimeout?: boolean;
-
-} & TaskServiceOptions
-  & Partial<GolemNetworkOptions>
-  & DemandSpec;
+  /**
+   * Creates a new logical network within the Golem VPN infrastructure.
+   * Allows communication between tasks using standard network mechanisms,
+   * but requires specific implementation in the ExeUnit/runtime,
+   * which must be capable of providing a standard Unix-socket interface to their payloads
+   * and marshaling the logical network traffic through the Golem Net transport layer.
+   * If boolean - true is provided, the network will be created with default parameters
+   */
+  vpn?: boolean | NetworkOptions;
+  task?: TaskSpecificOptions;
+};
 
 /**
- * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
+ * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
  */
+export type ExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
+
 export type ExecutorOptionsMixin = string | ExecutorOptions;
 
 /**
@@ -93,11 +107,11 @@ export class TaskExecutor {
   private logger: Logger;
   private lastTaskIndex = 0;
   private isRunning = true;
-  private configOptions: ExecutorOptions;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
   private golemNetwork: GolemNetwork;
   private leaseProcessPool?: LeaseProcessPool;
+  private network?: Network;
 
   /**
    * Signal handler reference, needed to remove handlers on exit.
@@ -107,12 +121,10 @@ export class TaskExecutor {
 
   /**
    * Shutdown promise.
-   * This will be set by call to shutdown() method.
+   * This will be set by call to shut down() method.
    * It will be resolved when the executor is fully stopped.
    */
   private shutdownPromise?: Promise<void>;
-  private proposalSubscription?: Subscription;
-  private allocation?: Allocation;
 
   /**
    * Create a new Task Executor
@@ -154,16 +166,15 @@ export class TaskExecutor {
   /**
    * Create a new TaskExecutor object.
    *
-   * @param options - contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
+   * @param options - contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
    */
   constructor(options: ExecutorOptionsMixin) {
-    this.configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorOptions;
-    this.options = new ExecutorConfig(this.configOptions);
+    this.options = new ExecutorConfig(options);
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();
-    this.golemNetwork = new GolemNetwork(this.options);
-    this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
-    // TODO: events handling
+    this.golemNetwork = new GolemNetwork(this.options.golem);
+    this.statsService = new StatsService(this.events, { logger: this.logger });
+    // TODO: golem-js events handling
     this.events.emit("start", Date.now());
   }
 
@@ -176,29 +187,27 @@ export class TaskExecutor {
     this.logger.debug("Initializing task executor...");
     try {
       await this.golemNetwork.connect();
-      this.allocation = await this.golemNetwork.payment.createAllocation({
-        budget: 1,
-        expirationSec: 60 * 60, // 60 minutes
+      if (this.options.vpn) {
+        this.network = await this.golemNetwork.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
+      }
+      this.leaseProcessPool = await this.golemNetwork.manyOf({
+        concurrency: { min: 1, max: this.options.task.maxParallelTasks },
+        order: {
+          ...this.options.order,
+          network: this.network,
+        },
       });
-      const proposalPool = new DraftOfferProposalPool({ minCount: 1 });
-      const demandSpecification = await this.golemNetwork.market.buildDemandDetails(this.configOptions.demand, this.allocation);
-
-      const proposals$ = this.golemNetwork.market.startCollectingProposals({
-        demandSpecification,
-      });
-
-      this.proposalSubscription = proposalPool.readFrom(proposals$);
-
-      this.leaseProcessPool = this.golemNetwork.market.createLeaseProcessPool(proposalPool, this.allocation, {
-        replicas: { min: 1, max: this.options.maxParallelTasks },
-      });
-
-      this.taskService = new TaskService(this.taskQueue, this.leaseProcessPool, this.events, {
-        ...this.options,
-        logger: this.logger.child("work"),
-      });
-      await this.leaseProcessPool?.ready();
       await this.statsService.run();
+      this.setStartupTimeout();
+      this.taskService = new TaskService(
+        this.taskQueue,
+        this.leaseProcessPool,
+        this.events,
+        this.logger.child("work"),
+        {
+          maxParallelTasks: this.options.task.maxParallelTasks,
+        },
+      );
     } catch (error) {
       this.logger.error("Initialization failed", error);
       throw error;
@@ -207,11 +216,10 @@ export class TaskExecutor {
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
     if (isNode) this.installSignalHandlers();
-    // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
     this.logger.info(`Task Executor has started`, {
-      subnet: this.configOptions.demand.basic?.subnetTag,
-      // network: this.configOptions.payment.network,
-      // driver: this.configOptions.payment.driver,
+      subnet: this.options.golem.payment?.network,
+      network: this.options.golem.payment?.network,
+      driver: this.options.golem.payment?.driver,
     });
     this.events.emit("ready", Date.now());
   }
@@ -245,13 +253,9 @@ export class TaskExecutor {
     this.events.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
-    this.proposalSubscription?.unsubscribe();
     await this.taskService?.end();
     await this.leaseProcessPool?.drainAndClear();
     await this.golemNetwork.disconnect();
-    if (this.allocation) {
-      await this.golemNetwork.payment.releaseAllocation(this.allocation);
-    }
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
@@ -309,11 +313,11 @@ export class TaskExecutor {
     let task;
     try {
       task = new Task((++this.lastTaskIndex).toString(), worker, {
-        maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
-        timeout: options?.timeout ?? this.options.taskTimeout,
-        startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
+        maxRetries: options?.maxRetries ?? this.options.task.maxTaskRetries,
+        timeout: options?.timeout ?? this.options.task.taskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.task.taskStartupTimeout,
         activityReadySetupFunctions: this.activityReadySetupFunctions,
-        retryOnTimeout: options?.retryOnTimeout ?? this.options.taskRetryOnTimeout,
+        retryOnTimeout: options?.retryOnTimeout ?? this.options.task.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());
@@ -354,7 +358,7 @@ export class TaskExecutor {
       }
 
       const message = `Executor has interrupted by the user. Reason: ${reason}.`;
-
+      console.log("CANCEL");
       this.logger.info(`${message}. Stopping all tasks...`, {
         tasksInProgress: this.taskQueue.size,
       });
@@ -366,14 +370,14 @@ export class TaskExecutor {
   }
 
   private installSignalHandlers() {
-    if (this.configOptions.skipProcessSignals) return;
+    if (this.options.skipProcessSignals) return;
     terminatingSignals.forEach((event) => {
       process.on(event, this.signalHandler);
     });
   }
 
   private removeSignalHandlers() {
-    if (this.configOptions.skipProcessSignals) return;
+    if (this.options.skipProcessSignals) return;
     terminatingSignals.forEach((event) => {
       process.removeListener(event, this.signalHandler);
     });
@@ -422,11 +426,11 @@ export class TaskExecutor {
    * a critical error will be reported and the entire process will be interrupted.
    */
   private setStartupTimeout() {
+    if (!this.options.startupTimeout) {
+      return;
+    }
     this.startupTimeoutId = setTimeout(() => {
-      // TODO: get stats for demand / pool
-      // const proposalsCount = this.leaseProcessPool.getProposalsCount();
-      // TODO: tmp mock - FIXME
-      const proposalsCount = { confirmed: 1, initial: 1, rejected: 0 };
+      const proposalsCount = this.statsService.getProposalsCount();
       if (proposalsCount.confirmed === 0) {
         const hint =
           proposalsCount.initial === 0 && proposalsCount.confirmed === 0
@@ -435,11 +439,7 @@ export class TaskExecutor {
               ? "All off proposals got rejected."
               : "Check your proposal filters if they are not too restrictive.";
         const errorMessage = `Could not start any work on Golem. Processed ${proposalsCount.initial} initial proposals from yagna, filters accepted ${proposalsCount.confirmed}. ${hint}`;
-        if (this.options.exitOnNoProposals) {
-          this.handleCriticalError(new GolemTimeoutError(errorMessage));
-        } else {
-          console.error(errorMessage);
-        }
+        this.handleCriticalError(new GolemTimeoutError(errorMessage));
       }
     }, this.options.startupTimeout);
   }

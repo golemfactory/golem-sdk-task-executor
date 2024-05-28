@@ -1,8 +1,8 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import { Activity, Agreement, LeaseProcess, LeaseProcessPool, Result, WorkContext } from "@golem-sdk/golem-js";
+import { Activity, Agreement, LeaseProcess, LeaseProcessPool, Logger, Result, WorkContext } from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
-import { anything, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
+import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
 import { sleep } from "./utils";
@@ -20,12 +20,17 @@ describe("Task Service", () => {
   const agreementMock = mock(Agreement);
   const activityMock = mock(Activity);
   const workContextMock = mock(WorkContext);
+  const logger = instance(imock<Logger>());
+  when(leaseProcessPoolMock.ready()).thenResolve(true);
   when(leaseProcessPoolMock.acquire()).thenResolve(instance(leaseProcessMock));
   when(leaseProcessMock.agreement).thenReturn(instance(agreementMock));
   when(agreementMock.getProviderInfo()).thenReturn(testProvider);
   when(leaseProcessMock.getExeUnit()).thenResolve(instance(workContextMock));
   when(leaseProcessMock.finalize()).thenResolve();
-  when(workContextMock.run(anything())).thenResolve(testResults);
+  when(workContextMock.run(anything())).thenCall(async () => {
+    await sleep(100, true);
+    return testResults;
+  });
   when(workContextMock.provider).thenReturn(testProvider);
   when(workContextMock.activity).thenReturn(instance(activityMock));
   when(activityMock.id).thenReturn("test-activity-id");
@@ -42,8 +47,9 @@ describe("Task Service", () => {
     const cb = jest.fn();
     events.on("taskStarted", cb);
     events.on("taskCompleted", cb);
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 10,
+      maxParallelTasks: 1,
     });
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
@@ -62,15 +68,14 @@ describe("Task Service", () => {
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 1,
       maxParallelTasks: 2,
     });
     service.run().catch((e) => console.error(e));
-    expect(task1.isQueued()).toEqual(true);
-    expect(task2.isQueued()).toEqual(true);
-    expect(task3.isQueued()).toEqual(false);
+    await sleep(20, true);
+    expect(task1.isNew()).toEqual(false);
+    expect(task2.isNew()).toEqual(false);
     expect(task3.isNew()).toEqual(true);
     await service.end();
   });
@@ -82,9 +87,9 @@ describe("Task Service", () => {
     const cb = jest.fn();
     events.on("taskRetried", cb);
     when(workContextMock.run(anything())).thenReject(new Error("Test error"));
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 10,
+      maxParallelTasks: 1,
     });
     service.run().then();
     await sleep(500, true);
@@ -98,9 +103,9 @@ describe("Task Service", () => {
     const task = new Task("1", worker, { maxRetries: 0 });
     queue.addToEnd(task);
     when(workContextMock.run(anything())).thenReject(new Error("Test error"));
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 10,
+      maxParallelTasks: 1,
     });
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
@@ -122,9 +127,9 @@ describe("Task Service", () => {
     const cb = jest.fn();
     events.on("taskRetried", cb);
     when(workContextMock.run(anything())).thenReject(new Error("Test error"));
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 10,
+      maxParallelTasks: 1,
     });
     queue.addToEnd(task);
     service.run().catch((e) => console.error(e));
@@ -145,9 +150,8 @@ describe("Task Service", () => {
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(queue, leaseProcessPool, events, {
-      taskRunningInterval: 10,
-      activityStateCheckingInterval: 10,
+    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+      taskRunningIntervalMs: 10,
       maxParallelTasks: 2,
     });
     const activitySetupDoneSpy = spy(service["activitySetupDone"]);

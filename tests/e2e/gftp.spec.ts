@@ -12,7 +12,21 @@ describe("GFTP transfers", function () {
     "should upload and download big files simultaneously",
     async () => {
       const executor = await TaskExecutor.create({
-        package: "golem/alpine:latest",
+        demand: {
+          workload: {
+            imageTag: "golem/alpine:latest",
+          },
+        },
+        market: {
+          maxAgreements: 1,
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
       });
 
       executor.onActivityReady(async (ctx) => {

@@ -23,6 +23,11 @@ export interface TimeInfo {
   duration?: number;
 }
 
+export interface ProposalInfo {
+  id: string;
+  state: "initial" | "confirmed" | "rejected";
+}
+
 interface StatsServiceOptions {
   logger?: Logger;
 }
@@ -34,6 +39,7 @@ export class StatsService {
   private providers = new Map<string, ProviderInfo>();
   private invoices = new Map<string, InvoiceInfo[]>();
   private payments = new Map<string, PaymentInfo[]>();
+  private proposals = new Set<ProposalInfo>();
   private timeInfo: TimeInfo = {};
   private logger: Logger;
 
@@ -41,7 +47,7 @@ export class StatsService {
     private events: EventEmitter<TaskExecutorEventsDict>,
     options?: StatsServiceOptions,
   ) {
-    this.logger = options?.logger || defaultLogger("stats");
+    this.logger = options?.logger ? options?.logger.child("stats") : defaultLogger("stats");
   }
   async run() {
     this.subscribeGolemEvents();
@@ -178,6 +184,15 @@ export class StatsService {
       invoicesUnpaid: this.invoices.size - this.payments.size,
       invoicesMissing: this.agreements.size - this.invoices.size,
       invoicePaymentRate: this.payments.size / this.agreements.size,
+    };
+  }
+
+  getProposalsCount(): { confirmed: number; initial: number; rejected: number } {
+    const proposals = [...this.proposals.values()];
+    return {
+      confirmed: proposals.filter((proposal) => proposal.state === "confirmed").length,
+      initial: proposals.filter((proposal) => proposal.state === "initial").length,
+      rejected: proposals.filter((proposal) => proposal.state === "rejected").length,
     };
   }
 }

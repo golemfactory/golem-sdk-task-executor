@@ -1,77 +1,77 @@
-import { ExecutorOptions } from "./executor";
-import { TaskServiceOptions } from "./service";
-import { GolemConfigError, Logger, nullLogger, StorageProvider, defaultLogger } from "@golem-sdk/golem-js";
+import { ExecutorMainOptions, ExecutorOptionsMixin } from "./executor";
+import {
+  GolemConfigError,
+  Logger,
+  nullLogger,
+  defaultLogger,
+  GolemNetworkOptions,
+  MarketOrderSpec,
+  NetworkOptions,
+} from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
+  enableLogging: true,
+  vpn: false,
+  skipProcessSignals: false,
   maxParallelTasks: 5,
   maxTaskRetries: 3,
   taskRetryOnTimeout: false,
-  enableLogging: true,
-  startupTimeout: 1000 * 90, // 90 sec
-  exitOnNoProposals: false,
-  taskRunningInterval: 1000,
+  dataTransferProtocol: "gftp",
 });
 
 /**
  * @internal
  */
-export class ExecutorConfig {
-  readonly maxParallelTasks: number;
-  readonly taskTimeout?: number;
-  readonly taskStartupTimeout?: number;
-  readonly networkIp?: string;
+export class ExecutorConfig implements ExecutorMainOptions {
+  readonly task: {
+    maxParallelTasks: number;
+    taskRetryOnTimeout: boolean;
+    maxTaskRetries: number;
+    taskTimeout?: number;
+    taskStartupTimeout?: number;
+  };
+  readonly golem: GolemNetworkOptions;
+  readonly order: MarketOrderSpec;
   readonly logger: Logger;
-  readonly maxTaskRetries: number;
-  readonly startupTimeout: number;
-  readonly exitOnNoProposals: boolean;
-  readonly taskRetryOnTimeout: boolean;
+  readonly startupTimeout?: number;
+  readonly vpn: boolean | NetworkOptions;
+  readonly skipProcessSignals;
 
-  constructor(options: ExecutorOptions & TaskServiceOptions) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore FIXME: this weirdness may not be needed anymore?
-    Object.keys(options).forEach((key) => (this[key] = options[key]));
-    if (options.maxTaskRetries && options.maxTaskRetries < 0) {
+  constructor(options: ExecutorOptionsMixin) {
+    const configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorMainOptions &
+      GolemNetworkOptions &
+      MarketOrderSpec;
+    if (configOptions.task?.maxTaskRetries && configOptions.task.maxTaskRetries < 0) {
       throw new GolemConfigError("The maxTaskRetries parameter cannot be less than zero");
     }
-    this.maxParallelTasks = options.maxParallelTasks || DEFAULTS.maxParallelTasks;
-    this.taskTimeout = options.taskTimeout;
-    this.taskStartupTimeout = options.taskStartupTimeout;
-    // this.networkIp = options.networkIp;
-    this.taskRetryOnTimeout = options.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout;
+    this.task = {
+      maxParallelTasks: configOptions.task?.maxParallelTasks ?? DEFAULTS.maxParallelTasks,
+      taskRetryOnTimeout: configOptions.task?.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout,
+      maxTaskRetries: configOptions.task?.maxTaskRetries ?? DEFAULTS.maxTaskRetries,
+      taskTimeout: configOptions.task?.taskTimeout,
+      taskStartupTimeout: configOptions.task?.taskStartupTimeout,
+    };
+    this.startupTimeout = configOptions.startupTimeout;
+    this.skipProcessSignals = configOptions.skipProcessSignals ?? DEFAULTS.skipProcessSignals;
+    this.vpn = configOptions.vpn ?? DEFAULTS.vpn;
     this.logger = (() => {
-      const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;
+      const isLoggingEnabled = configOptions.enableLogging ?? DEFAULTS.enableLogging;
       if (!isLoggingEnabled) return nullLogger();
-      if (options.logger) return options.logger.child("task-executor");
+      if (configOptions.logger) return configOptions.logger.child("task-executor");
       return defaultLogger("task-executor", { disableAutoPrefix: true });
     })();
-    // this.eventTarget = options.eventTarget || new EventTarget();
-    this.maxTaskRetries = options.maxTaskRetries ?? DEFAULTS.maxTaskRetries;
-    this.startupTimeout = options.startupTimeout ?? DEFAULTS.startupTimeout;
-    this.exitOnNoProposals = options.exitOnNoProposals ?? DEFAULTS.exitOnNoProposals;
-    /**
-     * If the user does not explicitly specify the maximum size of the aggregate pool, the value of maxParallelTask will be set.
-     * This means that the pool will contain a maximum number of agreements ready for reuse equal to the maximum number of tasks executed simultaneously.
-     * This will avoid the situation of keeping unused agreements and activities and, consequently, unnecessary costs.
-     */
-    // this.agreementMaxPoolSize = options.agreementMaxPoolSize ?? DEFAULTS.maxParallelTasks;
-  }
-}
-
-/**
- * @internal
- */
-export class TaskConfig {
-  public readonly maxParallelTasks: number;
-  public readonly taskRunningInterval: number;
-  public readonly taskTimeout?: number;
-  public readonly storageProvider?: StorageProvider;
-  public readonly logger: Logger;
-
-  constructor(options?: TaskServiceOptions) {
-    this.maxParallelTasks = options?.maxParallelTasks || DEFAULTS.maxParallelTasks;
-    this.taskRunningInterval = options?.taskRunningInterval || DEFAULTS.taskRunningInterval;
-    this.taskTimeout = options?.taskTimeout;
-    this.logger = options?.logger || defaultLogger("work", { disableAutoPrefix: true });
-    this.storageProvider = options?.storageProvider;
+    this.order = {
+      market: configOptions.market,
+      payment: configOptions.payment,
+      activity: configOptions.activity,
+      demand: configOptions.demand,
+    };
+    this.golem = {
+      logger: this.logger,
+      api: configOptions.api,
+      payment: configOptions.payment,
+      dataTransferProtocol: configOptions.dataTransferProtocol || DEFAULTS.dataTransferProtocol,
+      override: configOptions.override,
+    };
   }
 }

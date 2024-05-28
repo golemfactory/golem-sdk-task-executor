@@ -1,8 +1,23 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const executor = await TaskExecutor.create({
-  package: "golem/alpine:latest",
-  logger: pinoPrettyLogger(),
+  logger: pinoPrettyLogger({ level: "info" }),
+  demand: {
+    workload: {
+      imageTag: "golem/alpine:latest",
+    },
+  },
+  market: {
+    maxAgreements: 1,
+    rentHours: 0.5,
+    pricing: {
+      model: "linear",
+      maxStartPrice: 0.5,
+      maxCpuPerHourPrice: 1.0,
+      maxEnvPerHourPrice: 0.5,
+    },
+  },
 });
 const finalResult = await executor.run(async (ctx) => {
   const remoteProcess = await ctx.spawn("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");

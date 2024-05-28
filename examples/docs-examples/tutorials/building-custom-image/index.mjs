@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 (async () => {
   const executor = await TaskExecutor.create({
     package: "8b238595299444d0733b41095f27fadd819a71d29002b614c665b27c",

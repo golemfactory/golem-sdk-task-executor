@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * An example demonstrating the use of a proxy server to send and receive http requests to the provider.
@@ -7,17 +8,31 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
  */
 (async function main() {
   const executor = await TaskExecutor.create({
-    logger: pinoPrettyLogger(),
-    package: "golem/node:20-alpine",
-    capabilities: ["vpn"],
-    networkIp: "192.168.0.0/24",
     skipProcessSignals: true,
-
-    // Restart the HTTP server up to 5 times
-    maxTaskRetries: 5,
-
-    // If you're using TaskExecutor, you want the "task" to last long in that case
-    taskTimeout: 60 * 60 * 1000, // 60 minutes
+    logger: pinoPrettyLogger({ level: "info" }),
+    task: {
+      // Restart the HTTP server up to 5 times
+      maxTaskRetries: 5,
+      // If you're using TaskExecutor, you want the "task" to last long in that case
+      taskTimeout: 60 * 60 * 1000, // 60 minutes
+    },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+        capabilities: ["vpn"],
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    vpn: { ip: "192.168.0.0/24" },
   });
 
   try {
