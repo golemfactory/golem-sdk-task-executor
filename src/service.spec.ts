@@ -1,6 +1,16 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import { Activity, Agreement, LeaseProcess, LeaseProcessPool, Logger, Result, WorkContext } from "@golem-sdk/golem-js";
+import {
+  Activity,
+  Agreement,
+  GolemWorkError,
+  LeaseProcess,
+  LeaseProcessPool,
+  Logger,
+  Result,
+  WorkContext,
+  WorkErrorCode,
+} from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
 import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
@@ -86,7 +96,9 @@ describe("Task Service", () => {
     queue.addToEnd(task);
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(workContextMock.run(anything())).thenReject(new Error("Test error"));
+    when(workContextMock.run(anything())).thenReject(
+      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
+    );
     const service = new TaskService(queue, leaseProcessPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
@@ -126,7 +138,9 @@ describe("Task Service", () => {
     const task = new Task("1", worker, { maxRetries: 1 });
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(workContextMock.run(anything())).thenReject(new Error("Test error"));
+    when(workContextMock.run(anything())).thenReject(
+      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
+    );
     const service = new TaskService(queue, leaseProcessPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
