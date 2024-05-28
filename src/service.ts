@@ -1,6 +1,13 @@
 import { Task } from "./task";
 import { TaskQueue } from "./queue";
-import { Logger, LeaseProcess, LeaseProcessPool, GolemInternalError } from "@golem-sdk/golem-js";
+import {
+  Logger,
+  LeaseProcess,
+  LeaseProcessPool,
+  GolemInternalError,
+  GolemWorkError,
+  GolemTimeoutError,
+} from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
 import { TaskExecutorEventsDict } from "./events";
@@ -22,7 +29,7 @@ export class TaskService {
   private taskRunningIntervalMs: number;
 
   /** To keep track of the stat */
-  private retryCount = 0;
+  private retryCountTotal = 0;
 
   constructor(
     private tasksQueue: TaskQueue,
@@ -65,7 +72,7 @@ export class TaskService {
     this.isRunning = false;
     this.logger.info("Task Service has been stopped", {
       stats: {
-        retryCount: this.retryCount,
+        retryCountTotal: this.retryCountTotal,
       },
     });
   }
@@ -108,7 +115,11 @@ export class TaskService {
       const results = await worker(ctx);
       task.stop(results);
     } catch (error) {
-      task.stop(undefined, error);
+      task.stop(
+        undefined,
+        error,
+        error instanceof GolemWorkError || (error instanceof GolemTimeoutError && task.retryOnTimeout),
+      );
     } finally {
       --this.activeTasksCount;
     }
@@ -126,7 +137,7 @@ export class TaskService {
       reason,
     });
     if (!this.tasksQueue.has(task)) {
-      this.retryCount++;
+      this.retryCountTotal++;
       this.tasksQueue.addToBegin(task);
       this.logger.debug(`Task ${task.id} added to the queue`);
     } else {
@@ -166,7 +177,7 @@ export class TaskService {
     }
   }
 
-  getRetryCount() {
-    return this.retryCount;
+  getTotalRetryCount() {
+    return this.retryCountTotal;
   }
 }
