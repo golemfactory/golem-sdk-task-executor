@@ -63,7 +63,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@golem-sdk/golem-js": "v3.0.0-beta.32",
+    "@golem-sdk/golem-js": "v3.0.0-beta.33",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
