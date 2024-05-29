@@ -1,5 +1,5 @@
 import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
 
 /**
  * Example demonstrating how to use the predefined filter `allowProvidersByName`,

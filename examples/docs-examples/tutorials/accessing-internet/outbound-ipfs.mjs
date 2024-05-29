@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
 import { readFile } from "fs/promises";
 
 const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo3rs7ewhnp7lly";

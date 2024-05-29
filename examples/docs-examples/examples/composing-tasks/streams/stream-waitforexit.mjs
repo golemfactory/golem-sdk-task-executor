@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
 
 const executor = await TaskExecutor.create({
   logger: pinoPrettyLogger(),
