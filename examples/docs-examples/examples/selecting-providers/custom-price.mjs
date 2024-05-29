@@ -29,11 +29,27 @@ const myFilter = (proposal) => {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    proposalFilter: myFilter,
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
-    startupTimeout: 60_000,
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      proposalFilter: myFilter,
+    },
+    task: {
+      startupTimeout: 60_000,
+    },
   });
 
   try {

@@ -4,10 +4,26 @@ import { program } from "commander";
 
 async function main(args) {
   const executor = await TaskExecutor.create({
-    package: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
-    maxParallelTasks: args.numberOfProviders,
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: `try_golem` },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageHash: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    task: {
+      maxParallelTasks: 1,
+    },
   });
 
   const keyspace = await executor.run(async (ctx) => {

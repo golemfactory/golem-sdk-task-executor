@@ -10,10 +10,24 @@ const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo
 
   // Create and configure a TaskExecutor instance.
   const executor = await TaskExecutor.create({
-    capabilities: ["inet", "manifest-support"],
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
-    manifest: manifest.toString("base64"),
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        capabilities: ["inet", "manifest-support"],
+        manifest: manifest.toString("base64"),
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {

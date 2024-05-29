@@ -1,4 +1,5 @@
-import { TaskExecutor, PaymentFilters, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor, PaymentFilters } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * Example demonstrating how to use the predefined payment filter `acceptMaxAmountInvoiceFilter`,
@@ -6,9 +7,25 @@ import { TaskExecutor, PaymentFilters, pinoPrettyLogger } from "@golem-sdk/task-
  */
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    logger: pinoPrettyLogger(),
-    invoiceFilter: PaymentFilters.acceptMaxAmountInvoiceFilter(0.00001),
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    payment: {
+      invoiceFilter: PaymentFilters.acceptMaxAmountInvoiceFilter(0.00001),
+    },
   });
   try {
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));

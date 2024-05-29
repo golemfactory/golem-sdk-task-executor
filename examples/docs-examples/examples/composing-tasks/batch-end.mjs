@@ -3,7 +3,7 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async () => {
   const executor = await TaskExecutor.create({
-    logger: pinoPrettyLogger({ level: "info" }),
+    logger: pinoPrettyLogger(),
     api: { key: "try_golem" },
     demand: {
       workload: {

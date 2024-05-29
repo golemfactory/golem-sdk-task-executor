@@ -24,11 +24,25 @@ const logger = {
 
 async function run() {
   const executor = await golem.TaskExecutor.create({
-    package: "golem/alpine:latest",
-    yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
-    subnetTag: document.getElementById("SUBNET_TAG").value,
-    payment: { network: document.getElementById("PAYMENT_NETWORK").value },
     logger,
+    api: { key: "try_golem", url: document.getElementById("YAGNA_API_BASEPATH").value },
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+      subnetTag: document.getElementById("SUBNET_TAG").value,
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    payment: { network: document.getElementById("PAYMENT_NETWORK").value },
   });
 
   try {

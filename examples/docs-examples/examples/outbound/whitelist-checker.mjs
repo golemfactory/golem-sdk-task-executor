@@ -47,11 +47,24 @@ manifest.compManifest.net.inet.out.urls = urls;
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    // What do you want to run
-    capabilities: ["inet", "manifest-support"],
-    manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        capabilities: ["inet", "manifest-support"],
+        manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {

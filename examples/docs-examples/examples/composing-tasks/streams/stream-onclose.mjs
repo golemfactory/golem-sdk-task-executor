@@ -3,13 +3,28 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    // What do you want to run
-    package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
-    budget: 0.5,
-    // Control the execution of tasks
-    taskTimeout: 5 * 60 * 1000,
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        // What do you want to run
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    task: {
+      // Control the execution of tasks
+      taskTimeout: 5 * 60 * 1000,
+    },
   });
 
   try {

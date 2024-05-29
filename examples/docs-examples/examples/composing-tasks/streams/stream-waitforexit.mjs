@@ -2,12 +2,26 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const executor = await TaskExecutor.create({
-  // What do you want to run
-  package: "golem/alpine:latest",
-  // yagnaOptions: { apiKey: "try_golem" },
   logger: pinoPrettyLogger(),
-  budget: 0.5,
-  maxParallelTasks: 1,
+  api: { key: "try_golem" },
+  demand: {
+    workload: {
+      imageTag: "golem/alpine:latest",
+    },
+  },
+  market: {
+    maxAgreements: 1,
+    rentHours: 0.5,
+    pricing: {
+      model: "linear",
+      maxStartPrice: 0.5,
+      maxCpuPerHourPrice: 1.0,
+      maxEnvPerHourPrice: 0.5,
+    },
+  },
+  task: {
+    maxParallelTasks: 1,
+  },
 });
 
 // the example will run a tasks 4 times, in sequence (as maxParallelTasks is 1)

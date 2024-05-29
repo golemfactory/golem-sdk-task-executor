@@ -6,20 +6,30 @@ const manifest = await readFile(`./manifest_npm_install.json`);
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    // What do you want to run
-    capabilities: ["inet", "manifest-support"],
-    manifest: manifest.toString("base64"),
-
-    yagnaOptions: { apiKey: "try_golem" },
-    budget: 0.5,
     logger: pinoPrettyLogger(),
-
-    expires: 1000 * 60 * 30, //h
-
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        manifest: manifest.toString("base64"),
+        capabilities: ["inet", "manifest-support"],
+      },
+      expirationSec: 60 * 30, //30 min
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
     // Control the execution of tasks
-    maxTaskRetries: 0,
-
-    taskTimeout: 120 * 60 * 1000,
+    task: {
+      maxTaskRetries: 0,
+      taskTimeout: 120 * 60 * 1000,
+    },
   });
 
   try {

@@ -1,4 +1,5 @@
-import { ProposalFilter, TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { ProposalFilter, TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * Example demonstrating how to write a custom proposal filter.
@@ -12,9 +13,23 @@ const myFilter: ProposalFilter = (proposal) => {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    logger: pinoPrettyLogger(),
-    proposalFilter: myFilter,
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      proposalFilter: myFilter,
+    },
   });
   try {
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));

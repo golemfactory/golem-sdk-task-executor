@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * Example demonstrating how to use the predefined filter `allowProvidersByName`,
@@ -13,10 +14,24 @@ for (let i = 0; i < whiteListNames.length; i++) {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    proposalFilter: ProposalFilterFactory.allowProvidersByName(whiteListNames),
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      proposalFilter: ProposalFilterFactory.allowProvidersByName(whiteListNames),
+    },
   });
 
   try {

@@ -1,10 +1,11 @@
+import { ProposalFilter, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+
 /**
  * Example demonstrating how to write a custom dynamic proposal filter.
  *
  * By dynamic, we understand that the filter behaviour might change over time  due to some conditions
  */
-
-import { ProposalFilter, ProposalFilterFactory, TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 const makeDynamicFilter: () => {
   filter: ProposalFilter;
@@ -34,9 +35,23 @@ const makeDynamicFilter: () => {
 (async function main() {
   const { filter, stopPolling } = makeDynamicFilter();
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    logger: pinoPrettyLogger(),
-    proposalFilter: filter,
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      maxAgreements: 1,
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      proposalFilter: filter,
+    },
   });
   try {
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
