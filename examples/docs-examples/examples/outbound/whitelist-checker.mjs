@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const manifest = {
   version: "0.1.0",
@@ -56,7 +56,6 @@ manifest.compManifest.net.inet.out.urls = urls;
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

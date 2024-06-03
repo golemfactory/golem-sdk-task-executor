@@ -9,7 +9,6 @@ const executor = await TaskExecutor.create({
     },
   },
   market: {
-    maxAgreements: 1,
     rentHours: 0.5,
     pricing: {
       model: "linear",

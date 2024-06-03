@@ -1,4 +1,4 @@
-import { ExecutorMainOptions, ExecutorOptionsMixin } from "./executor";
+import { ExecutorMainOptions, ExecutorOptions } from "./executor";
 import {
   GolemConfigError,
   Logger,
@@ -37,41 +37,38 @@ export class ExecutorConfig implements ExecutorMainOptions {
   readonly vpn: boolean | NetworkOptions;
   readonly skipProcessSignals;
 
-  constructor(options: ExecutorOptionsMixin) {
-    const configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorMainOptions &
-      GolemNetworkOptions &
-      MarketOrderSpec;
-    if (configOptions.task?.maxTaskRetries && configOptions.task.maxTaskRetries < 0) {
+  constructor(options: ExecutorOptions) {
+    if (options.task?.maxTaskRetries && options.task.maxTaskRetries < 0) {
       throw new GolemConfigError("The maxTaskRetries parameter cannot be less than zero");
     }
     this.task = {
-      maxParallelTasks: configOptions.task?.maxParallelTasks ?? DEFAULTS.maxParallelTasks,
-      taskRetryOnTimeout: configOptions.task?.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout,
-      maxTaskRetries: configOptions.task?.maxTaskRetries ?? DEFAULTS.maxTaskRetries,
-      taskTimeout: configOptions.task?.taskTimeout,
-      taskStartupTimeout: configOptions.task?.taskStartupTimeout,
+      maxParallelTasks: options.task?.maxParallelTasks ?? DEFAULTS.maxParallelTasks,
+      taskRetryOnTimeout: options.task?.taskRetryOnTimeout ?? DEFAULTS.taskRetryOnTimeout,
+      maxTaskRetries: options.task?.maxTaskRetries ?? DEFAULTS.maxTaskRetries,
+      taskTimeout: options.task?.taskTimeout,
+      taskStartupTimeout: options.task?.taskStartupTimeout,
     };
-    this.startupTimeout = configOptions.startupTimeout;
-    this.skipProcessSignals = configOptions.skipProcessSignals ?? DEFAULTS.skipProcessSignals;
-    this.vpn = configOptions.vpn ?? DEFAULTS.vpn;
+    this.startupTimeout = options.startupTimeout;
+    this.skipProcessSignals = options.skipProcessSignals ?? DEFAULTS.skipProcessSignals;
+    this.vpn = options.vpn ?? DEFAULTS.vpn;
     this.logger = (() => {
-      const isLoggingEnabled = configOptions.enableLogging ?? DEFAULTS.enableLogging;
+      const isLoggingEnabled = options.enableLogging ?? DEFAULTS.enableLogging;
       if (!isLoggingEnabled) return nullLogger();
-      if (configOptions.logger) return configOptions.logger.child("task-executor");
+      if (options.logger) return options.logger.child("task-executor");
       return defaultLogger("task-executor", { disableAutoPrefix: true });
     })();
     this.order = {
-      market: configOptions.market,
-      payment: configOptions.payment,
-      activity: configOptions.activity,
-      demand: configOptions.demand,
+      market: options.market,
+      payment: options.payment,
+      activity: options.activity,
+      demand: options.demand,
     };
     this.golem = {
       logger: this.logger,
-      api: configOptions.api,
-      payment: configOptions.payment,
-      dataTransferProtocol: configOptions.dataTransferProtocol || DEFAULTS.dataTransferProtocol,
-      override: configOptions.override,
+      api: options.api,
+      payment: options.payment,
+      dataTransferProtocol: options.dataTransferProtocol || DEFAULTS.dataTransferProtocol,
+      override: options.override,
     };
   }
 }

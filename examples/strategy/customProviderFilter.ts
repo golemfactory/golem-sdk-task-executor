@@ -20,7 +20,6 @@ const myFilter: ProposalFilter = (proposal) => {
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

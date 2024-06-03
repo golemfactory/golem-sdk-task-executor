@@ -16,7 +16,6 @@ const blackListProvidersNames = ["provider-1", "golem-provider", "super-provider
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

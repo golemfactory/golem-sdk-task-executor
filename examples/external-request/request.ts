@@ -24,7 +24,6 @@ const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

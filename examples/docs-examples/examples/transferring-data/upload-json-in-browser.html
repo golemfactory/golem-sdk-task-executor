@@ -31,12 +31,11 @@
           api: { key: "try_golem", url: document.getElementById("YAGNA_API_BASEPATH").value },
           demand: {
             workload: {
-              imageTag: "golem/alpine:latest",
+              imageTag: "golem/node:20-alpine",
             },
             subnetTag: document.getElementById("SUBNET_TAG").value,
           },
           market: {
-            maxAgreements: 1,
             rentHours: 0.5,
             pricing: {
               model: "linear",

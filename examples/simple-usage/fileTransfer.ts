@@ -11,7 +11,6 @@ import { readFileSync, realpathSync } from "fs";
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

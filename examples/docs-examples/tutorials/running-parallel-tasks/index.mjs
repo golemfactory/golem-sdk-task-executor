@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 
 async function main(args) {
@@ -12,7 +12,6 @@ async function main(args) {
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

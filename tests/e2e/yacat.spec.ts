@@ -22,7 +22,6 @@ describe("Password cracking", function () {
           },
         },
         market: {
-          maxAgreements: 3,
           rentHours: 0.5,
           pricing: {
             model: "linear",
@@ -30,6 +29,9 @@ describe("Password cracking", function () {
             maxCpuPerHourPrice: 1.0,
             maxEnvPerHourPrice: 0.5,
           },
+        },
+        task: {
+          maxParallelTasks: 3,
         },
       });
       const keyspace = await executor.run<number>(async (ctx) => {

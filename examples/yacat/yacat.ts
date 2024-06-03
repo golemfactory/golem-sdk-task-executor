@@ -30,7 +30,6 @@ program
         subnetTag: args.subnetTag,
       },
       market: {
-        maxAgreements: args.numberOfProviders,
         rentHours: 0.5,
         pricing: {
           model: "linear",

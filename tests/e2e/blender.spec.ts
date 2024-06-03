@@ -34,7 +34,6 @@ describe("Blender rendering", function () {
           workload: { imageTag: "golem/blender:latest" },
         },
         market: {
-          maxAgreements: 1,
           rentHours: 0.5,
           pricing: {
             model: "linear",

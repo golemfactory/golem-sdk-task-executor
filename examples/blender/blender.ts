@@ -36,7 +36,6 @@ async function main(subnetTag: string, driver?: "erc20", network?: string, maxPa
       subnetTag,
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

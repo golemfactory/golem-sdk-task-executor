@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const executor = await TaskExecutor.create({
   logger: pinoPrettyLogger(),
@@ -10,7 +10,6 @@ const executor = await TaskExecutor.create({
     },
   },
   market: {
-    maxAgreements: 1,
     rentHours: 0.5,
     pricing: {
       model: "linear",
@@ -51,7 +50,7 @@ for (const i of [1, 2, 3, 4]) {
 
       const timeout = i % 2 === 0 ? 3_000 : 10_000;
       const finalResult = await remoteProcess.waitForExit(timeout).catch(async (e) => {
-        console.log(`Iteration: ${i} Error: ${e.message}, Provider: ${e.provider.name}`);
+        console.log(`Iteration: ${i} Error: ${e.message}, Provider: ${ctx.provider.name}`);
         ctx
           .run("ls -l")
           .catch((e) =>

@@ -19,7 +19,6 @@ async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100)
       subnetTag,
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

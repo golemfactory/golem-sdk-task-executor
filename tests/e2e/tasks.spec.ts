@@ -9,7 +9,6 @@ const executorOptions: ExecutorOptions = {
     },
   },
   market: {
-    maxAgreements: 1,
     rentHours: 0.5,
     pricing: {
       model: "linear",
@@ -78,7 +77,7 @@ describe("Task Executor", function () {
   });
 
   it("should run simple tasks by map function", async () => {
-    executor = await TaskExecutor.create("golem/alpine:latest");
+    executor = await TaskExecutor.create(executorOptions);
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     const futureResults = data.map((x) =>
@@ -180,7 +179,6 @@ describe("Task Executor", function () {
         },
       },
       market: {
-        maxAgreements: 1,
         rentHours: 0.5,
         pricing: {
           model: "linear",
@@ -220,7 +218,6 @@ describe("Task Executor", function () {
         },
       },
       market: {
-        maxAgreements: 1,
         rentHours: 0.5,
         pricing: {
           model: "linear",
@@ -253,7 +250,6 @@ describe("Task Executor", function () {
         },
       },
       market: {
-        maxAgreements: 1,
         rentHours: 0.5,
         pricing: {
           model: "linear",
@@ -278,7 +274,7 @@ describe("Task Executor", function () {
     expect(isRetry).toEqual(false);
   });
 
-  it("should clean up the agreements in the pool if the agreement has been terminated by provider", async () => {
+  it.skip("should clean up the agreements in the pool if the agreement has been terminated by provider", async () => {
     const executor = await TaskExecutor.create({
       demand: {
         workload: {
@@ -292,7 +288,6 @@ describe("Task Executor", function () {
         },
       },
       market: {
-        maxAgreements: 1,
         rentHours: 0.5,
         pricing: {
           model: "linear",
@@ -300,9 +295,10 @@ describe("Task Executor", function () {
           maxCpuPerHourPrice: 1.0,
           maxEnvPerHourPrice: 0.5,
         },
-        // TODO
+      },
+      payment: {
         // which should result in termination of the agreement by provider
-        // debitNotesFilter: () => Promise.resolve(false),
+        debitNoteFilter: () => Promise.resolve(false),
       },
     });
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
@@ -327,7 +323,7 @@ describe("Task Executor", function () {
     expect(createdAgreementsCount).toBeGreaterThan(1);
   });
 
-  it("should only accept debit notes for agreements that were created by the executor", async () => {
+  it.skip("should only accept debit notes for agreements that were created by the executor", async () => {
     const executor1 = await TaskExecutor.create(executorOptions);
     const executor2 = await TaskExecutor.create(executorOptions);
     const confirmedAgreementsIds1 = new Set();

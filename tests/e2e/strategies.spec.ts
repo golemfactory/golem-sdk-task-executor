@@ -11,7 +11,6 @@ describe.skip("Strategies", function () {
           },
         },
         market: {
-          maxAgreements: 1,
           rentHours: 0.5,
           pricing: {
             model: "linear",
@@ -54,7 +53,6 @@ describe.skip("Strategies", function () {
           },
         },
         market: {
-          maxAgreements: 1,
           rentHours: 0.5,
           pricing: {
             model: "linear",

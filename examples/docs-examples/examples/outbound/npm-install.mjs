@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { readFile } from "fs/promises";
 
 const manifest = await readFile(`./manifest_npm_install.json`);
@@ -16,7 +16,6 @@ const manifest = await readFile(`./manifest_npm_install.json`);
       expirationSec: 60 * 30, //30 min
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

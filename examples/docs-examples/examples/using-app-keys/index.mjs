@@ -1,5 +1,5 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
-import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async () => {
   const executor = await TaskExecutor.create({
@@ -8,11 +8,10 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger/dist/GolemPinoLogger.js
     api: { key: "try_golem" },
     demand: {
       workload: {
-        imageTag: "golem/alpine:latest",
+        imageTag: "golem/node:20-alpine",
       },
     },
     market: {
-      maxAgreements: 1,
       rentHours: 0.5,
       pricing: {
         model: "linear",

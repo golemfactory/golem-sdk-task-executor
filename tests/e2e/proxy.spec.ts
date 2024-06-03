@@ -10,14 +10,14 @@ const __dirname = dirname(__filename);
 describe("TcpProxy", function () {
   it("should send and receive message to the http server on the provider", async () => {
     const executor = await TaskExecutor.create({
+      vpn: { ip: "192.168.0.0/24" },
       demand: {
         workload: {
-          imageTag: "golem/alpine:latest",
+          imageTag: "golem/node:20-alpine",
           capabilities: ["vpn"],
         },
       },
       market: {
-        maxAgreements: 1,
         rentHours: 0.5,
         pricing: {
           model: "linear",
@@ -26,7 +26,6 @@ describe("TcpProxy", function () {
           maxEnvPerHourPrice: 0.5,
         },
       },
-      vpn: { ip: "192.168.0.0/24" },
     });
     let response;
     let providerStdout = "";
