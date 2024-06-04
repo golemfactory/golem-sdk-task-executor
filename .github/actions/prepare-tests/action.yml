@@ -43,4 +43,4 @@ runs:
     - name: Install and build the SDK in the docker container
       shell: bash
       run: |
-        docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor && npm i && npm run build && ./node_modules/.bin/cypress install && npm install --prefix examples"
+        docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor && npm i && npm run build && ./node_modules/.bin/cypress install && npm install --prefix examples --legacy-peer-deps"
