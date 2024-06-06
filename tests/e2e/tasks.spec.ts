@@ -194,13 +194,13 @@ describe("Task Executor", function () {
     expect(["192.168.0.2", "192.168.0.3"]).toContain(result);
   });
 
-  it("should spawn command as external process", async () => {
+  it("should run and stream command as external process", async () => {
     executor = await TaskExecutor.create(executorOptions);
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let stdout = "";
     let stderr = "";
     const finalResult = await executor.run(async (ctx) => {
-      const remoteProcess = await ctx.spawn("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
+      const remoteProcess = await ctx.runAndStream("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
       remoteProcess.stdout.on("data", (data) => (stdout += data.trim()));
       remoteProcess.stderr.on("data", (data) => (stderr += data.trim()));
       return remoteProcess.waitForExit();
@@ -309,7 +309,7 @@ describe("Task Executor", function () {
     // });
     try {
       await executor.run(async (ctx) => {
-        const proc = await ctx.spawn("timeout 15 ping 127.0.0.1");
+        const proc = await ctx.runAndStream("timeout 15 ping 127.0.0.1");
         proc.stdout.on("data", (data) => console.log(data));
         return await proc.waitForExit(20_000);
       });
