@@ -16,7 +16,13 @@ describe("Password cracking", function () {
       executor = await TaskExecutor.create({
         demand: {
           workload: {
-            imageTag: "golem/examples-hashcat:latest",
+            /**
+             * Using the latest yacat image tag `golem/examples-hashcat:latest`
+             * causes problems with providers in docker:
+             * Error: `Device #1: Not enough allocatable device memory for this attack`,
+             * So for now we leave the old version with image hash for docker test
+             */
+            imageHash: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
             minMemGib: 0.5,
             minStorageGib: 2,
           },
