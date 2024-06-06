@@ -53,7 +53,7 @@ const myFilter = (proposal) => {
 
   try {
     await executor.run(async (ctx) => {
-      const result = await ctx.run('echo "This task is run on ${ctx.provider.id}"');
+      const result = await ctx.run(`echo "This task is run on ${ctx.provider.id}"`);
       console.log(result.stdout, ctx.provider.id);
     });
   } catch (err) {
