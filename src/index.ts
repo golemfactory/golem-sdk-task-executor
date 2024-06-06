@@ -1,5 +1,5 @@
 export * from "./executor";
-export { TaskExecutorEventsDict } from "./events";
+export * from "./events";
 export {
   WorkContext,
   ProposalFilter,

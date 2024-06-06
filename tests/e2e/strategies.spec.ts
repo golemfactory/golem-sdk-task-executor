@@ -23,7 +23,7 @@ describe.skip("Strategies", function () {
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
-      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       // TODO
       // executor.events.on("golemEvents", (event) => {
       //   if (event.name === Events.ProposalResponded.name) {
@@ -66,7 +66,7 @@ describe.skip("Strategies", function () {
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
-      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       // TODO
       // executor.events.on("golemEvents", (event) => {
       //   if (event.name === Events.ProposalResponded.name) {

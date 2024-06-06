@@ -1,10 +1,9 @@
 import { TaskDetails } from "./task";
-// import { BaseEvent } from "@golem-sdk/golem-js";
 
 /**
  * This interface describes events emitted by `TaskExecutor` through `TaskExecutor.events` object.
  */
-export interface TaskExecutorEventsDict {
+export interface ExecutorEvents {
   /**
    * Fires when task executor is created, before initialization services.
    */
@@ -29,7 +28,9 @@ export interface TaskExecutorEventsDict {
    * Fires when task executor is completely terminated.
    */
   end: (timestamp: number) => void;
+}
 
+export interface TaskEvents {
   /**
    * Fires when a task is placed in the internal queue via {@link TaskExecutor.run}
    *
@@ -64,13 +65,4 @@ export interface TaskExecutorEventsDict {
    * @param task
    */
   taskFailed: (task: TaskDetails) => void;
-
-  /**
-   * Exposes internal @golem-sdk/golem-js events
-   *
-   * @deprecated This options is deprecated and will be removed. Alternative ways to reach these events will be provided.
-   *
-   * @param event
-   */
-  // golemEvents: (event: BaseEvent<unknown>) => void;
 }

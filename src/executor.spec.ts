@@ -1,17 +1,21 @@
-import { instance, imock, when, anything, mock, verify, reset } from "@johanblumenberg/ts-mockito";
+import { anything, imock, instance, mock, reset, verify, when } from "@johanblumenberg/ts-mockito";
 import { Task } from "./task";
 import { TaskExecutor } from "./executor";
 import { sleep } from "./utils";
 import { TaskService } from "./service";
 import { StatsService } from "./stats";
 import {
-  GolemNetwork,
+  ActivityModule,
   GolemConfigError,
+  GolemNetwork,
   GolemWorkError,
-  WorkErrorCode,
-  Logger,
   LeaseProcess,
   LeaseProcessPool,
+  Logger,
+  MarketModule,
+  NetworkModule,
+  PaymentModule,
+  WorkErrorCode,
 } from "@golem-sdk/golem-js";
 import { randomUUID } from "node:crypto";
 
@@ -33,6 +37,10 @@ const task = instance(taskMock);
 when(golemNetworkMock.connect()).thenResolve();
 when(golemNetworkMock.disconnect()).thenResolve();
 when(golemNetworkMock.manyOf(anything())).thenResolve(leaseProcessPool);
+when(golemNetworkMock.market).thenReturn(instance(imock<MarketModule>()));
+when(golemNetworkMock.activity).thenReturn(instance(imock<ActivityModule>()));
+when(golemNetworkMock.payment).thenReturn(instance(imock<PaymentModule>()));
+when(golemNetworkMock.network).thenReturn(instance(imock<NetworkModule>()));
 when(leaseProcessPoolMock.acquire()).thenResolve(leaseProcess);
 when(statsServiceMock.run()).thenResolve();
 when(statsServiceMock.end()).thenResolve();
@@ -233,7 +241,7 @@ describe("Task Executor", () => {
           },
         },
       });
-      executor.events.on("ready", ready);
+      executor.events.executor.on("ready", ready);
       await executor.init();
       expect(ready).toHaveBeenCalledTimes(1);
       await executor.shutdown();
@@ -374,8 +382,8 @@ describe("Task Executor", () => {
       const beforeEnd = jest.fn();
       const end = jest.fn();
 
-      executor.events.on("beforeEnd", beforeEnd);
-      executor.events.on("end", end);
+      executor.events.executor.on("beforeEnd", beforeEnd);
+      executor.events.executor.on("end", end);
 
       await executor.shutdown();
       // Second call shouldn't generate new events.

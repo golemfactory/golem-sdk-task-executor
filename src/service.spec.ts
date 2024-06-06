@@ -14,13 +14,13 @@ import {
 import { TaskService } from "./service";
 import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
-import { TaskExecutorEventsDict } from "./events";
+import { TaskEvents } from "./events";
 import { sleep } from "./utils";
 
 const testResults = new Result({ eventDate: "", index: 0, result: "Ok", stdout: "test" });
 
 let queue: TaskQueue;
-const events = new EventEmitter<TaskExecutorEventsDict>();
+const events = new EventEmitter<TaskEvents>();
 const testProvider = { name: "testProvider", id: "testId", walletAddress: "0x1234567" };
 
 describe("Task Service", () => {

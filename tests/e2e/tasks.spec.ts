@@ -94,7 +94,7 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let taskDetails;
-    executor.events.on("taskCompleted", (event) => (taskDetails = event));
+    executor.events.task.on("taskCompleted", (event) => (taskDetails = event));
     const outputs: string[] = [];
     let onEnd = "";
     await executor
@@ -232,7 +232,7 @@ describe("Task Executor", function () {
     });
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let isRetry = false;
-    executor.events.on("taskRetried", () => (isRetry = true));
+    executor.events.task.on("taskRetried", () => (isRetry = true));
     try {
       executor.onActivityReady(async (ctx) => Promise.reject("Error"));
       await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
@@ -264,7 +264,7 @@ describe("Task Executor", function () {
     });
     // executor.events.on("golemEvents", (event) => emittedEventsNames.push(event.name));
     let isRetry = false;
-    executor.events.on("taskRetried", () => (isRetry = true));
+    executor.events.task.on("taskRetried", () => (isRetry = true));
     try {
       executor.onActivityReady(async (ctx) => Promise.reject("Error"));
       await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout), { maxRetries: 0 });

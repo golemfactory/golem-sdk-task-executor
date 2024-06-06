@@ -1,21 +1,7 @@
-import { EventEmitter } from "eventemitter3";
-import { TaskExecutorEventsDict } from "./events";
 import { ProviderInfo, TaskDetails } from "./task";
-import { defaultLogger, Logger } from "@golem-sdk/golem-js";
-
-export interface AgreementInfo {
-  id: string;
-  proposalId: string;
-  provider: ProviderInfo;
-}
-
-export interface InvoiceInfo {
-  id: string;
-  amount: number;
-  provider: ProviderInfo;
-}
-
-export interface PaymentInfo extends InvoiceInfo {}
+import { Agreement, defaultLogger, Invoice, Logger, OfferProposal } from "@golem-sdk/golem-js";
+import { TaskExecutorEvents } from "./executor";
+import Decimal from "decimal.js-light";
 
 export interface TimeInfo {
   startTime?: number;
@@ -23,41 +9,33 @@ export interface TimeInfo {
   duration?: number;
 }
 
-export interface ProposalInfo {
-  id: string;
-  state: "initial" | "confirmed" | "rejected";
-}
-
 interface StatsServiceOptions {
   logger?: Logger;
 }
 
 export class StatsService {
-  private listeners = new Map<keyof TaskExecutorEventsDict, EventEmitter.EventListener<string, string>>();
   private tasksCompleted = new Map<string, TaskDetails[]>();
-  private agreements = new Map<string, AgreementInfo>();
+  private agreements = new Map<string, Agreement>();
   private providers = new Map<string, ProviderInfo>();
-  private invoices = new Map<string, InvoiceInfo[]>();
-  private payments = new Map<string, PaymentInfo[]>();
-  private proposals = new Set<ProposalInfo>();
+  private invoices = new Map<string, Invoice[]>();
+  private payments = new Map<string, Invoice[]>();
+  private proposals = new Set<OfferProposal>();
+  private proposalsRejected = new Set<OfferProposal>();
   private timeInfo: TimeInfo = {};
   private logger: Logger;
 
   constructor(
-    private events: EventEmitter<TaskExecutorEventsDict>,
+    private events: TaskExecutorEvents,
     options?: StatsServiceOptions,
   ) {
     this.logger = options?.logger ? options?.logger.child("stats") : defaultLogger("stats");
   }
   async run() {
-    this.subscribeGolemEvents();
-    this.subscribeTaskEvents();
-    this.subscribeTimeEvents();
+    this.subscribeEvents();
     this.logger.info("Stats Service has started");
   }
 
   async end() {
-    this.unsubscribeAllEvents();
     this.logger.info("Task Service has stopped");
   }
 
@@ -69,8 +47,16 @@ export class StatsService {
     this.agreements.forEach((agreement) => {
       const invoices = this.invoices.get(agreement.id);
       const payments = this.payments.get(agreement.id);
-      costs.total += invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
-      costs.paid += payments?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
+      costs.total = (
+        invoices?.reduce((sum, invoice) => invoice.getPreciseAmount().add(sum), new Decimal(0)) ?? new Decimal(0)
+      )
+        .add(costs.total)
+        .toNumber();
+      costs.paid = (
+        payments?.reduce((sum, invoice) => invoice.getPreciseAmount().add(sum), new Decimal(0)) ?? new Decimal(0)
+      )
+        .add(costs.paid)
+        .toNumber();
     });
     return costs;
   }
@@ -81,7 +67,7 @@ export class StatsService {
    */
   getAllCostsSummary() {
     return [...this.agreements.values()].map((agreement) => {
-      const provider = this.providers.get(agreement.provider.id);
+      const provider = this.providers.get(agreement.getProviderInfo().id);
       const invoices = this.invoices.get(agreement.id);
       const payments = this.payments.get(agreement.id);
       const tasks = this.tasksCompleted.get(agreement.id);
@@ -89,7 +75,7 @@ export class StatsService {
         Agreement: agreement.id.substring(0, 10),
         "Provider Name": provider ? provider.name : "unknown",
         "Task Computed": tasks?.length ?? 0,
-        Cost: invoices?.reduce((sum, invoice) => sum + invoice.amount, 0),
+        Cost: invoices?.reduce((sum, invoice) => invoice.getPreciseAmount().add(sum), new Decimal(0)).toNumber(),
         "Payment Status": payments?.length
           ? payments.length === invoices?.length
             ? "paid"
@@ -106,25 +92,19 @@ export class StatsService {
     return this.timeInfo?.duration ?? 0;
   }
 
-  private subscribeTimeEvents() {
-    const startTimeListener = (timestamp: number) => {
+  private subscribeEvents() {
+    this.events.executor.on("ready", (timestamp: number) => {
       this.timeInfo.startTime = timestamp;
       this.logger.debug("Start time detected", { startTime: timestamp });
-    };
-    this.events.on("ready", startTimeListener);
-    this.listeners.set("ready", startTimeListener);
+    });
 
-    const stopTimeListener = (timestamp: number) => {
+    this.events.executor.on("beforeEnd", (timestamp: number) => {
       this.timeInfo.stopTime = timestamp;
       this.timeInfo.duration = this.timeInfo?.startTime ? this.timeInfo.stopTime - this.timeInfo.startTime : undefined;
       this.logger.debug("Stop time detected", { ...this.timeInfo });
-    };
-    this.events.on("beforeEnd", stopTimeListener);
-    this.listeners.set("beforeEnd", stopTimeListener);
-  }
+    });
 
-  private subscribeTaskEvents() {
-    const taskListener = (task: TaskDetails) => {
+    this.events.task.on("taskCompleted", (task: TaskDetails) => {
       if (!task.agreementId) return;
       let tasks = this.tasksCompleted.get(task.agreementId);
       if (!tasks) {
@@ -133,46 +113,44 @@ export class StatsService {
       }
       tasks.push(task);
       this.logger.debug("Task data collected", { task });
-    };
-    this.events.on("taskCompleted", taskListener);
-    this.listeners.set("taskCompleted", taskListener);
-  }
+    });
 
-  // TODO: when we implement events in golem-js
-  private subscribeGolemEvents() {
-    // const golemEventsListener = (event: BaseEvent<unknown>) => {
-    //   if (event instanceof GolemEvents.AgreementCreated) {
-    //     this.agreements.set(event.detail.id, {
-    //       id: event.detail.id,
-    //       provider: event.detail.provider,
-    //       proposalId: event.detail.proposalId,
-    //     });
-    //     this.providers.set(event.detail.provider.id, event.detail.provider);
-    //     this.logger.debug("AgreementCreated event collected", { agreement: event.detail });
-    //   } else if (event instanceof GolemEvents.InvoiceReceived) {
-    //     let invoices = this.invoices.get(event.detail.agreementId);
-    //     if (!invoices) {
-    //       invoices = [];
-    //       this.invoices.set(event.detail.agreementId, invoices);
-    //     }
-    //     invoices.push(event.detail);
-    //     this.logger.debug("InvoiceReceived event collected", { agreement: event.detail });
-    //   } else if (event instanceof GolemEvents.PaymentAccepted) {
-    //     let payments = this.payments.get(event.detail.agreementId);
-    //     if (!payments) {
-    //       payments = [];
-    //       this.payments.set(event.detail.agreementId, payments);
-    //     }
-    //     payments.push(event.detail);
-    //     this.logger.debug("InvoiceAccepted event collected", { agreement: event.detail });
-    //   }
-    // };
-    // this.events.on("golemEvents", golemEventsListener);
-    // this.listeners.set("golemEvents", golemEventsListener);
-  }
+    this.events.market.on("agreementApproved", ({ agreement }) => {
+      const provider = agreement.getProviderInfo();
+      this.agreements.set(agreement.id, agreement);
+      this.providers.set(provider.id, provider);
+      this.logger.debug("AgreementApproved event collected", { agreement });
+    });
 
-  private unsubscribeAllEvents() {
-    this.listeners.forEach((listener, event) => this.events.removeListener(event, listener));
+    this.events.payment.on("invoiceReceived", (invoice) => {
+      let invoices = this.invoices.get(invoice.agreementId);
+      if (!invoices) {
+        invoices = [];
+        this.invoices.set(invoice.agreementId, invoices);
+      }
+      invoices.push(invoice);
+      this.logger.debug("InvoiceReceived event collected", { invoice });
+    });
+
+    this.events.payment.on("invoiceAccepted", (invoice) => {
+      let payments = this.payments.get(invoice.agreementId);
+      if (!payments) {
+        payments = [];
+        this.payments.set(invoice.agreementId, payments);
+      }
+      payments.push(invoice);
+      this.logger.debug("InvoiceAccepted event collected", { invoice });
+    });
+
+    this.events.market.on("offerProposalReceived", ({ proposal }) => {
+      this.proposals.add(proposal);
+    });
+    this.events.market.on("offerProposalRejectedByFilter", (proposal) => {
+      this.proposalsRejected.add(proposal);
+    });
+    this.events.market.on("offerProposalRejectedByPriceFilter", (proposal) => {
+      this.proposalsRejected.add(proposal);
+    });
   }
 
   getAll() {
@@ -190,9 +168,9 @@ export class StatsService {
   getProposalsCount(): { confirmed: number; initial: number; rejected: number } {
     const proposals = [...this.proposals.values()];
     return {
-      confirmed: proposals.filter((proposal) => proposal.state === "confirmed").length,
-      initial: proposals.filter((proposal) => proposal.state === "initial").length,
-      rejected: proposals.filter((proposal) => proposal.state === "rejected").length,
+      confirmed: proposals.filter((proposal) => proposal.isDraft()).length,
+      initial: proposals.filter((proposal) => proposal.isInitial()).length,
+      rejected: this.proposalsRejected.size,
     };
   }
 }

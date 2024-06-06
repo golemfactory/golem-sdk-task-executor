@@ -11,9 +11,13 @@ import {
   WorkErrorCode,
   Network,
   NetworkOptions,
+  MarketEvents,
+  ActivityEvents,
+  PaymentEvents,
+  NetworkEvents,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
-import { TaskExecutorEventsDict } from "./events";
+import { ExecutorEvents, TaskEvents } from "./events";
 import { EventEmitter } from "eventemitter3";
 import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
@@ -87,15 +91,20 @@ export type ExecutorMainOptions = {
  */
 export type ExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
+export type TaskExecutorEvents = {
+  executor: EventEmitter<ExecutorEvents>;
+  task: EventEmitter<TaskEvents>;
+  market: EventEmitter<MarketEvents>;
+  activity: EventEmitter<ActivityEvents>;
+  payment: EventEmitter<PaymentEvents>;
+  network: EventEmitter<NetworkEvents>;
+};
+
 /**
  * A high-level module for defining and executing tasks in the golem network
  */
 export class TaskExecutor {
-  /**
-   * EventEmitter (EventEmitter3) instance emitting TaskExecutor events.
-   * @see TaskExecutorEventsDict for available events.
-   */
-  readonly events: EventEmitter<TaskExecutorEventsDict> = new EventEmitter();
+  readonly events: TaskExecutorEvents;
 
   private readonly options: ExecutorConfig;
   private taskService?: TaskService;
@@ -171,9 +180,16 @@ export class TaskExecutor {
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();
     this.golemNetwork = new GolemNetwork(this.options.golem);
+    this.events = {
+      executor: new EventEmitter<ExecutorEvents>(),
+      task: new EventEmitter<TaskEvents>(),
+      market: this.golemNetwork.market.events,
+      activity: this.golemNetwork.activity.events,
+      payment: this.golemNetwork.payment.events,
+      network: this.golemNetwork.network.events,
+    };
     this.statsService = new StatsService(this.events, { logger: this.logger });
-    // TODO: golem-js events handling
-    this.events.emit("start", Date.now());
+    this.events.executor.emit("start", Date.now());
   }
 
   /**
@@ -200,7 +216,7 @@ export class TaskExecutor {
       this.taskService = new TaskService(
         this.taskQueue,
         this.leaseProcessPool,
-        this.events,
+        this.events.task,
         this.logger.child("work"),
         {
           maxParallelTasks: this.options.task.maxParallelTasks,
@@ -219,7 +235,7 @@ export class TaskExecutor {
       network: this.options.golem.payment?.network,
       driver: this.options.golem.payment?.driver,
     });
-    this.events.emit("ready", Date.now());
+    this.events.executor.emit("ready", Date.now());
   }
 
   /**
@@ -248,7 +264,7 @@ export class TaskExecutor {
    * @private
    */
   private async doShutdown() {
-    this.events.emit("beforeEnd", Date.now());
+    this.events.executor.emit("beforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
     await this.taskService?.end();
@@ -257,7 +273,7 @@ export class TaskExecutor {
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
-    this.events.emit("end", Date.now());
+    this.events.executor.emit("end", Date.now());
   }
 
   getStats() {
@@ -318,7 +334,7 @@ export class TaskExecutor {
         retryOnTimeout: options?.retryOnTimeout ?? this.options.task.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
-      this.events.emit("taskQueued", task.getDetails());
+      this.events.task.emit("taskQueued", task.getDetails());
       while (this.isRunning) {
         if (task.isFinished()) {
           if (task.isRejected()) throw task.getError();
@@ -382,7 +398,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.events.emit("criticalError", err);
+    this.events.executor.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);

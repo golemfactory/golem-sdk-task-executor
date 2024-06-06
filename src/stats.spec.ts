@@ -1,12 +1,21 @@
 import { StatsService } from "./stats";
 import { EventEmitter } from "eventemitter3";
-import { TaskExecutorEventsDict } from "./events";
 // import { Events } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
+import { TaskExecutorEvents } from "./executor";
+import { ExecutorEvents, TaskEvents } from "./events";
+import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents } from "@golem-sdk/golem-js";
 
 // TODO: when we implement events in golem-js
 describe.skip("Stats Service", function () {
-  const events = new EventEmitter<TaskExecutorEventsDict>();
+  const events: TaskExecutorEvents = {
+    executor: new EventEmitter<ExecutorEvents>(),
+    task: new EventEmitter<TaskEvents>(),
+    market: new EventEmitter<MarketEvents>(),
+    activity: new EventEmitter<ActivityEvents>(),
+    payment: new EventEmitter<PaymentEvents>(),
+    network: new EventEmitter<NetworkEvents>(),
+  };
   const emitEvents = async (
     tasks: Array<{
       invoiceReceivedAmount: number | null;
@@ -15,7 +24,7 @@ describe.skip("Stats Service", function () {
       agreementId?: string;
     }>,
   ) => {
-    events.emit("ready", Date.now());
+    events.executor.emit("ready", Date.now());
     for (const task of tasks) {
       const id = Math.random();
       const provider = {
@@ -53,7 +62,7 @@ describe.skip("Stats Service", function () {
         //   // }),
         // );
       }
-      events.emit("taskCompleted", {
+      events.task.emit("taskCompleted", {
         id: `task-id-${id}`,
         agreementId: task.agreementId ?? `test-agreement-id-${id}`,
         retriesCount: 0,
@@ -63,7 +72,7 @@ describe.skip("Stats Service", function () {
       // simulate the time gap between executing tasks / emitting events
       await sleep(100, true);
     }
-    events.emit("beforeEnd", Date.now());
+    events.executor.emit("beforeEnd", Date.now());
   };
 
   describe("All costs", () => {
