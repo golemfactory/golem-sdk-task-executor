@@ -7,7 +7,7 @@
   "scripts": {
     "hello": "tsx hello-world/hello.ts",
     "run": "tsx ./simple-usage/run.ts",
-    "spawn": "tsx ./simple-usage/spawn.ts",
+    "runAndStream": "tsx simple-usage/runAndStream.ts",
     "map": "tsx ./simple-usage/map.ts",
     "forEach": "tsx ./simple-usage/forEach.ts",
     "fileTransfer": "tsx ./simple-usage/fileTransfer.ts",
