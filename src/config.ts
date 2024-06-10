@@ -16,7 +16,6 @@ const DEFAULTS = Object.freeze({
   maxParallelTasks: 5,
   maxTaskRetries: 3,
   taskRetryOnTimeout: false,
-  dataTransferProtocol: "gftp",
 });
 
 /**
@@ -67,8 +66,10 @@ export class ExecutorConfig implements ExecutorMainOptions {
       logger: this.logger,
       api: options.api,
       payment: options.payment,
-      dataTransferProtocol: options.dataTransferProtocol || DEFAULTS.dataTransferProtocol,
       override: options.override,
     };
+    if (options.dataTransferProtocol) {
+      this.golem.dataTransferProtocol = options.dataTransferProtocol;
+    }
   }
 }

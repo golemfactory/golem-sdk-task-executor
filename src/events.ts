@@ -7,17 +7,17 @@ export interface ExecutorEvents {
   /**
    * Fires when task executor is created, before initialization services.
    */
-  start: (timestamp: number) => void;
+  executorStart: (timestamp: number) => void;
 
   /**
    * Fires when task executor is initialized and ready to be used.
    */
-  ready: (timestamp: number) => void;
+  executorReady: (timestamp: number) => void;
 
   /**
    * Fires when task executor is about to shut down, immediately after TaskExecutor.shutdown() is called.
    */
-  beforeEnd: (timestamp: number) => void;
+  executorBeforeEnd: (timestamp: number) => void;
 
   /**
    * Fires when task executor encountered an unrecoverable error and is about to shut down.
@@ -27,7 +27,7 @@ export interface ExecutorEvents {
   /**
    * Fires when task executor is completely terminated.
    */
-  end: (timestamp: number) => void;
+  executorEnd: (timestamp: number) => void;
 }
 
 export interface TaskEvents {

@@ -118,6 +118,8 @@ jobs:
 
       - name: Prepare providers and requestor
         uses: ./.github/actions/prepare-tests
+        with:
+          type: "cypress"
 
       - name: Copy docs examples
         run: docker exec -t docker-requestor-1 /bin/sh -c '

@@ -102,7 +102,7 @@ describe("Task Executor", () => {
       expect(executor).toBeDefined();
       await executor.shutdown();
     });
-    it.skip("should handle a critical error if startup timeout is reached", async () => {
+    it("should handle a critical error if startup timeout is reached", async () => {
       const executor = await TaskExecutor.create({
         demand: {
           workload: {
@@ -118,6 +118,7 @@ describe("Task Executor", () => {
             maxEnvPerHourPrice: 0.5,
           },
         },
+        startupTimeout: 1,
       });
       when(statsServiceMock.getProposalsCount()).thenReturn({ confirmed: 0, initial: 0, rejected: 0 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,7 +242,7 @@ describe("Task Executor", () => {
           },
         },
       });
-      executor.events.executor.on("ready", ready);
+      executor.events.on("executorReady", ready);
       await executor.init();
       expect(ready).toHaveBeenCalledTimes(1);
       await executor.shutdown();
@@ -382,8 +383,8 @@ describe("Task Executor", () => {
       const beforeEnd = jest.fn();
       const end = jest.fn();
 
-      executor.events.executor.on("beforeEnd", beforeEnd);
-      executor.events.executor.on("end", end);
+      executor.events.on("executorBeforeEnd", beforeEnd);
+      executor.events.on("executorEnd", end);
 
       await executor.shutdown();
       // Second call shouldn't generate new events.

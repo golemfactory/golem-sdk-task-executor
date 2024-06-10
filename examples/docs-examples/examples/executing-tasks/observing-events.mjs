@@ -42,6 +42,9 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   executor.events.task.on("taskCompleted", (event) => {
     console.log("Task completed:", event);
   });
+  executor.events.on("executorEnd", (event) => {
+    console.log("All tasks finished:", event);
+  });
 
   console.log("Executor is created");
   try {

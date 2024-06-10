@@ -1,7 +1,8 @@
 import { TaskExecutor } from "../../src";
 import { sleep } from "../../src/utils";
+import { ProposalFilterFactory } from "@golem-sdk/golem-js";
 
-describe.skip("Strategies", function () {
+describe("Strategies", function () {
   describe("Proposals", () => {
     it("should filtered providers by black list names", async () => {
       const executor = await TaskExecutor.create({
@@ -18,18 +19,17 @@ describe.skip("Strategies", function () {
             maxCpuPerHourPrice: 1.0,
             maxEnvPerHourPrice: 0.5,
           },
-          // proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
+          proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
         },
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
       executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
-      // TODO
-      // executor.events.on("golemEvents", (event) => {
-      //   if (event.name === Events.ProposalResponded.name) {
-      //     proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
-      //   }
-      // });
+      executor.events.market.on("offerProposalReceived", ({ proposal }) => {
+        if (proposal.isDraft()) {
+          proposalReceivedProviderNames.push(proposal.getProviderInfo().name);
+        }
+      });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>
         executor.run(async (ctx) => {
@@ -60,19 +60,17 @@ describe.skip("Strategies", function () {
             maxCpuPerHourPrice: 1.0,
             maxEnvPerHourPrice: 0.5,
           },
-          // TDDO
-          // proposalFilter: ProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
+          proposalFilter: ProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
         },
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
       executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
-      // TODO
-      // executor.events.on("golemEvents", (event) => {
-      //   if (event.name === Events.ProposalResponded.name) {
-      //     proposalReceivedProviderNames.push((event as Events.ProposalResponded).detail.provider.name);
-      //   }
-      // });
+      executor.events.market.on("offerProposalReceived", ({ proposal }) => {
+        if (proposal.isDraft()) {
+          proposalReceivedProviderNames.push(proposal.getProviderInfo().name);
+        }
+      });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>
         executor.run(async (ctx) => {

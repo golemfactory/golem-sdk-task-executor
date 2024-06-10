@@ -91,14 +91,13 @@ export type ExecutorMainOptions = {
  */
 export type ExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
-export type TaskExecutorEvents = {
-  executor: EventEmitter<ExecutorEvents>;
+export interface TaskExecutorEvents extends EventEmitter<ExecutorEvents> {
   task: EventEmitter<TaskEvents>;
   market: EventEmitter<MarketEvents>;
   activity: EventEmitter<ActivityEvents>;
   payment: EventEmitter<PaymentEvents>;
   network: EventEmitter<NetworkEvents>;
-};
+}
 
 /**
  * A high-level module for defining and executing tasks in the golem network
@@ -180,16 +179,16 @@ export class TaskExecutor {
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();
     this.golemNetwork = new GolemNetwork(this.options.golem);
-    this.events = {
-      executor: new EventEmitter<ExecutorEvents>(),
+    const executorEvents = new EventEmitter<ExecutorEvents>();
+    this.events = Object.assign(executorEvents, {
       task: new EventEmitter<TaskEvents>(),
       market: this.golemNetwork.market.events,
       activity: this.golemNetwork.activity.events,
       payment: this.golemNetwork.payment.events,
       network: this.golemNetwork.network.events,
-    };
+    });
     this.statsService = new StatsService(this.events, { logger: this.logger });
-    this.events.executor.emit("start", Date.now());
+    this.events.emit("executorStart", Date.now());
   }
 
   /**
@@ -235,7 +234,7 @@ export class TaskExecutor {
       network: this.options.golem.payment?.network,
       driver: this.options.golem.payment?.driver,
     });
-    this.events.executor.emit("ready", Date.now());
+    this.events.emit("executorReady", Date.now());
   }
 
   /**
@@ -264,7 +263,7 @@ export class TaskExecutor {
    * @private
    */
   private async doShutdown() {
-    this.events.executor.emit("beforeEnd", Date.now());
+    this.events.emit("executorBeforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
     await this.taskService?.end();
@@ -273,7 +272,7 @@ export class TaskExecutor {
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
-    this.events.executor.emit("end", Date.now());
+    this.events.emit("executorEnd", Date.now());
   }
 
   getStats() {
@@ -398,7 +397,7 @@ export class TaskExecutor {
   }
 
   private handleCriticalError(err: Error) {
-    this.events.executor.emit("criticalError", err);
+    this.events.emit("criticalError", err);
     const message =
       "TaskExecutor faced a critical error and will now cancel work, terminate agreements and request settling payments";
     this.logger.error(message, err);

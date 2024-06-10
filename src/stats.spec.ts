@@ -1,21 +1,21 @@
 import { StatsService } from "./stats";
 import { EventEmitter } from "eventemitter3";
-// import { Events } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
-import { TaskExecutorEvents } from "./executor";
 import { ExecutorEvents, TaskEvents } from "./events";
-import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents } from "@golem-sdk/golem-js";
+import { TaskExecutorEvents } from "./executor";
+import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents, Agreement } from "@golem-sdk/golem-js";
+import { instance, mock, when } from "@johanblumenberg/ts-mockito";
+import { Invoice } from "../../golem-js";
 
-// TODO: when we implement events in golem-js
-describe.skip("Stats Service", function () {
-  const events: TaskExecutorEvents = {
-    executor: new EventEmitter<ExecutorEvents>(),
+describe("Stats Service", function () {
+  const executorEvents = new EventEmitter<ExecutorEvents>();
+  const events: TaskExecutorEvents = Object.assign(executorEvents, {
     task: new EventEmitter<TaskEvents>(),
     market: new EventEmitter<MarketEvents>(),
     activity: new EventEmitter<ActivityEvents>(),
     payment: new EventEmitter<PaymentEvents>(),
     network: new EventEmitter<NetworkEvents>(),
-  };
+  });
   const emitEvents = async (
     tasks: Array<{
       invoiceReceivedAmount: number | null;
@@ -24,7 +24,7 @@ describe.skip("Stats Service", function () {
       agreementId?: string;
     }>,
   ) => {
-    events.executor.emit("ready", Date.now());
+    events.emit("executorReady", Date.now());
     for (const task of tasks) {
       const id = Math.random();
       const provider = {
@@ -32,35 +32,29 @@ describe.skip("Stats Service", function () {
         name: task.providerName ?? "test-provider-name",
         walletAddress: "0x111111111",
       };
-      // events.emit(
-      //   "golemEvents",
-      //   new Events.AgreementCreated({
-      //     id: task.agreementId ?? `test-agreement-id-${id}`,
-      //     provider,
-      //     proposalId: `test-proposal-id-${id}`,
-      //   }),
-      // );
+      const mockAgreement = mock(Agreement);
+      when(mockAgreement.id).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
+      when(mockAgreement.getProviderInfo()).thenReturn(provider);
+      events.market.emit("agreementApproved", {
+        type: "AgreementApproved",
+        agreement: instance(mockAgreement),
+        timestamp: new Date(),
+      });
       if (task.invoiceReceivedAmount) {
-        // events.emit(
-        //   "golemEvents",
-        //   new Events.InvoiceReceived({
-        //     id: `test-invoice-id-${id}`,
-        //     agreementId: task.agreementId ?? `test-agreement-id-${id}`,
-        //     provider,
-        //     amount: task.invoiceReceivedAmount,
-        //   }),
-        // );
+        const mockInvoice = mock(Invoice);
+        when(mockInvoice.provider).thenReturn(provider);
+        when(mockInvoice.id).thenReturn(`test-invoice-id-${id}`);
+        when(mockInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
+        when(mockInvoice.amount).thenReturn(task.invoiceReceivedAmount.toString());
+        events.payment.emit("invoiceReceived", instance(mockInvoice));
       }
       if (task.paid) {
-        // events.emit(
-        //   "golemEvents",
-        //   // new Events.PaymentAccepted({
-        //   //   id: `test-invoice-id-${id}`,
-        //   //   agreementId: task.agreementId ?? `test-agreement-id-${id}`,
-        //   //   provider,
-        //   //   amount: task.paid,
-        //   // }),
-        // );
+        const mockPaidInvoice = mock(Invoice);
+        when(mockPaidInvoice.provider).thenReturn(provider);
+        when(mockPaidInvoice.id).thenReturn(`test-invoice-id-${id}`);
+        when(mockPaidInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
+        when(mockPaidInvoice.amount).thenReturn(task.paid.toString());
+        events.payment.emit("invoiceAccepted", instance(mockPaidInvoice));
       }
       events.task.emit("taskCompleted", {
         id: `task-id-${id}`,
@@ -72,7 +66,7 @@ describe.skip("Stats Service", function () {
       // simulate the time gap between executing tasks / emitting events
       await sleep(100, true);
     }
-    events.executor.emit("beforeEnd", Date.now());
+    events.emit("executorBeforeEnd", Date.now());
   };
 
   describe("All costs", () => {
@@ -83,7 +77,7 @@ describe.skip("Stats Service", function () {
         { invoiceReceivedAmount: 7.77, paid: 7.77 },
         { invoiceReceivedAmount: 8.88, paid: 8.88 },
       ]);
-      expect(statsService.getAllCosts()).toEqual({ paid: 8.88 + 7.77, total: 8.88 + 7.77 });
+      expect(statsService.getAllCosts()).toEqual({ paid: (8.88 + 7.77).toString(), total: (8.88 + 7.77).toString() });
       await statsService.end();
     });
 
@@ -95,7 +89,10 @@ describe.skip("Stats Service", function () {
         { invoiceReceivedAmount: 8.88, paid: 8.88 },
         { invoiceReceivedAmount: 9.99, paid: null },
       ]);
-      expect(statsService.getAllCosts()).toEqual({ total: 8.88 + 7.77 + 9.99, paid: 7.77 + 8.88 });
+      expect(statsService.getAllCosts()).toEqual({
+        total: (8.88 + 7.77 + 9.99).toString(),
+        paid: (7.77 + 8.88).toString(),
+      });
       await statsService.end();
     });
   });
@@ -114,7 +111,7 @@ describe.skip("Stats Service", function () {
           Agreement: "test-agree",
           "Provider Name": "test-provider-name",
           "Task Computed": 1,
-          Cost: invoiceReceivedAmount,
+          Cost: invoiceReceivedAmount.toString(),
           "Payment Status": paid ? "paid" : "unpaid",
         })),
       );
@@ -136,7 +133,7 @@ describe.skip("Stats Service", function () {
           Agreement: agreementId,
           "Provider Name": providerName,
           "Task Computed": 1,
-          Cost: invoiceReceivedAmount,
+          Cost: invoiceReceivedAmount.toString(),
           "Payment Status": paid ? "paid" : "unpaid",
         })),
       );
@@ -158,14 +155,14 @@ describe.skip("Stats Service", function () {
           Agreement: "id-1",
           "Provider Name": "test-provider-name",
           "Task Computed": 3,
-          Cost: 7.77 + 8.88 + 9.99,
+          Cost: (7.77 + 8.88 + 9.99).toString(),
           "Payment Status": "paid",
         },
         {
           Agreement: "id-4",
           "Provider Name": "test-provider-name",
           "Task Computed": 1,
-          Cost: 5.55,
+          Cost: (5.55).toString(),
           "Payment Status": "unpaid",
         },
       ]);
@@ -186,7 +183,7 @@ describe.skip("Stats Service", function () {
           Agreement: "id-1",
           "Provider Name": "test-provider-name",
           "Task Computed": 3,
-          Cost: 7.77 + 8.88 + 9.99,
+          Cost: (7.77 + 8.88 + 9.99).toString(),
           "Payment Status": "partially-paid",
         },
       ]);
