@@ -315,6 +315,7 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 0,
+        maxParallelTasks: 2,
       },
     });
 
@@ -322,9 +323,18 @@ describe("Task Executor", function () {
     let createdAgreementsCount = 0;
     executor.events.market.on("agreementApproved", () => createdAgreementsCount++);
     await executor.run(async (ctx) => {
-      const proc = await ctx.runAndStream("timeout 5 ping 127.0.0.1");
+      const proc = await ctx.runAndStream(
+        `
+      sleep 5
+      echo -n 'Hello from stdout' >&1
+      sleep 5
+      echo -n 'Hello from stdout again' >&1
+      sleep 5
+      echo -n 'Hello from stdout yet again' >&1
+      `,
+      );
       proc.stdout.on("data", (data) => console.log(data));
-      return await proc.waitForExit(20_000);
+      await proc.waitForExit(20_000);
     });
     // the first task should be terminated by the provider, the second one should not use the same agreement
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
