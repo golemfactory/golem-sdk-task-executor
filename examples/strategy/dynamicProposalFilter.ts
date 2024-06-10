@@ -1,5 +1,6 @@
-import { ProposalFilter, ProposalFilterFactory, TaskExecutor } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { ProposalFilter, ProposalFilterFactory } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to write a custom dynamic proposal filter.

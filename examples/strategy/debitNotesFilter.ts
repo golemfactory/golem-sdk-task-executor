@@ -1,5 +1,6 @@
-import { TaskExecutor, PaymentFilters } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { PaymentFilters } from "@golem-sdk/golem-js";
 /**
  * Example demonstrating how to use the predefined payment filter `acceptMaxAmountDebitNoteFilter`,
  * which only accept debit notes below 0.00001 GLM.

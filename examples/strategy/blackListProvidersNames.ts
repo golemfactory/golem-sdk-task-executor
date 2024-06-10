@@ -1,5 +1,6 @@
-import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { ProposalFilterFactory } from "@golem-sdk/golem-js";
 /**
  * Example demonstrating how to use the predefined filter `disallowProvidersByName`,
  * which blocking any proposal coming from a provider whose name is in the array
