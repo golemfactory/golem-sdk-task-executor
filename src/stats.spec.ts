@@ -3,9 +3,8 @@ import { EventEmitter } from "eventemitter3";
 import { sleep } from "./utils";
 import { ExecutorEvents, TaskEvents } from "./events";
 import { TaskExecutorEvents } from "./executor";
-import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents, Agreement } from "@golem-sdk/golem-js";
+import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents, Agreement, Invoice } from "@golem-sdk/golem-js";
 import { instance, mock, when } from "@johanblumenberg/ts-mockito";
-import { Invoice } from "../../golem-js";
 
 describe("Stats Service", function () {
   const executorEvents = new EventEmitter<ExecutorEvents>();
