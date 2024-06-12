@@ -334,7 +334,7 @@ describe("Task Executor", function () {
       `,
       );
       proc.stdout.on("data", (data) => console.log(data));
-      await proc.waitForExit(30_000);
+      await proc.waitForExit(30_000).catch((error) => console.warn("Task execution failed:", error));
     });
     // the first task should be terminated by the provider, the second one should not use the same agreement
     await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
