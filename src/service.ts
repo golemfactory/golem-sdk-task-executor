@@ -1,12 +1,12 @@
-import { Task } from "./task";
+import { Task, TaskState } from "./task";
 import { TaskQueue } from "./queue";
 import {
-  Logger,
-  LeaseProcess,
-  LeaseProcessPool,
   GolemInternalError,
-  GolemWorkError,
   GolemTimeoutError,
+  GolemWorkError,
+  ResourceRental,
+  ResourceRentalPool,
+  Logger,
 } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
@@ -23,8 +23,7 @@ export interface TaskServiceOptions {
  */
 export class TaskService {
   private activeTasksCount = 0;
-  private leaseProcesses = new Map<string, LeaseProcess>();
-  private activitySetupDone: Set<string> = new Set();
+  private resourceRentals = new Map<string, ResourceRental>();
   private isRunning = false;
   private taskRunningIntervalMs: number;
 
@@ -33,7 +32,7 @@ export class TaskService {
 
   constructor(
     private tasksQueue: TaskQueue,
-    private leaseProcessPool: LeaseProcessPool,
+    private resourceRentalPool: ResourceRentalPool,
     private events: EventEmitter<TaskEvents>,
     private logger: Logger,
     private options: TaskServiceOptions,
@@ -44,7 +43,7 @@ export class TaskService {
   public async run() {
     this.isRunning = true;
     this.logger.info("Task Service has started");
-    await this.leaseProcessPool.ready();
+    await this.resourceRentalPool.ready();
     while (this.isRunning) {
       if (this.activeTasksCount >= this.options.maxParallelTasks) {
         await sleep(this.taskRunningIntervalMs, true);
@@ -87,32 +86,30 @@ export class TaskService {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      // TODO: This should be able to be canceled if the task state has changed
-      const leaseProcess = await this.leaseProcessPool.acquire();
-      this.leaseProcesses.set(leaseProcess.agreement.id, leaseProcess);
+      const abortController = new AbortController();
+      task.onStateChange((state) => {
+        if (state === TaskState.Rejected || state === TaskState.Retry) {
+          abortController.abort();
+        }
+      });
+      const rental = await this.resourceRentalPool.acquire(abortController.signal);
+      this.resourceRentals.set(rental.agreement.id, rental);
 
       if (task.isFailed()) {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
-      const ctx = await leaseProcess.getExeUnit();
-      task.start(leaseProcess, ctx);
+
+      const exe = await rental.getExeUnit();
+      task.start(rental, exe);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
         taskId: task.id,
-        providerName: ctx.provider.name,
-        activityId: ctx.activity.id,
+        providerName: exe.provider.name,
+        activityId: exe.activity.id,
       });
 
-      const activityReadySetupFunctions = task.getActivityReadySetupFunctions();
-      const worker = task.getWorker();
-
-      await ctx.before();
-
-      if (activityReadySetupFunctions.length && !this.activitySetupDone.has(ctx.activity.id)) {
-        this.activitySetupDone.add(ctx.activity.id);
-        this.logger.debug(`Activity setup completed`, { activityId: ctx.activity.id });
-      }
-      const results = await worker(ctx);
+      const taskFunction = task.getTaskFunction();
+      const results = await taskFunction(exe);
       task.stop(results);
     } catch (error) {
       task.stop(
@@ -154,25 +151,25 @@ export class TaskService {
         taskId: task.id,
         reason: task.getError()?.message,
         retries: task.getRetriesCount(),
-        providerName: task.getWorkContext()?.provider.name,
+        providerName: task.getExeUnit()?.provider.name,
       });
     } else {
       this.events.emit("taskCompleted", task.getDetails());
       this.logger.info(`Task computed`, {
         taskId: task.id,
         retries: task.getRetriesCount(),
-        providerName: task.getWorkContext()?.provider.name,
+        providerName: task.getExeUnit()?.provider.name,
       });
     }
   }
 
   private async releaseTaskResources(task: Task) {
-    const leaseProcess = task.getLeaseProcess();
-    if (leaseProcess) {
+    const rental = task.getResourceRental();
+    if (rental) {
       if (task.isFailed()) {
-        await this.leaseProcessPool.destroy(leaseProcess);
+        await this.resourceRentalPool.destroy(rental);
       } else {
-        await this.leaseProcessPool.release(leaseProcess);
+        await this.resourceRentalPool.release(rental);
       }
     }
   }

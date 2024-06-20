@@ -27,13 +27,13 @@ describe("Strategies", function () {
       executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.market.on("offerProposalReceived", ({ proposal }) => {
         if (proposal.isDraft()) {
-          proposalReceivedProviderNames.push(proposal.getProviderInfo().name);
+          proposalReceivedProviderNames.push(proposal.provider.name);
         }
       });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>
-        executor.run(async (ctx) => {
-          const res = await ctx.run(`echo "${x}"`);
+        executor.run(async (exe) => {
+          const res = await exe.run(`echo "${x}"`);
           return res.stdout?.toString().trim();
         }),
       );
@@ -68,13 +68,13 @@ describe("Strategies", function () {
       executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
       executor.events.market.on("offerProposalReceived", ({ proposal }) => {
         if (proposal.isDraft()) {
-          proposalReceivedProviderNames.push(proposal.getProviderInfo().name);
+          proposalReceivedProviderNames.push(proposal.provider.name);
         }
       });
       const data = ["one", "two", "three"];
       const futureResults = data.map((x) =>
-        executor.run(async (ctx) => {
-          const res = await ctx.run(`echo "${x}"`);
+        executor.run(async (exe) => {
+          const res = await exe.run(`echo "${x}"`);
           return res.stdout?.toString().trim();
         }),
       );

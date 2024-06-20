@@ -26,18 +26,18 @@ const executor = await TaskExecutor.create({
 // the example will run a tasks 4 times, in sequence (as maxParallelTasks is 1)
 for (const i of [1, 2, 3, 4]) {
   await executor
-    .run(async (ctx) => {
+    .run(async (exe) => {
       // each task will spawn a script that generates a sequence of 5 pairs of messages sent to stdout and stderr separated by 1 sec delay
 
       // the command generating the sequence is saved to script.sh file
-      await ctx.run(
+      await exe.run(
         `echo 'counter=0; while [ $counter -lt 5 ]; do ls -ls ./script.sh non-existing-file; sleep 1; counter=$(($counter+1)); done' > script.sh`,
       );
       // permissions are modified to be able to run the script
-      await ctx.run("chmod 700 ./script.sh");
+      await exe.run("chmod 700 ./script.sh");
 
       // script is run and stream results, stdout and stderr are processed
-      let remoteProcess = await ctx.runAndStream("/bin/sh ./script.sh");
+      let remoteProcess = await exe.runAndStream("/bin/sh ./script.sh");
 
       remoteProcess.stdout.on("data", (data) => console.log(`iteration: ${i}:`, "stdout>", data));
       remoteProcess.stderr.on("data", (data) => console.error(`iteration: ${i}:`, "stderr>", data));
@@ -50,8 +50,8 @@ for (const i of [1, 2, 3, 4]) {
 
       const timeout = i % 2 === 0 ? 3_000 : 10_000;
       const finalResult = await remoteProcess.waitForExit(timeout).catch(async (e) => {
-        console.log(`Iteration: ${i} Error: ${e.message}, Provider: ${ctx.provider.name}`);
-        ctx
+        console.log(`Iteration: ${i} Error: ${e.message}, Provider: ${exe.provider.name}`);
+        exe
           .run("ls -l")
           .catch((e) =>
             console.log("Running command after normal runAndStream exit is NOT possible, you will get an error:\n", e),
@@ -59,9 +59,9 @@ for (const i of [1, 2, 3, 4]) {
       });
       if (finalResult) {
         // if the spawn exited without timeout, the provider is still available
-        console.log(`Iteration: ${i} results: ${finalResult?.result}. Provider: ${ctx.provider.name}`);
+        console.log(`Iteration: ${i} results: ${finalResult?.result}. Provider: ${exe.provider.name}`);
 
-        console.log("Running command after normal runAndStream exit is possible:", (await ctx.run("ls -l")).stdout);
+        console.log("Running command after normal runAndStream exit is possible:", (await exe.run("ls -l")).stdout);
       }
     })
     .catch((error) => console.error("Execution of task failed due to error.", error));

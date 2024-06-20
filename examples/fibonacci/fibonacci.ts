@@ -40,8 +40,8 @@ program
     const runningTasks: Promise<string | undefined>[] = [];
     for (let i = 0; i < options.tasksCount; i++) {
       runningTasks.push(
-        executor.run(async (ctx) => {
-          const result = await ctx.run("/usr/local/bin/node", [
+        executor.run(async (exe) => {
+          const result = await exe.run("/usr/local/bin/node", [
             "/golem/work/fibo.js",
             options.fibonacciNumber.toString(),
           ]);

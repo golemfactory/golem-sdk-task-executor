@@ -25,8 +25,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
     const data = [1, 2, 3, 4, 5];
 
     for (const item of data) {
-      await executor.run(async (ctx) => {
-        console.log((await ctx.run(`echo "${item}"`)).stdout);
+      await executor.run(async (exe) => {
+        console.log((await exe.run(`echo "${item}"`)).stdout);
       });
     }
   } catch (err) {

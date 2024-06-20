@@ -67,8 +67,8 @@ manifest.compManifest.net.inet.out.urls = urls;
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
-      return (await ctx.run("echo Whitelist check")).result;
+    const result = await executor.run(async (exe) => {
+      return (await exe.run("echo Whitelist check")).result;
     });
     console.log(result);
   } catch (err) {

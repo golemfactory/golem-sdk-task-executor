@@ -29,7 +29,7 @@ describe("Task Executor", function () {
     events.market.on("offerProposalReceived", () => emittedEventsNames.add("offerProposalReceived"));
     events.market.on("agreementApproved", () => emittedEventsNames.add("agreementApproved"));
     events.activity.on("activityCreated", () => emittedEventsNames.add("activityCreated"));
-    events.activity.on("activityInitialized", () => emittedEventsNames.add("activityInitialized"));
+    events.activity.on("exeUnitInitialized", () => emittedEventsNames.add("exeUnitInitialized"));
     events.activity.on("scriptExecuted", () => emittedEventsNames.add("scriptExecuted"));
     events.payment.on("debitNoteReceived", () => emittedEventsNames.add("debitNoteReceived"));
     events.payment.on("invoiceAccepted", () => emittedEventsNames.add("invoiceAccepted"));
@@ -41,7 +41,7 @@ describe("Task Executor", function () {
     expect(emittedEventsNames).toContain("offerProposalReceived");
     expect(emittedEventsNames).toContain("agreementApproved");
     expect(emittedEventsNames).toContain("activityCreated");
-    expect(emittedEventsNames).toContain("activityInitialized");
+    expect(emittedEventsNames).toContain("exeUnitInitialized");
     expect(emittedEventsNames).toContain("scriptExecuted");
     expect(emittedEventsNames).toContain("debitNoteReceived");
     expect(emittedEventsNames).toContain("invoiceAccepted");
@@ -60,7 +60,7 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     handleEvents(executor.events);
 
-    const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
+    const result = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
   });
@@ -69,8 +69,8 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     handleEvents(executor.events);
 
-    const result1 = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
-    const result2 = await executor.run(async (ctx) => ctx.run("invalid-command"));
+    const result1 = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
+    const result2 = await executor.run(async (exe) => exe.run("invalid-command"));
 
     expect(result1?.stdout).toContain("Hello World");
     expect(result2?.result).toEqual("Error");
@@ -82,7 +82,7 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     handleEvents(executor.events);
 
-    const result = await executor.run(async (ctx) => ctx.run("echo 'Hello World'"));
+    const result = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
 
     expect(result?.stdout).toContain("Hello World");
   });
@@ -92,8 +92,8 @@ describe("Task Executor", function () {
     handleEvents(executor.events);
     const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     const futureResults = data.map((x) =>
-      executor.run(async (ctx) => {
-        const res = await ctx.run(`echo "${x}"`);
+      executor.run(async (exe) => {
+        const res = await exe.run(`echo "${x}"`);
         return res.stdout?.toString().trim();
       }),
     );
@@ -109,8 +109,8 @@ describe("Task Executor", function () {
     const outputs: string[] = [];
     let onEnd = "";
     await executor
-      .run(async (ctx) => {
-        const results = await ctx
+      .run(async (exe) => {
+        const results = await exe
           .beginBatch()
           .run('echo "Hello Golem"')
           .run('echo "Hello World"')
@@ -136,8 +136,8 @@ describe("Task Executor", function () {
     handleEvents(executor.events);
     const outputs: string[] = [];
     await executor
-      .run(async (ctx) => {
-        const results = await ctx
+      .run(async (exe) => {
+        const results = await exe
           .beginBatch()
           .run('echo "Hello Golem"')
           .run('echo "Hello World"')
@@ -157,9 +157,9 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     handleEvents(executor.events);
 
-    const result = await executor.run(async (ctx) => {
-      await ctx.uploadJson({ test: "1234" }, "/golem/work/test.json");
-      const res = await ctx.downloadFile("/golem/work/test.json", "new_test.json");
+    const result = await executor.run(async (exe) => {
+      await exe.uploadJson({ test: "1234" }, "/golem/work/test.json");
+      const res = await exe.downloadFile("/golem/work/test.json", "new_test.json");
       return res?.result;
     });
 
@@ -171,8 +171,8 @@ describe("Task Executor", function () {
     executor = await TaskExecutor.create(executorOptions);
     handleEvents(executor.events);
 
-    const result = await executor.run(async (ctx) => {
-      const res = await ctx.transfer(
+    const result = await executor.run(async (exe) => {
+      const res = await exe.transfer(
         "http://registry.golem.network/download/a2bb9119476179fac36149723c3ad4474d8d135e8d2d2308eb79907a6fc74dfa",
         "/golem/work/alpine.gvmi",
       );
@@ -201,7 +201,7 @@ describe("Task Executor", function () {
       vpn: { ip: "192.168.0.0/24" },
     });
     handleEvents(executor.events);
-    const result = await executor.run(async (ctx) => ctx.getIp());
+    const result = await executor.run(async (exe) => exe.getIp());
     expect(["192.168.0.2", "192.168.0.3"]).toContain(result);
   });
 
@@ -210,8 +210,8 @@ describe("Task Executor", function () {
     handleEvents(executor.events);
     let stdout = "";
     let stderr = "";
-    const finalResult = await executor.run(async (ctx) => {
-      const remoteProcess = await ctx.runAndStream("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
+    const finalResult = await executor.run(async (exe) => {
+      const remoteProcess = await exe.runAndStream("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
       remoteProcess.stdout.on("data", (data) => (stdout += data.trim()));
       remoteProcess.stderr.on("data", (data) => (stderr += data.trim()));
       return remoteProcess.waitForExit();
@@ -246,8 +246,8 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.task.on("taskRetried", () => (isRetry = true));
     try {
-      executor.onActivityReady(async (ctx) => Promise.reject("Error"));
-      await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+      executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
+      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
     } catch (error) {
       await executor.shutdown();
     }
@@ -279,8 +279,8 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.task.on("taskRetried", () => (isRetry = true));
     try {
-      executor.onActivityReady(async (ctx) => Promise.reject("Error"));
-      await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
+      executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
+      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
     } catch (error) {
       await executor.shutdown();
     }
@@ -322,8 +322,8 @@ describe("Task Executor", function () {
     handleEvents(executor.events);
     let createdAgreementsCount = 0;
     executor.events.market.on("agreementApproved", () => createdAgreementsCount++);
-    await executor.run(async (ctx) => {
-      const proc = await ctx.runAndStream(
+    await executor.run(async (exe) => {
+      const proc = await exe.runAndStream(
         `
       sleep 5
       echo -n 'Hello from stdout' >&1
@@ -337,7 +337,7 @@ describe("Task Executor", function () {
       await proc.waitForExit(30_000).catch((error) => console.warn("Task execution failed:", error));
     });
     // the first task should be terminated by the provider, the second one should not use the same agreement
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
     expect(createdAgreementsCount).toBeGreaterThan(1);
   });
 
@@ -362,8 +362,8 @@ describe("Task Executor", function () {
     executor2.events.payment.on("invoiceAccepted", (invoice) => acceptedPaymentsAgreementIds2.add(invoice.agreementId));
     try {
       await Promise.all([
-        executor1.run(async (ctx) => console.log((await ctx.run("echo 'Executor 1'")).stdout)),
-        executor2.run(async (ctx) => console.log((await ctx.run("echo 'Executor 2'")).stdout)),
+        executor1.run(async (exe) => console.log((await exe.run("echo 'Executor 1'")).stdout)),
+        executor2.run(async (exe) => console.log((await exe.run("echo 'Executor 2'")).stdout)),
       ]);
     } catch (error) {
       throw new Error(`Test failed. ${error}`);

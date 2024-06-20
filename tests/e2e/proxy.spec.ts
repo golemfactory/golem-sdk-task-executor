@@ -29,14 +29,14 @@ describe("TcpProxy", function () {
     });
     let response;
     let providerStdout = "";
-    await executor.run(async (ctx) => {
-      await ctx.uploadFile(
+    await executor.run(async (exe) => {
+      await exe.uploadFile(
         fs.realpathSync(resolve(__dirname + "../../../examples/proxy/server.js")),
         "/golem/work/server.js",
       );
-      const server = await ctx.runAndStream("node /golem/work/server.js");
+      const server = await exe.runAndStream("node /golem/work/server.js");
       server.stdout.on("data", (data) => (providerStdout += data.toString()));
-      const proxy = ctx.createTcpProxy(80);
+      const proxy = exe.createTcpProxy(80);
       await proxy.listen(7777);
       await sleep(10);
       response = await fetch("http://localhost:7777");

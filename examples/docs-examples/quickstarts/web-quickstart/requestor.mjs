@@ -45,7 +45,7 @@ async function run() {
   });
 
   try {
-    await executor.run(async (ctx) => appendResults((await ctx.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => appendResults((await exe.run("echo 'Hello World'")).stdout));
   } catch (error) {
     logger.error("Computation failed:", error);
   } finally {

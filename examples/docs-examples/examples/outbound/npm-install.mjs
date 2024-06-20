@@ -32,11 +32,11 @@ const manifest = await readFile(`./manifest_npm_install.json`);
   });
 
   try {
-    await executor.run(async (ctx) => {
-      console.log("working on provider: ", ctx.provider.id);
+    await executor.run(async (exe) => {
+      console.log("working on provider: ", exe.provider.id);
 
-      console.log((await ctx.run("npm install moment")).stdout);
-      console.log((await ctx.run(`cat ./package.json`)).stdout);
+      console.log((await exe.run("npm install moment")).stdout);
+      console.log((await exe.run(`cat ./package.json`)).stdout);
 
       return 1;
     });

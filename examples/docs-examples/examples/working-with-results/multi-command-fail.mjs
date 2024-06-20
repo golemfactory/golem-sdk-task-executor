@@ -22,8 +22,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const results = await executor.run(async (ctx) => {
-      const res = await ctx
+    const results = await executor.run(async (exe) => {
+      const res = await exe
         .beginBatch()
         .run("cat /golem/input/output.txt > /golem/input/output.txt")
         .downloadFile("/golem/output/output.txt", "./output.txt") // there is no such file in output folder

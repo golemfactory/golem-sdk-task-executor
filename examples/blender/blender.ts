@@ -47,24 +47,24 @@ async function main(subnetTag: string, driver?: "erc20", network?: string, maxPa
   });
 
   try {
-    executor.onActivityReady(async (ctx) => {
-      console.log("Uploading the scene to the provider %s", ctx.provider.name);
-      await ctx.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
-      console.log("Upload of the scene to the provider %s finished", ctx.provider.name);
+    executor.onExeUnitReady(async (exe) => {
+      console.log("Uploading the scene to the provider %s", exe.provider.name);
+      await exe.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
+      console.log("Upload of the scene to the provider %s finished", exe.provider.name);
     });
 
     const futureResults = [0, 10, 20, 30, 40, 50].map(async (frame) =>
-      executor.run(async (ctx) => {
-        console.log("Started rendering of frame %d on provider %s", frame, ctx.provider.name);
+      executor.run(async (exe) => {
+        console.log("Started rendering of frame %d on provider %s", frame, exe.provider.name);
 
-        const result = await ctx
+        const result = await exe
           .beginBatch()
           .uploadJson(blenderParams(frame), "/golem/work/params.json")
           .run("/golem/entrypoints/run-blender.sh")
           .downloadFile(`/golem/output/out${frame?.toString().padStart(4, "0")}.png`, `${DIR_NAME}/output_${frame}.png`)
           .end();
 
-        console.log("Finished rendering of frame %d on provider %s", frame, ctx.provider.name);
+        console.log("Finished rendering of frame %d on provider %s", frame, exe.provider.name);
 
         return result?.length ? `output_${frame}.png` : "";
       }),

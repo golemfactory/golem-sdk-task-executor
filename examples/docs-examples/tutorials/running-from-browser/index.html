@@ -87,7 +87,7 @@
           payment: { network: document.getElementById("PAYMENT_NETWORK").value },
         });
         await executor
-          .run(async (ctx) => appendResults((await ctx.run("echo 'Hello World'")).stdout))
+          .run(async (exe) => appendResults((await exe.run("echo 'Hello World'")).stdout))
           .catch((e) => logger.error(e));
         await executor.shutdown();
       }

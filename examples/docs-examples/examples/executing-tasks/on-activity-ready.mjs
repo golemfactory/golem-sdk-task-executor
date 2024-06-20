@@ -24,20 +24,20 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
     },
   });
 
-  executor.onActivityReady(async (ctx) => {
-    console.log(ctx.provider.name + " is downloading action_log file");
-    await ctx.uploadFile("./action_log.txt", "/golem/input/action_log.txt");
+  executor.onExeUnitReady(async (exe) => {
+    console.log(exe.provider.name + " is downloading action_log file");
+    await exe.uploadFile("./action_log.txt", "/golem/input/action_log.txt");
   });
 
   const inputs = [1, 2, 3, 4, 5];
 
   try {
     const futureResults = inputs.map(async (item) => {
-      return await executor.run(async (ctx) => {
-        await ctx
+      return await executor.run(async (exe) => {
+        await exe
           .beginBatch()
           .run(`echo 'processing item: ${item}' >> /golem/input/action_log.txt`)
-          .downloadFile("/golem/input/action_log.txt", `./output_${ctx.provider.name}.txt`)
+          .downloadFile("/golem/input/action_log.txt", `./output_${exe.provider.name}.txt`)
           .end();
       });
     });

@@ -25,8 +25,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
     const data = [1, 2, 3, 4, 5];
 
     const futureResults = data.map(async (item) =>
-      executor.run(async (ctx) => {
-        return await ctx.run(`echo "${item}"`);
+      executor.run(async (exe) => {
+        return await exe.run(`echo "${item}"`);
       }),
     );
 

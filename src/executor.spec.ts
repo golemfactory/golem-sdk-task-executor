@@ -1,4 +1,4 @@
-import { anything, imock, instance, mock, reset, verify, when } from "@johanblumenberg/ts-mockito";
+import { _, imock, instance, mock, reset, verify, when } from "@johanblumenberg/ts-mockito";
 import { Task } from "./task";
 import { TaskExecutor } from "./executor";
 import { sleep } from "./utils";
@@ -9,8 +9,8 @@ import {
   GolemConfigError,
   GolemNetwork,
   GolemWorkError,
-  LeaseProcess,
-  LeaseProcessPool,
+  ResourceRental,
+  ResourceRentalPool,
   Logger,
   MarketModule,
   NetworkModule,
@@ -22,11 +22,11 @@ import { randomUUID } from "node:crypto";
 jest.mock("./service");
 
 const golemNetworkMock = mock(GolemNetwork);
-const leaseProcessPoolMock = mock(LeaseProcessPool);
-const leaseProcessMock = mock(LeaseProcess);
+const resourceRentalPoolMock = mock(ResourceRentalPool);
+const resourceRentalMock = mock(ResourceRental);
 const golemNetwork = instance(golemNetworkMock);
-const leaseProcessPool = instance(leaseProcessPoolMock);
-const leaseProcess = instance(leaseProcessMock);
+const resourceRentalPool = instance(resourceRentalPoolMock);
+const resourceRental = instance(resourceRentalMock);
 const statsServiceMock = mock(StatsService);
 const taskServiceMock = mock(TaskService);
 const statsService = instance(statsServiceMock);
@@ -36,19 +36,19 @@ const task = instance(taskMock);
 
 when(golemNetworkMock.connect()).thenResolve();
 when(golemNetworkMock.disconnect()).thenResolve();
-when(golemNetworkMock.manyOf(anything())).thenResolve(leaseProcessPool);
+when(golemNetworkMock.manyOf(_)).thenResolve(resourceRentalPool);
 when(golemNetworkMock.market).thenReturn(instance(imock<MarketModule>()));
 when(golemNetworkMock.activity).thenReturn(instance(imock<ActivityModule>()));
 when(golemNetworkMock.payment).thenReturn(instance(imock<PaymentModule>()));
 when(golemNetworkMock.network).thenReturn(instance(imock<NetworkModule>()));
-when(leaseProcessPoolMock.acquire()).thenResolve(leaseProcess);
+when(resourceRentalPoolMock.acquire(_)).thenResolve(resourceRental);
 when(statsServiceMock.run()).thenResolve();
 when(statsServiceMock.end()).thenResolve();
-when(statsServiceMock.getAllCosts()).thenReturn(anything());
+when(statsServiceMock.getAllCosts()).thenReturn(_);
 when(statsServiceMock.getAllCostsSummary()).thenReturn([]);
-when(statsServiceMock.getComputationTime()).thenReturn(anything());
-when(taskServiceMock.run()).thenResolve(anything());
-when(taskServiceMock.end()).thenResolve(anything());
+when(statsServiceMock.getComputationTime()).thenReturn(_);
+when(taskServiceMock.run()).thenResolve(_);
+when(taskServiceMock.end()).thenResolve(_);
 when(taskMock.getDetails()).thenReturn({ activityId: "1", agreementId: "1", id: "1", retriesCount: 0 });
 when(taskMock.id).thenCall(randomUUID);
 
@@ -72,7 +72,7 @@ jest.mock("./stats", () => ({
 describe("Task Executor", () => {
   const loggerMock = imock<Logger>();
   const logger = instance(loggerMock);
-  when(loggerMock.child(anything())).thenReturn(logger);
+  when(loggerMock.child(_)).thenReturn(logger);
   beforeEach(() => {
     reset(taskMock);
     jest.clearAllMocks();
@@ -157,10 +157,9 @@ describe("Task Executor", () => {
       when(taskMock.isRejected()).thenReturn(false);
       when(taskMock.getResults()).thenReturn("result");
 
-      const worker = () => Promise.resolve(true);
-      await executor.run(worker);
-      expect(Task).toHaveBeenCalledWith("1", worker, {
-        activityReadySetupFunctions: [],
+      const taskFunction = () => Promise.resolve(true);
+      await executor.run(taskFunction);
+      expect(Task).toHaveBeenCalledWith("1", taskFunction, {
         maxRetries: 0,
         retryOnTimeout: false,
       });
@@ -189,10 +188,9 @@ describe("Task Executor", () => {
       when(taskMock.isRejected()).thenReturn(false);
       when(taskMock.getResults()).thenReturn("result");
 
-      const worker = () => Promise.resolve(true);
-      await executor.run(worker, { maxRetries: 0 });
-      expect(Task).toHaveBeenCalledWith("1", worker, {
-        activityReadySetupFunctions: [],
+      const taskFunction = () => Promise.resolve(true);
+      await executor.run(taskFunction, { maxRetries: 0 });
+      expect(Task).toHaveBeenCalledWith("1", taskFunction, {
         maxRetries: 0,
         retryOnTimeout: false,
       });
@@ -268,7 +266,7 @@ describe("Task Executor", () => {
         },
       });
 
-      when(taskMock.getLeaseProcess()).thenReturn(instance(mock(LeaseProcess)));
+      when(taskMock.getResourceRental()).thenReturn(instance(mock(ResourceRental)));
       when(taskMock.isQueueable()).thenReturn(true);
       when(taskMock.isFinished()).thenReturn(true);
       when(taskMock.isRejected()).thenReturn(false).thenReturn(true).thenReturn(false);

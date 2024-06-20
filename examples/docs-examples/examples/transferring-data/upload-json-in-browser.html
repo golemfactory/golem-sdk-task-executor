@@ -48,13 +48,13 @@
         }).catch((e) => logger.error(e));
 
         await executor
-          .run(async (ctx) => {
+          .run(async (exe) => {
             // Upload test JSON object
-            await ctx.uploadJson({ input: "Hello World" }, "/golem/work/input.json");
+            await exe.uploadJson({ input: "Hello World" }, "/golem/work/input.json");
             // Modify sent JSON to replace the input key with output
-            await ctx.run("cat /golem/work/input.json | sed s/input/output/ > /golem/work/output.json");
+            await exe.run("cat /golem/work/input.json | sed s/input/output/ > /golem/work/output.json");
             // Download the JSON object.
-            const output = await ctx.downloadJson("/golem/work/output.json");
+            const output = await exe.downloadJson("/golem/work/output.json");
             appendResults(JSON.stringify(output.data.output, null, "\t"));
           })
           .catch((e) => logger.error(e));

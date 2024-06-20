@@ -27,9 +27,9 @@ describe("SSH connection", function () {
     const password = crypto.randomBytes(3).toString("hex");
     let stdout = "";
     let processSsh;
-    await executor.run(async (ctx) => {
-      websocketUri = ctx.getWebsocketUri(22);
-      const results = await ctx
+    await executor.run(async (exe) => {
+      websocketUri = exe.getWebsocketUri(22);
+      const results = await exe
         .beginBatch()
         .run("syslogd")
         .run("ssh-keygen -A")

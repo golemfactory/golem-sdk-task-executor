@@ -20,8 +20,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
     },
   });
   try {
-    await executor.run(async (ctx) => {
-      const results = await ctx.beginBatch().run('echo "Hello Golem"').run('echo "Hello World"').endStream();
+    await executor.run(async (exe) => {
+      const results = await exe.beginBatch().run('echo "Hello Golem"').run('echo "Hello World"').endStream();
       results.on("data", ({ stdout }) => console.log(stdout));
       results.on("error", (error) => console.error(error.toString()));
       results.on("close", () => console.log("END"));

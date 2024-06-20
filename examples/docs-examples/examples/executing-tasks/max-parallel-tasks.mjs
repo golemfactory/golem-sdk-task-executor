@@ -26,7 +26,7 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
   try {
     const data = [1, 2, 3, 4, 5];
-    const futureResults = data.map((item) => executor.run((ctx) => ctx.run(`echo "${item}"`)));
+    const futureResults = data.map((item) => executor.run((exe) => exe.run(`echo "${item}"`)));
     const results = await Promise.allSettled(futureResults);
     results.forEach((result) => {
       if (result.status === "fulfilled") {

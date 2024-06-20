@@ -45,8 +45,8 @@ program
       payment: { driver: args.paymentDriver, network: args.paymentNetwork },
     });
 
-    const keyspace = await executor.run<number>(async (ctx) => {
-      const result = await ctx.run(`hashcat --keyspace -a 3 ${args.mask} -m 400`);
+    const keyspace = await executor.run<number>(async (exe) => {
+      const result = await exe.run(`hashcat --keyspace -a 3 ${args.mask} -m 400`);
       return parseInt(result.stdout?.toString().trim() || "");
     });
 
@@ -56,8 +56,8 @@ program
     console.log(`Keyspace size computed. Keyspace size = ${keyspace}. Tasks to compute = ${range.length}`);
 
     const findPasswordInRange = async (skip: number) => {
-      const password = await executor.run(async (ctx) => {
-        const [, potfileResult] = await ctx
+      const password = await executor.run(async (exe) => {
+        const [, potfileResult] = await exe
           .beginBatch()
           .run(
             `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${

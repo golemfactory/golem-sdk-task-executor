@@ -35,21 +35,21 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    await executor.run(async (ctx) => {
+    await executor.run(async (exe) => {
       const PORT_ON_PROVIDER = 80;
       const PORT_ON_REQUESTOR = 8080;
 
       // Install the server script
-      await ctx.uploadFile(`./proxy/server.js`, "/golem/work/server.js");
+      await exe.uploadFile(`./proxy/server.js`, "/golem/work/server.js");
 
       // Start the server process on the provider
-      const server = await ctx.runAndStream(`PORT=${PORT_ON_PROVIDER} node /golem/work/server.js`);
+      const server = await exe.runAndStream(`PORT=${PORT_ON_PROVIDER} node /golem/work/server.js`);
 
       server.stdout.on("data", (data) => console.log("provider>", data));
       server.stderr.on("data", (data) => console.error("provider>", data));
 
       // Create a proxy instance
-      const proxy = ctx.createTcpProxy(PORT_ON_PROVIDER);
+      const proxy = exe.createTcpProxy(PORT_ON_PROVIDER);
       proxy.events.on("error", (error) => console.error("TcpProxy reported an error:", error));
 
       // Start listening and expose the port on your requestor machine

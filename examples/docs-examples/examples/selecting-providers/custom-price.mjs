@@ -52,9 +52,9 @@ const myFilter = (proposal) => {
   });
 
   try {
-    await executor.run(async (ctx) => {
-      const result = await ctx.run(`echo "This task is run on ${ctx.provider.id}"`);
-      console.log(result.stdout, ctx.provider.id);
+    await executor.run(async (exe) => {
+      const result = await exe.run(`echo "This task is run on ${exe.provider.id}"`);
+      console.log(result.stdout, exe.provider.id);
     });
   } catch (err) {
     console.error("An error occurred:", err);

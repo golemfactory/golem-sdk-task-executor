@@ -39,7 +39,7 @@ const bestAgreementSelector = (scores: { [providerName: string]: number }) => (p
   });
 
   try {
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
   } catch (error) {
     console.error("Computation failed:", error);
   } finally {

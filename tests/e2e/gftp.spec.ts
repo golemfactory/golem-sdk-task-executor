@@ -28,16 +28,16 @@ describe("GFTP transfers", function () {
         },
       });
 
-      executor.onActivityReady(async (ctx) => {
+      executor.onExeUnitReady(async (exe) => {
         const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/eiffel.blend"));
-        await ctx.uploadFile(sourcePath, "/golem/work/eiffel.blend");
+        await exe.uploadFile(sourcePath, "/golem/work/eiffel.blend");
       });
 
       const data = [0, 1, 2, 3, 4, 5];
 
       const futureResults = data.map((frame) =>
-        executor.run(async (ctx) => {
-          const result = await ctx
+        executor.run(async (exe) => {
+          const result = await exe
             .beginBatch()
             .run("ls -Alh /golem/work/eiffel.blend")
             .downloadFile(`/golem/work/eiffel.blend`, `copy_${frame}.blend`)

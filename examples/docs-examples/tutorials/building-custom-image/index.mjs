@@ -21,9 +21,9 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
-      console.log("Description.txt: ", (await ctx.run("cat /golem/info/description.txt")).stdout);
-      console.log("/golem/work content: ", (await ctx.run("ls /golem/work")).stdout);
+    const result = await executor.run(async (exe) => {
+      console.log("Description.txt: ", (await exe.run("cat /golem/info/description.txt")).stdout);
+      console.log("/golem/work content: ", (await exe.run("ls /golem/work")).stdout);
     });
   } catch (err) {
     console.error("An error occurred:", err);

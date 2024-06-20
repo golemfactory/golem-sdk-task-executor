@@ -22,7 +22,7 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const taskResult = await executor.run(async (ctx) => (await ctx.run("node -v")).stdout);
+    const taskResult = await executor.run(async (exe) => (await exe.run("node -v")).stdout);
     console.log("Task result:", taskResult);
   } catch (err) {
     console.error("Task execution failed:", err);

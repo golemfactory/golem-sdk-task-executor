@@ -4,15 +4,15 @@ import {
   Activity,
   Agreement,
   GolemWorkError,
-  LeaseProcess,
-  LeaseProcessPool,
+  ResourceRental,
+  ResourceRentalPool,
   Logger,
   Result,
-  WorkContext,
+  ExeUnit,
   WorkErrorCode,
 } from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
-import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
+import { _, imock, instance, mock, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
 import { TaskEvents } from "./events";
 import { sleep } from "./utils";
@@ -24,25 +24,25 @@ const events = new EventEmitter<TaskEvents>();
 const testProvider = { name: "testProvider", id: "testId", walletAddress: "0x1234567" };
 
 describe("Task Service", () => {
-  const leaseProcessPoolMock = mock(LeaseProcessPool);
-  const leaseProcessPool = instance(leaseProcessPoolMock);
-  const leaseProcessMock = mock(LeaseProcess);
+  const resourceRentalPoolMock = mock(ResourceRentalPool);
+  const resourceRentalPool = instance(resourceRentalPoolMock);
+  const resourceRentalMock = mock(ResourceRental);
   const agreementMock = mock(Agreement);
   const activityMock = mock(Activity);
-  const workContextMock = mock(WorkContext);
+  const exeUnitMock = mock(ExeUnit);
   const logger = instance(imock<Logger>());
-  when(leaseProcessPoolMock.ready()).thenResolve(true);
-  when(leaseProcessPoolMock.acquire()).thenResolve(instance(leaseProcessMock));
-  when(leaseProcessMock.agreement).thenReturn(instance(agreementMock));
-  when(agreementMock.getProviderInfo()).thenReturn(testProvider);
-  when(leaseProcessMock.getExeUnit()).thenResolve(instance(workContextMock));
-  when(leaseProcessMock.finalize()).thenResolve();
-  when(workContextMock.run(anything())).thenCall(async () => {
+  when(resourceRentalPoolMock.ready()).thenResolve(true);
+  when(resourceRentalPoolMock.acquire(_)).thenResolve(instance(resourceRentalMock));
+  when(resourceRentalMock.agreement).thenReturn(instance(agreementMock));
+  when(agreementMock.provider).thenReturn(testProvider);
+  when(resourceRentalMock.getExeUnit()).thenResolve(instance(exeUnitMock));
+  when(resourceRentalMock.stopAndFinalize()).thenResolve();
+  when(exeUnitMock.run(_)).thenCall(async () => {
     await sleep(100, true);
     return testResults;
   });
-  when(workContextMock.provider).thenReturn(testProvider);
-  when(workContextMock.activity).thenReturn(instance(activityMock));
+  when(exeUnitMock.provider).thenReturn(testProvider);
+  when(exeUnitMock.activity).thenReturn(instance(activityMock));
   when(activityMock.id).thenReturn("test-activity-id");
   when(agreementMock.id).thenReturn("test-agreement-id");
 
@@ -51,13 +51,13 @@ describe("Task Service", () => {
     jest.clearAllMocks();
   });
   it("should process new task in queue", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker);
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction);
     queue.addToEnd(task);
     const cb = jest.fn();
     events.on("taskStarted", cb);
     events.on("taskCompleted", cb);
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
@@ -67,18 +67,18 @@ describe("Task Service", () => {
     expect(task.getResults()?.stdout).toEqual("test");
     expect(cb).toHaveBeenNthCalledWith(2, task.getDetails());
     await service.end();
-    verify(leaseProcessPoolMock.release(anything())).once();
+    verify(resourceRentalPoolMock.release(_)).once();
   });
 
   it("process only allowed number of tasks simultaneously", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task1 = new Task("1", worker);
-    const task2 = new Task("2", worker);
-    const task3 = new Task("3", worker);
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task1 = new Task("1", taskFunction);
+    const task2 = new Task("2", taskFunction);
+    const task3 = new Task("3", taskFunction);
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
       taskRunningIntervalMs: 1,
       maxParallelTasks: 2,
     });
@@ -91,15 +91,13 @@ describe("Task Service", () => {
   });
 
   it("should retry task if it failed", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 3 });
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 3 });
     queue.addToEnd(task);
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(workContextMock.run(anything())).thenReject(
-      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
-    );
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+    when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
@@ -111,11 +109,11 @@ describe("Task Service", () => {
   });
 
   it("should not retry task if it failed and maxRetries is zero", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 0 });
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 0 });
     queue.addToEnd(task);
-    when(workContextMock.run(anything())).thenReject(new Error("Test error"));
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+    when(exeUnitMock.run(_)).thenReject(new Error("Test error"));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
@@ -127,21 +125,19 @@ describe("Task Service", () => {
   });
 
   it("should throw an error if maxRetries is less then zero", async () => {
-    const worker = async () => Promise.resolve(true);
-    expect(() => new Task("1", worker, { maxRetries: -1 })).toThrow(
+    const taskFunction = async () => Promise.resolve(true);
+    expect(() => new Task("1", taskFunction, { maxRetries: -1 })).toThrow(
       "The maxRetries parameter cannot be less than zero",
     );
   });
 
   it("should reject task if it failed max attempts", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 1 });
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 1 });
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(workContextMock.run(anything())).thenReject(
-      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
-    );
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
+    when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
       taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
@@ -150,32 +146,6 @@ describe("Task Service", () => {
     await sleep(500, true);
     expect(task.isRejected()).toEqual(true);
     expect(cb).toHaveBeenCalledWith(task.getDetails());
-    await service.end();
-  });
-
-  it("should run setup functions on each activity", async () => {
-    let i = 1;
-    when(activityMock.id).thenCall(() => (++i).toString());
-    const setupFunctions = [async (ctx: WorkContext) => ctx.run("init_shell_command")];
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task1 = new Task("1", worker, { activityReadySetupFunctions: setupFunctions });
-    const task2 = new Task("2", worker, { activityReadySetupFunctions: setupFunctions });
-    const task3 = new Task("3", worker, { activityReadySetupFunctions: setupFunctions });
-    queue.addToEnd(task1);
-    queue.addToEnd(task2);
-    queue.addToEnd(task3);
-    const service = new TaskService(queue, leaseProcessPool, events, logger, {
-      taskRunningIntervalMs: 10,
-      maxParallelTasks: 2,
-    });
-    const activitySetupDoneSpy = spy(service["activitySetupDone"]);
-    when(workContextMock.run(anything())).thenResolve(testResults);
-    service.run().then();
-    await sleep(500, true);
-    verify(activitySetupDoneSpy.add(anything())).times(3);
-    expect(task1.isFinished()).toEqual(true);
-    expect(task2.isFinished()).toEqual(true);
-    expect(task3.isFinished()).toEqual(true);
     await service.end();
   });
 });

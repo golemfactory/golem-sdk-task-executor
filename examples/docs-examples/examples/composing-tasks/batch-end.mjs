@@ -22,9 +22,9 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
+    const result = await executor.run(async (exe) => {
       return (
-        await ctx
+        await exe
           .beginBatch()
           .uploadFile("./worker.mjs", "/golem/input/worker.mjs")
           .run("node /golem/input/worker.mjs > /golem/input/output.txt")

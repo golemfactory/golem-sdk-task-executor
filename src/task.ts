@@ -3,9 +3,9 @@ import {
   GolemConfigError,
   GolemInternalError,
   GolemTimeoutError,
-  LeaseProcess,
-  WorkContext,
-  Worker,
+  ResourceRental,
+  ExeUnit,
+  LifecycleFunction,
 } from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
@@ -13,6 +13,8 @@ export interface ProviderInfo {
   id: string;
   walletAddress: string;
 }
+
+export type TaskFunction<OutputType> = (exe: ExeUnit) => Promise<OutputType>;
 
 export enum TaskState {
   New = "new",
@@ -39,9 +41,6 @@ export type TaskOptions = {
 
   /** timeout in ms for task startup, measured from initialization to start, default = 120_000 (2min) */
   startupTimeout?: number;
-
-  /** array of setup functions to run on each activity */
-  activityReadySetupFunctions?: Worker<unknown>[];
 };
 
 export type TaskDetails = {
@@ -74,22 +73,19 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private readonly timeout?: number;
   private readonly startupTimeout?: number;
   private readonly maxRetries: number;
-  private readonly activityReadySetupFunctions: Worker<unknown>[];
-  private leaseProcess?: LeaseProcess;
-  private ctx?: WorkContext;
+  private readonly setupFunction?: LifecycleFunction;
+  private resourceRental?: ResourceRental;
+  private exe?: ExeUnit;
 
   constructor(
     public readonly id: string,
-    private worker: Worker<OutputType>,
+    private taskFunction: TaskFunction<OutputType>,
     options?: TaskOptions,
   ) {
     this.timeout = options?.timeout;
     this.startupTimeout = options?.startupTimeout;
     this.maxRetries = options?.maxRetries ?? DEFAULTS.MAX_RETRIES;
-
     this.retryOnTimeout = options?.retryOnTimeout ?? false;
-
-    this.activityReadySetupFunctions = options?.activityReadySetupFunctions ?? [];
 
     if (this.maxRetries < 0) {
       throw new GolemConfigError("The maxRetries parameter cannot be less than zero");
@@ -119,14 +115,14 @@ export class Task<OutputType = unknown> implements QueueableTask {
     }
   }
 
-  start(leaseProcess: LeaseProcess, ctx: WorkContext) {
+  start(resourceRental: ResourceRental, exe: ExeUnit) {
     if (this.state !== TaskState.Queued) {
       throw new GolemInternalError("You cannot start a task that is not queued");
     }
     this.updateState(TaskState.Pending);
     clearTimeout(this.startupTimeoutId);
-    this.leaseProcess = leaseProcess;
-    this.ctx = ctx;
+    this.resourceRental = resourceRental;
+    this.exe = exe;
     if (this.timeout) {
       this.timeoutId = setTimeout(
         () => this.stop(undefined, new GolemTimeoutError(`Task ${this.id} timeout.`), this.retryOnTimeout),
@@ -184,11 +180,11 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getResults(): OutputType | undefined {
     return this.results;
   }
-  getWorker(): Worker<OutputType> {
-    return this.worker;
+  getTaskFunction(): TaskFunction<OutputType> {
+    return this.taskFunction;
   }
-  getActivityReadySetupFunctions(): Worker<unknown>[] {
-    return this.activityReadySetupFunctions;
+  getSetupFunction(): LifecycleFunction | undefined {
+    return this.setupFunction;
   }
   getRetriesCount(): number {
     return this.retriesCount;
@@ -196,11 +192,11 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getError(): Error | undefined {
     return this.error;
   }
-  getLeaseProcess(): LeaseProcess | undefined {
-    return this.leaseProcess;
+  getResourceRental(): ResourceRental | undefined {
+    return this.resourceRental;
   }
-  getWorkContext(): WorkContext | undefined {
-    return this.ctx;
+  getExeUnit(): ExeUnit | undefined {
+    return this.exe;
   }
   getState(): TaskState {
     return this.state;
@@ -214,9 +210,9 @@ export class Task<OutputType = unknown> implements QueueableTask {
   getDetails(): TaskDetails {
     return {
       id: this.id,
-      activityId: this.ctx?.activity.id,
-      agreementId: this.leaseProcess?.agreement?.id,
-      provider: this.leaseProcess?.agreement?.getProviderInfo(),
+      activityId: this.exe?.activity.id,
+      agreementId: this.resourceRental?.agreement?.id,
+      provider: this.resourceRental?.agreement?.provider,
       retriesCount: this.getRetriesCount(),
       error: this.getError(),
     };

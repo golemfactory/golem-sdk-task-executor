@@ -36,8 +36,8 @@ const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 
   try {
     const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo3rs7ewhnp7lly";
-    const results = await executor.run(async (ctx) =>
-      ctx
+    const results = await executor.run(async (exe) =>
+      exe
         .beginBatch()
         .run(`curl ${url} -o /golem/work/example.jpg`)
         .downloadFile("/golem/work/example.jpg", `${DIR_NAME}/example.jpg`)

@@ -33,7 +33,7 @@ describe("Stats Service", function () {
       };
       const mockAgreement = mock(Agreement);
       when(mockAgreement.id).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
-      when(mockAgreement.getProviderInfo()).thenReturn(provider);
+      when(mockAgreement.provider).thenReturn(provider);
       events.market.emit("agreementApproved", {
         type: "AgreementApproved",
         agreement: instance(mockAgreement),

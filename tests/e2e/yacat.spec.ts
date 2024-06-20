@@ -40,8 +40,8 @@ describe("Password cracking", function () {
           maxParallelTasks: 3,
         },
       });
-      const keyspace = await executor.run<number>(async (ctx) => {
-        const result = await ctx.run(`hashcat --keyspace -a 3 ${mask} -m 400`);
+      const keyspace = await executor.run<number>(async (exe) => {
+        const result = await exe.run(`hashcat --keyspace -a 3 ${mask} -m 400`);
         return parseInt(result.stdout?.toString() || "");
       });
       expect(keyspace).toEqual(95);
@@ -50,8 +50,8 @@ describe("Password cracking", function () {
       const ranges = range(0, keyspace, step);
 
       const findPasswordInRange = async (skip: number) => {
-        const password = await executor.run(async (ctx) => {
-          const [, potfileResult] = await ctx
+        const password = await executor.run(async (exe) => {
+          const [, potfileResult] = await exe
             .beginBatch()
             .run(
               `hashcat -a 3 -m 400 '${hash}' '${mask}' --skip=${skip} --limit=${skip + step} -o pass.potfile || true`,

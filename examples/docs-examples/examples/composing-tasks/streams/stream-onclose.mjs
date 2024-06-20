@@ -27,16 +27,16 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    let result = await executor.run(async (ctx) => {
+    let result = await executor.run(async (exe) => {
       console.log("Provider deployed");
 
-      await ctx.run(
+      await exe.run(
         `echo 'counter=0; while [ $counter -lt 10 ]; do ls ./home non-existing-file; sleep 1; counter=$(($counter+1)); done' > script.sh`,
       );
 
-      await ctx.run("chmod 700 ./script.sh");
+      await exe.run("chmod 700 ./script.sh");
 
-      let remoteProcess = await ctx.runAndStream("/bin/sh ./script.sh");
+      let remoteProcess = await exe.runAndStream("/bin/sh ./script.sh");
 
       remoteProcess.stdout.on("data", (data) => console.log("stdout: ", data));
       remoteProcess.stderr.on("data", (data) => console.error("stderr: ", data));

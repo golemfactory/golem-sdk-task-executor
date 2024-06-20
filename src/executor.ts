@@ -5,9 +5,7 @@ import {
   GolemNetworkOptions,
   GolemTimeoutError,
   GolemWorkError,
-  LeaseProcessPool,
   Logger,
-  Worker,
   WorkErrorCode,
   Network,
   NetworkOptions,
@@ -15,6 +13,8 @@ import {
   ActivityEvents,
   PaymentEvents,
   NetworkEvents,
+  LifecycleFunction,
+  ResourceRentalPool,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { ExecutorEvents, TaskEvents } from "./events";
@@ -22,7 +22,7 @@ import { EventEmitter } from "eventemitter3";
 import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
 import { isNode, sleep } from "./utils";
-import { Task, TaskOptions } from "./task";
+import { Task, TaskFunction, TaskOptions } from "./task";
 import { StatsService } from "./stats";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
@@ -108,7 +108,8 @@ export class TaskExecutor {
   private readonly options: ExecutorConfig;
   private taskService?: TaskService;
   private statsService: StatsService;
-  private activityReadySetupFunctions: Worker<unknown>[] = [];
+  private setupFunction?: LifecycleFunction;
+  private teardownFunction?: LifecycleFunction;
   private taskQueue: TaskQueue;
   private logger: Logger;
   private lastTaskIndex = 0;
@@ -116,7 +117,7 @@ export class TaskExecutor {
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
   private golemNetwork: GolemNetwork;
-  private leaseProcessPool?: LeaseProcessPool;
+  private resourceRentalPool?: ResourceRentalPool;
   private network?: Network;
 
   /**
@@ -203,18 +204,20 @@ export class TaskExecutor {
       if (this.options.vpn) {
         this.network = await this.golemNetwork.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
       }
-      this.leaseProcessPool = await this.golemNetwork.manyOf({
+      this.resourceRentalPool = await this.golemNetwork.manyOf({
         concurrency: { min: 1, max: this.options.task.maxParallelTasks },
         order: {
           ...this.options.order,
           network: this.network,
         },
+        setup: this.setupFunction,
+        teardown: this.teardownFunction,
       });
       await this.statsService.run();
       this.setStartupTimeout();
       this.taskService = new TaskService(
         this.taskQueue,
-        this.leaseProcessPool,
+        this.resourceRentalPool,
         this.events.task,
         this.logger.child("work"),
         {
@@ -267,7 +270,7 @@ export class TaskExecutor {
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
     await this.taskService?.end();
-    await this.leaseProcessPool?.drainAndClear();
+    await this.resourceRentalPool?.drainAndClear();
     await this.golemNetwork.disconnect();
     this.printStats();
     await this.statsService.end();
@@ -283,53 +286,73 @@ export class TaskExecutor {
   }
 
   /**
-   * Registers a worker function that will be run when an activity is ready.
+   * Registers a setup function that will be run when an exe-unit is ready.
    * This is the perfect place to run setup functions that need to be run only once per
-   * activity, for example uploading files that will be used by all tasks in the activity.
-   * This function can be called multiple times, each worker will be run in the order
-   * they were registered.
+   * exe-unit, for example uploading files that will be used by all tasks in the exe-unit.
+   * This function can be called multiple times.
    *
-   * @param worker worker function that will be run when an activity is ready
+   * @param setup setup function that will be run when an exe-unit is ready
    * @example
    * ```ts
-   * const uploadFile1 = async (ctx) => ctx.uploadFile("./file1.txt", "/file1.txt");
-   * const uploadFile2 = async (ctx) => ctx.uploadFile("./file2.txt", "/file2.txt");
+   * const uploadFile = async (exe) => exe.uploadFile("./file1.txt", "/file1.txt");
    *
-   * executor.onActivityReady(uploadFile1);
-   * executor.onActivityReady(uploadFile2);
+   * executor.onExeUnitReady(uploadFile);
    *
-   * await executor.run(async (ctx) => {
-   *  await ctx.run("cat /file1.txt /file2.txt");
+   * await executor.run(async (exe) => {
+   *  await exe.run("cat /file1.txt /file2.txt");
    * });
    * ```
    */
-  onActivityReady(worker: Worker<unknown>) {
-    this.activityReadySetupFunctions.push(worker);
+  onExeUnitReady(setup: LifecycleFunction) {
+    this.setupFunction = setup;
   }
 
   /**
-   * Run task - allows to execute a single worker function on the Golem network with a single provider.
+   * Registers a teardown function that will be run before the exe unit is destroyed.
+   * This is the perfect place to run teardown functions that need to be run only once per
+   * exe-unit at the end of the entire work, for example cleaning of the working environment.
    *
-   * @param worker function that run task
+   * @param teardown teardown function that will be run before the exe unit is destroyed
+   * @example
+   * ```ts
+   * const removeFile = async (exe) => exe.run("rm ./file.txt");
+   *
+   * executor.onExeUnitStopped(removeFile);
+   *
+   * await executor.run(async (exe) => {
+   *  await exe.run("cat /file.txt");
+   * });
+   * ```
+   */
+  onExeUnitStopped(teardown: LifecycleFunction) {
+    this.teardownFunction = teardown;
+  }
+
+  /**
+   * Run task - allows to execute a single taskFunction function on the Golem network with a single provider.
+   *
+   * @param taskFunction function that run task
    * @param options task options
    * @return result of task computation
    * @example
    * ```typescript
-   * await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+   * await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
    * ```
    */
-  async run<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
-    return this.executeTask<OutputType>(worker, options);
+  async run<OutputType>(taskFunction: TaskFunction<OutputType>, options?: TaskOptions): Promise<OutputType> {
+    return this.executeTask<OutputType>(taskFunction, options);
   }
 
-  private async executeTask<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
+  private async executeTask<OutputType>(
+    taskFunction: TaskFunction<OutputType>,
+    options?: TaskOptions,
+  ): Promise<OutputType> {
     let task;
     try {
-      task = new Task((++this.lastTaskIndex).toString(), worker, {
+      task = new Task((++this.lastTaskIndex).toString(), taskFunction, {
         maxRetries: options?.maxRetries ?? this.options.task.maxTaskRetries,
         timeout: options?.timeout ?? this.options.task.taskTimeout,
         startupTimeout: options?.startupTimeout ?? this.options.task.taskStartupTimeout,
-        activityReadySetupFunctions: this.activityReadySetupFunctions,
         retryOnTimeout: options?.retryOnTimeout ?? this.options.task.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
@@ -349,9 +372,9 @@ export class TaskExecutor {
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
         WorkErrorCode.ScriptExecutionFailed,
-        task?.getLeaseProcess()?.agreement,
+        task?.getResourceRental()?.agreement,
         undefined, // task?.getLeaseProcess()?.getActivity(),
-        task?.getLeaseProcess()?.agreement?.getProviderInfo(),
+        task?.getResourceRental()?.agreement?.provider,
         error,
       );
     }

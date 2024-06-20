@@ -32,10 +32,10 @@ async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100)
   const runningTasks: Promise<void>[] = [];
   for (let i = 0; i < count; i++) {
     runningTasks.push(
-      executor.run(async (ctx) => {
+      executor.run(async (exe) => {
         const password = crypto.randomBytes(3).toString("hex");
         try {
-          const results = await ctx
+          const results = await exe
             .beginBatch()
             .run("syslogd")
             .run("ssh-keygen -A")
@@ -45,9 +45,9 @@ async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100)
           if (!results) return;
 
           console.log("\n------------------------------------------");
-          console.log(`Connect via ssh to provider "${ctx.provider?.name}" with:`);
+          console.log(`Connect via ssh to provider "${exe.provider?.name}" with:`);
           console.log(
-            `ssh -o ProxyCommand='websocat asyncstdio: ${ctx.getWebsocketUri(
+            `ssh -o ProxyCommand='websocat asyncstdio: ${exe.getWebsocketUri(
               22,
             )} --binary -H=Authorization:"Bearer ${appKey}"' root@${crypto.randomBytes(10).toString("hex")}`,
           );

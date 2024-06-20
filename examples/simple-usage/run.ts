@@ -21,9 +21,9 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const results = await executor.run(async (ctx) => {
-      const res1 = await ctx.run('echo "Hello"');
-      const res2 = await ctx.run('echo "World"');
+    const results = await executor.run(async (exe) => {
+      const res1 = await exe.run('echo "Hello"');
+      const res2 = await exe.run('echo "World"');
       return `${res1.stdout}${res2.stdout}`;
     });
     console.log(results);

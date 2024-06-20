@@ -30,10 +30,10 @@ const url = "https://ipfs.io/ipfs/bafybeihkoviema7g3gxyt6la7vd5ho32ictqbilu3wnlo
   });
 
   try {
-    await executor.run(async (ctx) => {
-      const result = await ctx.run(`curl ${url} -o /golem/work/example.jpg`);
+    await executor.run(async (exe) => {
+      const result = await exe.run(`curl ${url} -o /golem/work/example.jpg`);
 
-      console.log((await ctx.run("ls -l")).stdout);
+      console.log((await exe.run("ls -l")).stdout);
       if (result.result === "Ok") {
         console.log("File downloaded!");
       } else {

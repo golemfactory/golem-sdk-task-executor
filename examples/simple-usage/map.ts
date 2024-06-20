@@ -23,8 +23,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
   try {
     const futureResults = data.map((x) =>
-      executor.run(async (ctx) => {
-        const res = await ctx.run(`echo "${x}"`);
+      executor.run(async (exe) => {
+        const res = await exe.run(`echo "${x}"`);
         return res.stdout?.toString().trim();
       }),
     );

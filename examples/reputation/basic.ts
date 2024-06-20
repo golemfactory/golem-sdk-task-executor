@@ -46,8 +46,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    await executor.run(async (ctx) => {
-      const result = await ctx.run("echo 'Hello World'");
+    await executor.run(async (exe) => {
+      const result = await exe.run("echo 'Hello World'");
       console.log(result.stdout);
     });
   } catch (error) {

@@ -27,10 +27,10 @@ import * as fs from "fs";
     const buff = fs.readFileSync("worker.mjs");
     const hash = createHash("md5").update(buff).digest("hex");
 
-    const result = await executor.run(async (ctx) => {
-      await ctx.uploadFile("./worker.mjs", "/golem/input/worker.mjs");
+    const result = await executor.run(async (exe) => {
+      await exe.uploadFile("./worker.mjs", "/golem/input/worker.mjs");
 
-      const res = await ctx.run(
+      const res = await exe.run(
         `node -e "const crypto = require('node:crypto'); const fs = require('fs'); const buff = fs.readFileSync('/golem/input/worker.mjs'); const hash = crypto.createHash('md5').update(buff).digest('hex'); console.log(hash); "`,
       );
 

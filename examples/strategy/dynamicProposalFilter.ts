@@ -54,7 +54,7 @@ const makeDynamicFilter: () => {
     },
   });
   try {
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
   } catch (err) {
     console.error("Task execution failed:", err);
   } finally {

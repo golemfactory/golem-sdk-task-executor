@@ -22,11 +22,11 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const output = await executor.run(async (ctx) => {
+    const output = await executor.run(async (exe) => {
       // Upload test JSON object
-      await ctx.uploadJson({ input: "Hello World" }, "/golem/work/input.json");
+      await exe.uploadJson({ input: "Hello World" }, "/golem/work/input.json");
       // Read the content of the JSON object.
-      return await ctx.run("cat /golem/work/input.json");
+      return await exe.run("cat /golem/work/input.json");
     });
 
     console.log(output.stdout);

@@ -35,8 +35,8 @@ for (let i = 0; i < whiteListNames.length; i++) {
   });
 
   try {
-    await executor.run(async (ctx) =>
-      console.log((await ctx.run(`echo "This task is run on ${ctx.provider.name}"`)).stdout),
+    await executor.run(async (exe) =>
+      console.log((await exe.run(`echo "This task is run on ${exe.provider.name}"`)).stdout),
     );
   } catch (err) {
     console.error("An error occurred:", err);

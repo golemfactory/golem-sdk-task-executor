@@ -143,12 +143,12 @@
         });
 
         const result = await executor
-          .run(async (ctx) => {
-            await ctx.uploadData(fileData, inputImage);
-            await ctx.run(
+          .run(async (exe) => {
+            await exe.uploadData(fileData, inputImage);
+            await exe.run(
               `convert ${inputImage} -background Khaki -pointsize 50 label:'${text}' -gravity Center -append ${outputImage}`,
             );
-            return await ctx.downloadData(outputImage);
+            return await exe.downloadData(outputImage);
           })
           .catch((e) => logger.error(e));
 

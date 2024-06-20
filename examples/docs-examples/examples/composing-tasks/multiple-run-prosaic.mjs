@@ -22,11 +22,11 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
-      await ctx.uploadFile("./worker.mjs", "/golem/input/worker.mjs");
-      await ctx.run("node /golem/input/worker.mjs > /golem/input/output.txt");
-      const result = await ctx.run("cat /golem/input/output.txt");
-      await ctx.downloadFile("/golem/input/output.txt", "./output.txt");
+    const result = await executor.run(async (exe) => {
+      await exe.uploadFile("./worker.mjs", "/golem/input/worker.mjs");
+      await exe.run("node /golem/input/worker.mjs > /golem/input/output.txt");
+      const result = await exe.run("cat /golem/input/output.txt");
+      await exe.downloadFile("/golem/input/output.txt", "./output.txt");
       return result.stdout;
     });
 

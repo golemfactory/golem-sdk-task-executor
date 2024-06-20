@@ -21,7 +21,7 @@ const executor = await TaskExecutor.create({
 });
 
 try {
-  const result = await executor.run(async (ctx) => (await ctx.run("node -v")).stdout);
+  const result = await executor.run(async (exe) => (await exe.run("node -v")).stdout);
   console.log("Task result:", result);
 } catch (err) {
   console.error("An error occurred:", err);

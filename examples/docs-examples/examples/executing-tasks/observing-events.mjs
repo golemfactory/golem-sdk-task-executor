@@ -48,9 +48,9 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
   console.log("Executor is created");
   try {
-    await executor.run(async (ctx) => {
+    await executor.run(async (exe) => {
       console.log("Will run the command");
-      console.log((await ctx.run("ls -l")).stdout);
+      console.log((await exe.run("ls -l")).stdout);
     });
     console.log("Finished");
   } catch (err) {

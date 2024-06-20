@@ -61,7 +61,7 @@ export class StatsService {
    */
   getAllCostsSummary() {
     return [...this.agreements.values()].map((agreement) => {
-      const provider = this.providers.get(agreement.getProviderInfo().id);
+      const provider = this.providers.get(agreement.provider.id);
       const invoices = this.invoices.get(agreement.id);
       const payments = this.payments.get(agreement.id);
       const tasks = this.tasksCompleted.get(agreement.id);
@@ -110,7 +110,7 @@ export class StatsService {
     });
 
     this.events.market.on("agreementApproved", ({ agreement }) => {
-      const provider = agreement.getProviderInfo();
+      const provider = agreement.provider;
       this.agreements.set(agreement.id, agreement);
       this.providers.set(provider.id, provider);
       this.logger.debug("AgreementApproved event collected", { agreement });
@@ -139,7 +139,7 @@ export class StatsService {
     this.events.market.on("offerProposalReceived", ({ proposal }) => {
       this.proposals.add(proposal);
     });
-    this.events.market.on("offerProposalRejectedByFilter", (proposal) => {
+    this.events.market.on("offerProposalRejectedByProposalFilter", (proposal) => {
       this.proposalsRejected.add(proposal);
     });
     this.events.market.on("offerProposalRejectedByPriceFilter", (proposal) => {
