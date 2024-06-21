@@ -1,20 +1,17 @@
 import { StatsService } from "./stats";
 import { EventEmitter } from "eventemitter3";
 import { sleep } from "./utils";
-import { ExecutorEvents, TaskEvents } from "./events";
-import { TaskExecutorEvents } from "./executor";
-import { ActivityEvents, MarketEvents, NetworkEvents, PaymentEvents, Agreement, Invoice } from "@golem-sdk/golem-js";
+import { ExecutorEvents } from "./events";
+import { ActivityEvents, MarketEvents, PaymentEvents, Agreement, Invoice } from "@golem-sdk/golem-js";
 import { instance, mock, when } from "@johanblumenberg/ts-mockito";
 
 describe("Stats Service", function () {
   const executorEvents = new EventEmitter<ExecutorEvents>();
-  const events: TaskExecutorEvents = Object.assign(executorEvents, {
-    task: new EventEmitter<TaskEvents>(),
+  const golemEvents = {
     market: new EventEmitter<MarketEvents>(),
     activity: new EventEmitter<ActivityEvents>(),
     payment: new EventEmitter<PaymentEvents>(),
-    network: new EventEmitter<NetworkEvents>(),
-  });
+  };
   const emitEvents = async (
     tasks: Array<{
       invoiceReceivedAmount: number | null;
@@ -23,7 +20,7 @@ describe("Stats Service", function () {
       agreementId?: string;
     }>,
   ) => {
-    events.emit("executorReady", Date.now());
+    executorEvents.emit("executorReady", Date.now());
     for (const task of tasks) {
       const id = Math.random();
       const provider = {
@@ -34,7 +31,7 @@ describe("Stats Service", function () {
       const mockAgreement = mock(Agreement);
       when(mockAgreement.id).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
       when(mockAgreement.provider).thenReturn(provider);
-      events.market.emit("agreementApproved", {
+      golemEvents.market.emit("agreementApproved", {
         type: "AgreementApproved",
         agreement: instance(mockAgreement),
         timestamp: new Date(),
@@ -45,7 +42,7 @@ describe("Stats Service", function () {
         when(mockInvoice.id).thenReturn(`test-invoice-id-${id}`);
         when(mockInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
         when(mockInvoice.amount).thenReturn(task.invoiceReceivedAmount.toString());
-        events.payment.emit("invoiceReceived", instance(mockInvoice));
+        golemEvents.payment.emit("invoiceReceived", instance(mockInvoice));
       }
       if (task.paid) {
         const mockPaidInvoice = mock(Invoice);
@@ -53,9 +50,9 @@ describe("Stats Service", function () {
         when(mockPaidInvoice.id).thenReturn(`test-invoice-id-${id}`);
         when(mockPaidInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
         when(mockPaidInvoice.amount).thenReturn(task.paid.toString());
-        events.payment.emit("invoiceAccepted", instance(mockPaidInvoice));
+        golemEvents.payment.emit("invoiceAccepted", instance(mockPaidInvoice));
       }
-      events.task.emit("taskCompleted", {
+      executorEvents.emit("taskCompleted", {
         id: `task-id-${id}`,
         agreementId: task.agreementId ?? `test-agreement-id-${id}`,
         retriesCount: 0,
@@ -65,12 +62,12 @@ describe("Stats Service", function () {
       // simulate the time gap between executing tasks / emitting events
       await sleep(100, true);
     }
-    events.emit("executorBeforeEnd", Date.now());
+    executorEvents.emit("executorBeforeEnd", Date.now());
   };
 
   describe("All costs", () => {
     it("should get all costs", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       await emitEvents([
         { invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -81,7 +78,7 @@ describe("Stats Service", function () {
     });
 
     it("should get all costs included unpaid tasks", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       await emitEvents([
         { invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -98,7 +95,7 @@ describe("Stats Service", function () {
 
   describe("Summary costs", () => {
     it("should get summary costs", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       const tasks = [
         { invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -118,7 +115,7 @@ describe("Stats Service", function () {
     });
 
     it("should get summary costs included unpaid tasks", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       const tasks = [
         { agreementId: "id-1", providerName: "provider-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -140,7 +137,7 @@ describe("Stats Service", function () {
     });
 
     it("should get summary costs included task computed using the same agreement", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       const tasks = [
         { agreementId: "id-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -169,7 +166,7 @@ describe("Stats Service", function () {
     });
 
     it("should get summary costs included task computed using the same agreement and partially paid", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       const tasks = [
         { agreementId: "id-1", invoiceReceivedAmount: 7.77, paid: 7.77 },
@@ -192,7 +189,7 @@ describe("Stats Service", function () {
 
   describe("Computation time", () => {
     it("should get computation time", async () => {
-      const statsService = new StatsService(events);
+      const statsService = new StatsService(executorEvents, golemEvents);
       await statsService.run();
       await emitEvents([
         { invoiceReceivedAmount: 7.77, paid: 7.77 },

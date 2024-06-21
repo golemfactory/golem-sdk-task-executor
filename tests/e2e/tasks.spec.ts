@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
-import { TaskExecutor, ExecutorOptions, TaskExecutorEvents } from "../../src";
+import { TaskExecutor, ExecutorOptions, ExecutorEvents } from "../../src";
 import { sleep } from "../../src/utils";
+import EventEmitter from "eventemitter3";
+import { ActivityEvents, MarketEvents, PaymentEvents } from "@golem-sdk/golem-js";
 
 const executorOptions: ExecutorOptions = {
   demand: {
@@ -23,16 +25,23 @@ describe("Task Executor", function () {
   let executor: TaskExecutor;
   const emittedEventsNames = new Set<string>();
 
-  const handleEvents = (events: TaskExecutorEvents) => {
-    events.task.on("taskStarted", () => emittedEventsNames.add("taskStarted"));
-    events.task.on("taskCompleted", () => emittedEventsNames.add("taskCompleted"));
-    events.market.on("offerProposalReceived", () => emittedEventsNames.add("offerProposalReceived"));
-    events.market.on("agreementApproved", () => emittedEventsNames.add("agreementApproved"));
-    events.activity.on("activityCreated", () => emittedEventsNames.add("activityCreated"));
-    events.activity.on("exeUnitInitialized", () => emittedEventsNames.add("exeUnitInitialized"));
-    events.activity.on("scriptExecuted", () => emittedEventsNames.add("scriptExecuted"));
-    events.payment.on("debitNoteReceived", () => emittedEventsNames.add("debitNoteReceived"));
-    events.payment.on("invoiceAccepted", () => emittedEventsNames.add("invoiceAccepted"));
+  const handleEvents = (
+    executorEvents: EventEmitter<ExecutorEvents>,
+    golemEvents: {
+      market: EventEmitter<MarketEvents>;
+      activity: EventEmitter<ActivityEvents>;
+      payment: EventEmitter<PaymentEvents>;
+    },
+  ) => {
+    executorEvents.on("taskStarted", () => emittedEventsNames.add("taskStarted"));
+    executorEvents.on("taskCompleted", () => emittedEventsNames.add("taskCompleted"));
+    golemEvents.market.on("offerProposalReceived", () => emittedEventsNames.add("offerProposalReceived"));
+    golemEvents.market.on("agreementApproved", () => emittedEventsNames.add("agreementApproved"));
+    golemEvents.activity.on("activityCreated", () => emittedEventsNames.add("activityCreated"));
+    golemEvents.activity.on("exeUnitInitialized", () => emittedEventsNames.add("exeUnitInitialized"));
+    golemEvents.activity.on("scriptExecuted", () => emittedEventsNames.add("scriptExecuted"));
+    golemEvents.payment.on("debitNoteReceived", () => emittedEventsNames.add("debitNoteReceived"));
+    golemEvents.payment.on("invoiceAccepted", () => emittedEventsNames.add("invoiceAccepted"));
   };
 
   const verifyAllExpectedEventsEmitted = () => {
@@ -58,7 +67,11 @@ describe("Task Executor", function () {
 
   it("should run simple task", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
 
     const result = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
 
@@ -67,7 +80,11 @@ describe("Task Executor", function () {
 
   it("should run simple task and get error for invalid command", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
 
     const result1 = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
     const result2 = await executor.run(async (exe) => exe.run("invalid-command"));
@@ -80,7 +97,11 @@ describe("Task Executor", function () {
 
   it("should run simple task using package tag", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
 
     const result = await executor.run(async (exe) => exe.run("echo 'Hello World'"));
 
@@ -89,7 +110,11 @@ describe("Task Executor", function () {
 
   it("should run simple tasks by map function", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     const data = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     const futureResults = data.map((x) =>
       executor.run(async (exe) => {
@@ -103,9 +128,13 @@ describe("Task Executor", function () {
 
   it("should run simple batch script and get results as stream", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     let taskDetails;
-    executor.events.task.on("taskCompleted", (event) => (taskDetails = event));
+    executor.events.on("taskCompleted", (event) => (taskDetails = event));
     const outputs: string[] = [];
     let onEnd = "";
     await executor
@@ -133,7 +162,11 @@ describe("Task Executor", function () {
 
   it("should run simple batch script and get results as promise", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     const outputs: string[] = [];
     await executor
       .run(async (exe) => {
@@ -155,7 +188,11 @@ describe("Task Executor", function () {
 
   it("should run transfer file", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
 
     const result = await executor.run(async (exe) => {
       await exe.uploadJson({ test: "1234" }, "/golem/work/test.json");
@@ -169,7 +206,11 @@ describe("Task Executor", function () {
 
   it("should run transfer file via http", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
 
     const result = await executor.run(async (exe) => {
       const res = await exe.transfer(
@@ -200,14 +241,22 @@ describe("Task Executor", function () {
       },
       vpn: { ip: "192.168.0.0/24" },
     });
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     const result = await executor.run(async (exe) => exe.getIp());
     expect(["192.168.0.2", "192.168.0.3"]).toContain(result);
   });
 
   it("should run and stream command as external process", async () => {
     executor = await TaskExecutor.create(executorOptions);
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     let stdout = "";
     let stderr = "";
     const finalResult = await executor.run(async (exe) => {
@@ -242,9 +291,13 @@ describe("Task Executor", function () {
       },
     });
 
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     let isRetry = false;
-    executor.events.task.on("taskRetried", () => (isRetry = true));
+    executor.events.on("taskRetried", () => (isRetry = true));
     try {
       executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
       await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
@@ -275,9 +328,13 @@ describe("Task Executor", function () {
       },
     });
 
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     let isRetry = false;
-    executor.events.task.on("taskRetried", () => (isRetry = true));
+    executor.events.on("taskRetried", () => (isRetry = true));
     try {
       executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
       await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
@@ -319,9 +376,13 @@ describe("Task Executor", function () {
       },
     });
 
-    handleEvents(executor.events);
+    handleEvents(executor.events, {
+      market: executor.glm.market.events,
+      activity: executor.glm.activity.events,
+      payment: executor.glm.payment.events,
+    });
     let createdAgreementsCount = 0;
-    executor.events.market.on("agreementApproved", () => createdAgreementsCount++);
+    executor.glm.market.events.on("agreementApproved", () => createdAgreementsCount++);
     await executor.run(async (exe) => {
       const proc = await exe.runAndStream(
         `
@@ -348,18 +409,30 @@ describe("Task Executor", function () {
     const confirmedAgreementsIds2 = new Set();
     const acceptedPaymentsAgreementIds1 = new Set();
     const acceptedPaymentsAgreementIds2 = new Set();
-    handleEvents(executor1.events);
-    handleEvents(executor2.events);
-    executor1.events.market.on("agreementApproved", (ev) => confirmedAgreementsIds1.add(ev.agreement.id));
-    executor1.events.payment.on("debitNoteAccepted", (debitNote) =>
+    handleEvents(executor1.events, {
+      market: executor1.glm.market.events,
+      activity: executor1.glm.activity.events,
+      payment: executor1.glm.payment.events,
+    });
+    handleEvents(executor2.events, {
+      market: executor2.glm.market.events,
+      activity: executor2.glm.activity.events,
+      payment: executor2.glm.payment.events,
+    });
+    executor1.glm.market.events.on("agreementApproved", (ev) => confirmedAgreementsIds1.add(ev.agreement.id));
+    executor1.glm.payment.events.on("debitNoteAccepted", (debitNote) =>
       acceptedPaymentsAgreementIds1.add(debitNote.agreementId),
     );
-    executor1.events.payment.on("invoiceAccepted", (invoice) => acceptedPaymentsAgreementIds1.add(invoice.agreementId));
-    executor2.events.market.on("agreementApproved", (ev) => confirmedAgreementsIds2.add(ev.agreement.id));
-    executor2.events.payment.on("debitNoteAccepted", (debitNote) =>
+    executor1.glm.payment.events.on("invoiceAccepted", (invoice) =>
+      acceptedPaymentsAgreementIds1.add(invoice.agreementId),
+    );
+    executor2.glm.market.events.on("agreementApproved", (ev) => confirmedAgreementsIds2.add(ev.agreement.id));
+    executor2.glm.payment.events.on("debitNoteAccepted", (debitNote) =>
       acceptedPaymentsAgreementIds2.add(debitNote.agreementId),
     );
-    executor2.events.payment.on("invoiceAccepted", (invoice) => acceptedPaymentsAgreementIds2.add(invoice.agreementId));
+    executor2.glm.payment.events.on("invoiceAccepted", (invoice) =>
+      acceptedPaymentsAgreementIds2.add(invoice.agreementId),
+    );
     try {
       await Promise.all([
         executor1.run(async (exe) => console.log((await exe.run("echo 'Executor 1'")).stdout)),

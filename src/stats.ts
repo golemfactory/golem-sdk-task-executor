@@ -1,7 +1,17 @@
 import { ProviderInfo, TaskDetails } from "./task";
-import { Agreement, defaultLogger, Invoice, Logger, OfferProposal } from "@golem-sdk/golem-js";
-import { TaskExecutorEvents } from "./executor";
+import {
+  ActivityEvents,
+  Agreement,
+  defaultLogger,
+  Invoice,
+  Logger,
+  MarketEvents,
+  OfferProposal,
+  PaymentEvents,
+} from "@golem-sdk/golem-js";
+import { ExecutorEvents } from "./events";
 import Decimal from "decimal.js-light";
+import { EventEmitter } from "eventemitter3";
 
 export interface TimeInfo {
   startTime?: number;
@@ -25,7 +35,12 @@ export class StatsService {
   private logger: Logger;
 
   constructor(
-    private events: TaskExecutorEvents,
+    private executorEvents: EventEmitter<ExecutorEvents>,
+    private golemEvents: {
+      market: EventEmitter<MarketEvents>;
+      activity: EventEmitter<ActivityEvents>;
+      payment: EventEmitter<PaymentEvents>;
+    },
     options?: StatsServiceOptions,
   ) {
     this.logger = options?.logger ? options?.logger.child("stats") : defaultLogger("stats");
@@ -87,18 +102,18 @@ export class StatsService {
   }
 
   private subscribeEvents() {
-    this.events.on("executorReady", (timestamp: number) => {
+    this.executorEvents.on("executorReady", (timestamp: number) => {
       this.timeInfo.startTime = timestamp;
       this.logger.debug("Start time detected", { startTime: timestamp });
     });
 
-    this.events.on("executorBeforeEnd", (timestamp: number) => {
+    this.executorEvents.on("executorBeforeEnd", (timestamp: number) => {
       this.timeInfo.stopTime = timestamp;
       this.timeInfo.duration = this.timeInfo?.startTime ? this.timeInfo.stopTime - this.timeInfo.startTime : undefined;
       this.logger.debug("Stop time detected", { ...this.timeInfo });
     });
 
-    this.events.task.on("taskCompleted", (task: TaskDetails) => {
+    this.executorEvents.on("taskCompleted", (task: TaskDetails) => {
       if (!task.agreementId) return;
       let tasks = this.tasksCompleted.get(task.agreementId);
       if (!tasks) {
@@ -109,14 +124,14 @@ export class StatsService {
       this.logger.debug("Task data collected", { task });
     });
 
-    this.events.market.on("agreementApproved", ({ agreement }) => {
+    this.golemEvents.market.on("agreementApproved", ({ agreement }) => {
       const provider = agreement.provider;
       this.agreements.set(agreement.id, agreement);
       this.providers.set(provider.id, provider);
       this.logger.debug("AgreementApproved event collected", { agreement });
     });
 
-    this.events.payment.on("invoiceReceived", (invoice) => {
+    this.golemEvents.payment.on("invoiceReceived", (invoice) => {
       let invoices = this.invoices.get(invoice.agreementId);
       if (!invoices) {
         invoices = [];
@@ -126,7 +141,7 @@ export class StatsService {
       this.logger.debug("InvoiceReceived event collected", { invoice });
     });
 
-    this.events.payment.on("invoiceAccepted", (invoice) => {
+    this.golemEvents.payment.on("invoiceAccepted", (invoice) => {
       let payments = this.payments.get(invoice.agreementId);
       if (!payments) {
         payments = [];
@@ -136,13 +151,13 @@ export class StatsService {
       this.logger.debug("InvoiceAccepted event collected", { invoice });
     });
 
-    this.events.market.on("offerProposalReceived", ({ proposal }) => {
+    this.golemEvents.market.on("offerProposalReceived", ({ proposal }) => {
       this.proposals.add(proposal);
     });
-    this.events.market.on("offerProposalRejectedByProposalFilter", (proposal) => {
+    this.golemEvents.market.on("offerProposalRejectedByProposalFilter", (proposal) => {
       this.proposalsRejected.add(proposal);
     });
-    this.events.market.on("offerProposalRejectedByPriceFilter", (proposal) => {
+    this.golemEvents.market.on("offerProposalRejectedByPriceFilter", (proposal) => {
       this.proposalsRejected.add(proposal);
     });
   }

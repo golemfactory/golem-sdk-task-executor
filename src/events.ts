@@ -28,9 +28,7 @@ export interface ExecutorEvents {
    * Fires when task executor is completely terminated.
    */
   executorEnd: (timestamp: number) => void;
-}
 
-export interface TaskEvents {
   /**
    * Fires when a task is placed in the internal queue via {@link TaskExecutor.run}
    *

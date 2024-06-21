@@ -24,8 +24,8 @@ describe("Strategies", function () {
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
-      executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
-      executor.events.market.on("offerProposalReceived", ({ proposal }) => {
+      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.glm.market.events.on("offerProposalReceived", ({ proposal }) => {
         if (proposal.isDraft()) {
           proposalReceivedProviderNames.push(proposal.provider.name);
         }
@@ -65,8 +65,8 @@ describe("Strategies", function () {
       });
       let proposalReceivedProviderNames: string[] = [];
       const taskCompletedIds: string[] = [];
-      executor.events.task.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
-      executor.events.market.on("offerProposalReceived", ({ proposal }) => {
+      executor.events.on("taskCompleted", (details) => taskCompletedIds.push(details.id));
+      executor.glm.market.events.on("offerProposalReceived", ({ proposal }) => {
         if (proposal.isDraft()) {
           proposalReceivedProviderNames.push(proposal.provider.name);
         }

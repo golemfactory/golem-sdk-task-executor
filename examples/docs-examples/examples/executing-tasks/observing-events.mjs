@@ -25,21 +25,21 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   // Golem-js core events
-  executor.events.market.on("agreementApproved", (event) => {
+  executor.glm.market.events.on("agreementApproved", (event) => {
     console.log("Agreement approved:", event);
   });
-  executor.events.payment.on("invoiceReceived", (event) => {
+  executor.glm.payment.events.on("invoiceReceived", (event) => {
     console.log("Invoice received:", event);
   });
-  executor.events.activity.on("activityCreated", (event) => {
+  executor.glm.activity.events.on("activityCreated", (event) => {
     console.log("Activity created:", event);
   });
 
   // TaskExecutor specific events
-  executor.events.task.on("taskStarted", (event) => {
+  executor.events.on("taskStarted", (event) => {
     console.log("Task started:", event);
   });
-  executor.events.task.on("taskCompleted", (event) => {
+  executor.events.on("taskCompleted", (event) => {
     console.log("Task completed:", event);
   });
   executor.events.on("executorEnd", (event) => {

@@ -10,7 +10,7 @@ import {
 } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
-import { TaskEvents } from "./events";
+import { ExecutorEvents } from "./events";
 
 export interface TaskServiceOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
@@ -33,7 +33,7 @@ export class TaskService {
   constructor(
     private tasksQueue: TaskQueue,
     private resourceRentalPool: ResourceRentalPool,
-    private events: EventEmitter<TaskEvents>,
+    private events: EventEmitter<ExecutorEvents>,
     private logger: Logger,
     private options: TaskServiceOptions,
   ) {

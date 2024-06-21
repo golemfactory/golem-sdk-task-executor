@@ -29,7 +29,7 @@ export class ExecutorConfig implements ExecutorMainOptions {
     taskTimeout?: number;
     taskStartupTimeout?: number;
   };
-  readonly golem: GolemNetworkOptions;
+  readonly golemNetwork: GolemNetworkOptions;
   readonly order: MarketOrderSpec;
   readonly logger: Logger;
   readonly startupTimeout?: number;
@@ -62,14 +62,14 @@ export class ExecutorConfig implements ExecutorMainOptions {
       activity: options.activity,
       demand: options.demand,
     };
-    this.golem = {
+    this.golemNetwork = {
       logger: this.logger,
       api: options.api,
       payment: options.payment,
       override: options.override,
     };
     if (options.dataTransferProtocol) {
-      this.golem.dataTransferProtocol = options.dataTransferProtocol;
+      this.golemNetwork.dataTransferProtocol = options.dataTransferProtocol;
     }
   }
 }

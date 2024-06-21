@@ -9,15 +9,11 @@ import {
   WorkErrorCode,
   Network,
   NetworkOptions,
-  MarketEvents,
-  ActivityEvents,
-  PaymentEvents,
-  NetworkEvents,
   LifecycleFunction,
   ResourceRentalPool,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
-import { ExecutorEvents, TaskEvents } from "./events";
+import { ExecutorEvents } from "./events";
 import { EventEmitter } from "eventemitter3";
 import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
@@ -91,19 +87,12 @@ export type ExecutorMainOptions = {
  */
 export type ExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
-export interface TaskExecutorEvents extends EventEmitter<ExecutorEvents> {
-  task: EventEmitter<TaskEvents>;
-  market: EventEmitter<MarketEvents>;
-  activity: EventEmitter<ActivityEvents>;
-  payment: EventEmitter<PaymentEvents>;
-  network: EventEmitter<NetworkEvents>;
-}
-
 /**
  * A high-level module for defining and executing tasks in the golem network
  */
 export class TaskExecutor {
-  readonly events: TaskExecutorEvents;
+  public readonly events: EventEmitter<ExecutorEvents>;
+  public readonly glm: GolemNetwork;
 
   private readonly options: ExecutorConfig;
   private taskService?: TaskService;
@@ -116,7 +105,6 @@ export class TaskExecutor {
   private isRunning = true;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
-  private golemNetwork: GolemNetwork;
   private resourceRentalPool?: ResourceRentalPool;
   private network?: Network;
 
@@ -179,16 +167,13 @@ export class TaskExecutor {
     this.options = new ExecutorConfig(options);
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();
-    this.golemNetwork = new GolemNetwork(this.options.golem);
-    const executorEvents = new EventEmitter<ExecutorEvents>();
-    this.events = Object.assign(executorEvents, {
-      task: new EventEmitter<TaskEvents>(),
-      market: this.golemNetwork.market.events,
-      activity: this.golemNetwork.activity.events,
-      payment: this.golemNetwork.payment.events,
-      network: this.golemNetwork.network.events,
-    });
-    this.statsService = new StatsService(this.events, { logger: this.logger });
+    this.glm = new GolemNetwork(this.options.golemNetwork);
+    this.events = new EventEmitter<ExecutorEvents>();
+    this.statsService = new StatsService(
+      this.events,
+      { market: this.glm.market.events, activity: this.glm.activity.events, payment: this.glm.payment.events },
+      { logger: this.logger },
+    );
     this.events.emit("executorStart", Date.now());
   }
 
@@ -200,11 +185,11 @@ export class TaskExecutor {
   async init() {
     this.logger.debug("Initializing task executor...");
     try {
-      await this.golemNetwork.connect();
+      await this.glm.connect();
       if (this.options.vpn) {
-        this.network = await this.golemNetwork.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
+        this.network = await this.glm.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
       }
-      this.resourceRentalPool = await this.golemNetwork.manyOf({
+      this.resourceRentalPool = await this.glm.manyOf({
         concurrency: { min: 1, max: this.options.task.maxParallelTasks },
         order: {
           ...this.options.order,
@@ -218,7 +203,7 @@ export class TaskExecutor {
       this.taskService = new TaskService(
         this.taskQueue,
         this.resourceRentalPool,
-        this.events.task,
+        this.events,
         this.logger.child("work"),
         {
           maxParallelTasks: this.options.task.maxParallelTasks,
@@ -233,9 +218,9 @@ export class TaskExecutor {
 
     if (isNode) this.installSignalHandlers();
     this.logger.info(`Task Executor has started`, {
-      subnet: this.options.golem.payment?.network,
-      network: this.options.golem.payment?.network,
-      driver: this.options.golem.payment?.driver,
+      subnet: this.options.golemNetwork.payment?.network,
+      network: this.options.golemNetwork.payment?.network,
+      driver: this.options.golemNetwork.payment?.driver,
     });
     this.events.emit("executorReady", Date.now());
   }
@@ -271,7 +256,7 @@ export class TaskExecutor {
     clearTimeout(this.startupTimeoutId);
     await this.taskService?.end();
     await this.resourceRentalPool?.drainAndClear();
-    await this.golemNetwork.disconnect();
+    await this.glm.disconnect();
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
@@ -356,7 +341,7 @@ export class TaskExecutor {
         retryOnTimeout: options?.retryOnTimeout ?? this.options.task.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
-      this.events.task.emit("taskQueued", task.getDetails());
+      this.events.emit("taskQueued", task.getDetails());
       while (this.isRunning) {
         if (task.isFinished()) {
           if (task.isRejected()) throw task.getError();
