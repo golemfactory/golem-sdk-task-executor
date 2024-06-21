@@ -85,7 +85,7 @@ export type ExecutorMainOptions = {
 /**
  * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
  */
-export type ExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
+export type TaskExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
 /**
  * A high-level module for defining and executing tasks in the golem network
@@ -152,7 +152,7 @@ export class TaskExecutor {
    * @param options Task executor options
    * @return TaskExecutor
    */
-  static async create(options: ExecutorOptions) {
+  static async create(options: TaskExecutorOptions) {
     const executor = new TaskExecutor(options);
     await executor.init();
     return executor;
@@ -163,7 +163,7 @@ export class TaskExecutor {
    *
    * @param options - contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
    */
-  constructor(options: ExecutorOptions) {
+  constructor(options: TaskExecutorOptions) {
     this.options = new ExecutorConfig(options);
     this.logger = this.options.logger;
     this.taskQueue = new TaskQueue();

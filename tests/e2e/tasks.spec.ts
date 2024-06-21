@@ -1,10 +1,10 @@
 import { readFileSync } from "fs";
-import { TaskExecutor, ExecutorOptions, ExecutorEvents } from "../../src";
+import { TaskExecutor, TaskExecutorOptions, ExecutorEvents } from "../../src";
 import { sleep } from "../../src/utils";
 import EventEmitter from "eventemitter3";
 import { ActivityEvents, MarketEvents, PaymentEvents } from "@golem-sdk/golem-js";
 
-const executorOptions: ExecutorOptions = {
+const executorOptions: TaskExecutorOptions = {
   demand: {
     workload: {
       imageTag: "golem/alpine:latest",

@@ -1,4 +1,4 @@
-import { ExecutorMainOptions, ExecutorOptions } from "./executor";
+import { ExecutorMainOptions, TaskExecutorOptions } from "./executor";
 import {
   GolemConfigError,
   Logger,
@@ -36,7 +36,7 @@ export class ExecutorConfig implements ExecutorMainOptions {
   readonly vpn: boolean | NetworkOptions;
   readonly skipProcessSignals;
 
-  constructor(options: ExecutorOptions) {
+  constructor(options: TaskExecutorOptions) {
     if (options.task?.maxTaskRetries && options.task.maxTaskRetries < 0) {
       throw new GolemConfigError("The maxTaskRetries parameter cannot be less than zero");
     }
