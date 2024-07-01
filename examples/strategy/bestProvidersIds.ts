@@ -1,4 +1,6 @@
-import { TaskExecutor, AgreementSelectors, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { OfferProposal } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to use predefined selector `bestAgreementSelector`,
@@ -11,17 +13,36 @@ const scores = {
   "0x1c1c0b14e321c258f7057e29533cba0081df8bb8": 25,
 };
 
+/** Selector selecting the provider according to the provided list of scores */
+const bestAgreementSelector = (scores: { [providerId: string]: number }) => (proposals: OfferProposal[]) => {
+  proposals.sort((a, b) => ((scores?.[a.provider.id] || 0) >= (scores?.[b.provider.id] || 0) ? 1 : -1));
+  return proposals[0];
+};
+
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    logger: pinoPrettyLogger(),
-    agreementSelector: AgreementSelectors.bestAgreementSelector(scores),
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      offerProposalSelector: bestAgreementSelector(scores),
+    },
   });
 
   try {
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
-  } catch (err) {
-    console.error("Task execution failed:", err);
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
+  } catch (error) {
+    console.error("Computation failed:", error);
   } finally {
     await executor.shutdown();
   }

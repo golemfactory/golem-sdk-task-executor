@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const manifest = {
   version: "0.1.0",
@@ -46,16 +47,28 @@ manifest.compManifest.net.inet.out.urls = urls;
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    // What do you want to run
-    capabilities: ["inet", "manifest-support"],
-    manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        capabilities: ["inet", "manifest-support"],
+        manifest: Buffer.from(JSON.stringify(manifest)).toString("base64"),
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
-      return (await ctx.run("echo Whitelist check")).result;
+    const result = await executor.run(async (exe) => {
+      return (await exe.run("echo Whitelist check")).result;
     });
     console.log(result);
   } catch (err) {

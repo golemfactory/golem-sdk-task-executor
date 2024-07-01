@@ -1,15 +1,29 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async () => {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {
-    const result = await executor.run(async (ctx) => {
-      const res = await ctx
+    const result = await executor.run(async (exe) => {
+      const res = await exe
         .beginBatch()
         .run("ls -l /golem > /golem/work/output.txt")
         .run("cat /golem/work/output.txt")

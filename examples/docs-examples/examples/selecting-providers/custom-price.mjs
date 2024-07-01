@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * Example demonstrating how to write a custom proposal filter.
@@ -28,17 +29,32 @@ const myFilter = (proposal) => {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    proposalFilter: myFilter,
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
-    startupTimeout: 60_000,
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      offerProposalFilter: myFilter,
+    },
+    task: {
+      startupTimeout: 60_000,
+    },
   });
 
   try {
-    await executor.run(async (ctx) => {
-      const result = await ctx.run('echo "This task is run on ${ctx.provider.id}"');
-      console.log(result.stdout, ctx.provider.id);
+    await executor.run(async (exe) => {
+      const result = await exe.run(`echo "This task is run on ${exe.provider.id}"`);
+      console.log(result.stdout, exe.provider.id);
     });
   } catch (err) {
     console.error("An error occurred:", err);

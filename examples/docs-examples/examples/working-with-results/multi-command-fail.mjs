@@ -1,15 +1,29 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async () => {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {
-    const results = await executor.run(async (ctx) => {
-      const res = await ctx
+    const results = await executor.run(async (exe) => {
+      const res = await exe
         .beginBatch()
         .run("cat /golem/input/output.txt > /golem/input/output.txt")
         .downloadFile("/golem/output/output.txt", "./output.txt") // there is no such file in output folder

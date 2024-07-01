@@ -37,7 +37,7 @@ with the Golem Network or managing modules such as payments or market.
 
 ## System requirements
 
-To use `task-executor`, it is necessary to have yagna installed, with a **recommended minimum version of v0.14.0**. Yagna is a
+To use `task-executor`, it is necessary to have yagna installed, with a **recommended minimum version of v0.15.0**. Yagna is a
 service that communicates and performs operations on the Golem Network, upon your requests via the SDK. You
 can [follow these instructions](https://docs.golem.network/docs/creators/javascript/quickstarts/quickstart#install-yagna-2)
 to set it up.
@@ -101,14 +101,29 @@ This will generate production code in the `dist/` directory ready to be used in 
 ### Hello World example
 
 ```ts
-import { TaskExecutor, WorkContext } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 (async function main() {
-  const executor = await TaskExecutor.create("golem/alpine:latest");
+  const executor = await TaskExecutor.create({
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+  });
   try {
-    const task = async (ctx: WorkContext) => (await ctx.run("echo 'Hello World'")).stdout?.toString();
-    const result = await executor.run(task);
-    console.log("Result:", result);
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
   } catch (error) {
     console.error("Computation failed:", error);
   } finally {

@@ -1,32 +1,42 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { readFile } from "fs/promises";
 
 const manifest = await readFile(`./manifest_npm_install.json`);
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    // What do you want to run
-    capabilities: ["inet", "manifest-support"],
-    manifest: manifest.toString("base64"),
-
-    yagnaOptions: { apiKey: "try_golem" },
-    budget: 0.5,
     logger: pinoPrettyLogger(),
-
-    expires: 1000 * 60 * 30, //h
-
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        manifest: manifest.toString("base64"),
+        capabilities: ["inet", "manifest-support"],
+      },
+      expirationSec: 60 * 30, //30 min
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
     // Control the execution of tasks
-    maxTaskRetries: 0,
-
-    taskTimeout: 120 * 60 * 1000,
+    task: {
+      maxTaskRetries: 0,
+      taskTimeout: 120 * 60 * 1000,
+    },
   });
 
   try {
-    await executor.run(async (ctx) => {
-      console.log("working on provider: ", ctx.provider.id);
+    await executor.run(async (exe) => {
+      console.log("working on provider: ", exe.provider.id);
 
-      console.log((await ctx.run("npm install moment")).stdout);
-      console.log((await ctx.run(`cat ./package.json`)).stdout);
+      console.log((await exe.run("npm install moment")).stdout);
+      console.log((await exe.run(`cat ./package.json`)).stdout);
 
       return 1;
     });

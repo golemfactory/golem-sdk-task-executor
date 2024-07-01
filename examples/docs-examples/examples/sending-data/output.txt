@@ -1,2 +1,4 @@
-total 4
-drwxrwxr-x 2 1001 1001 4096 Sep 21  2023 work
+total 12
+drwxrwxr-x    2 node     node          4096 Jun  3 13:18 input
+drwxrwxr-x    2 node     node          4096 Jun  3 13:18 output
+drwxrwxr-x    2 node     node          4096 Jun  3 13:18 work

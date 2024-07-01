@@ -61,8 +61,6 @@
     <script type="module">
       import { TaskExecutor } from "/dist/task-executor.min.js";
 
-      let activity;
-
       export function appendResults(result) {
         const resultsEl = document.getElementById("results");
         const li = document.createElement("li");
@@ -74,28 +72,41 @@
         // This line allows you to watch golem-js internal logs in the browser console!
         localStorage.debug = "task-executor:*";
 
-        const apiKey = document.getElementById("YAGNA_APPKEY").value;
+        const key = document.getElementById("YAGNA_APPKEY").value;
 
-        if (!apiKey) {
+        if (!key) {
           alert("You didn't provide your Yagna AppKey");
           return;
         }
 
-        const basePath = document.getElementById("YAGNA_API_BASEPATH").value;
+        const url = document.getElementById("YAGNA_API_BASEPATH").value;
         const subnetTag = document.getElementById("SUBNET_TAG").value;
         const imageTag = document.getElementById("IMAGE_TAG").value;
         const network = document.getElementById("PAYMENT_NETWORK").value;
 
         const executor = await TaskExecutor.create({
-          yagnaOptions: { apiKey, basePath },
-          package: imageTag,
-          subnetTag,
+          api: { key, url },
+          demand: {
+            workload: {
+              imageTag,
+            },
+            subnetTag,
+          },
+          market: {
+            rentHours: 0.5,
+            pricing: {
+              model: "linear",
+              maxStartPrice: 0.5,
+              maxCpuPerHourPrice: 1.0,
+              maxEnvPerHourPrice: 0.5,
+            },
+          },
           payment: { network },
         });
 
         appendResults("Requesting the task via the Golem Network");
         await executor
-          .run(async (ctx) => appendResults(`Reply: ${(await ctx.run("echo 'Hello World'")).stdout}`))
+          .run(async (exe) => appendResults(`Reply: ${(await exe.run("echo 'Hello World'")).stdout}`))
           .catch((e) => console.error(e));
 
         appendResults("Finished the task");
