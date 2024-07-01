@@ -32,9 +32,7 @@ describe("Stats Service", function () {
       when(mockAgreement.id).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
       when(mockAgreement.provider).thenReturn(provider);
       golemEvents.market.emit("agreementApproved", {
-        type: "AgreementApproved",
         agreement: instance(mockAgreement),
-        timestamp: new Date(),
       });
       if (task.invoiceReceivedAmount) {
         const mockInvoice = mock(Invoice);
@@ -42,7 +40,7 @@ describe("Stats Service", function () {
         when(mockInvoice.id).thenReturn(`test-invoice-id-${id}`);
         when(mockInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
         when(mockInvoice.amount).thenReturn(task.invoiceReceivedAmount.toString());
-        golemEvents.payment.emit("invoiceReceived", instance(mockInvoice));
+        golemEvents.payment.emit("invoiceReceived", { invoice: instance(mockInvoice) });
       }
       if (task.paid) {
         const mockPaidInvoice = mock(Invoice);
@@ -50,7 +48,7 @@ describe("Stats Service", function () {
         when(mockPaidInvoice.id).thenReturn(`test-invoice-id-${id}`);
         when(mockPaidInvoice.agreementId).thenReturn(task.agreementId ?? `test-agreement-id-${id}`);
         when(mockPaidInvoice.amount).thenReturn(task.paid.toString());
-        golemEvents.payment.emit("invoiceAccepted", instance(mockPaidInvoice));
+        golemEvents.payment.emit("invoiceAccepted", { invoice: instance(mockPaidInvoice) });
       }
       executorEvents.emit("taskCompleted", {
         id: `task-id-${id}`,
