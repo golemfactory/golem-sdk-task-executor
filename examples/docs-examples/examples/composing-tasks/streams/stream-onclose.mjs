@@ -38,11 +38,13 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
       let remoteProcess = await exe.runAndStream("/bin/sh ./script.sh");
 
-      remoteProcess.stdout.on("data", (data) => console.log("stdout: ", data));
-      remoteProcess.stderr.on("data", (data) => console.error("stderr: ", data));
+      remoteProcess.stderr.subscribe((data) => console.error("stderr: ", data));
 
       await new Promise((resolve) => {
-        remoteProcess.stdout.on("close", resolve);
+        remoteProcess.stdout.subscribe({
+          next: (data) => console.log("stdout: ", data),
+          complete: () => resolve(),
+        });
       });
       return 0;
     });

@@ -39,8 +39,8 @@ for (const i of [1, 2, 3, 4]) {
       // script is run and stream results, stdout and stderr are processed
       let remoteProcess = await exe.runAndStream("/bin/sh ./script.sh");
 
-      remoteProcess.stdout.on("data", (data) => console.log(`iteration: ${i}:`, "stdout>", data));
-      remoteProcess.stderr.on("data", (data) => console.error(`iteration: ${i}:`, "stderr>", data));
+      remoteProcess.stdout.subscribe((data) => console.log(`iteration: ${i}:`, "stdout>", data));
+      remoteProcess.stderr.subscribe((data) => console.error(`iteration: ${i}:`, "stderr>", data));
 
       // For odd tasks, we set streaming timeout to 10 secs,
       // the script will end normally, for equal tasks we will exit the run method after 3 secs.

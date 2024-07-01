@@ -32,9 +32,11 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
         .endStream();
 
       return new Promise((resolve, reject) => {
-        res.on("data", (result) => console.log(result));
-        res.on("error", (error) => reject(error));
-        res.on("close", resolve);
+        res.subscribe({
+          next: (result) => console.log(result),
+          error: (error) => reject(error),
+          complete: () => resolve(),
+        });
       });
     });
   } catch (err) {
