@@ -31,9 +31,7 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
         .downloadFile("/golem/input/output.txt", "./output.txt")
         .endStream();
 
-      for await (const chunk of res) {
-        console.log(chunk.stdout);
-      }
+      res.subscribe((chunk) => console.log(chunk));
     });
   } catch (err) {
     console.error("An error occurred:", err);
