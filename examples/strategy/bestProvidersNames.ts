@@ -34,7 +34,7 @@ const bestAgreementSelector = (scores: { [providerName: string]: number }) => (p
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalSelector: bestAgreementSelector(scores),
+      offerProposalSelector: bestAgreementSelector(scores),
     },
   });
 

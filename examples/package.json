@@ -36,7 +36,7 @@
   "dependencies": {
     "@golem-sdk/pino-logger": "^1.0.2",
     "@golem-sdk/task-executor": "file:..",
-    "@golem-sdk/golem-js": "v3.0.0-beta.52",
+    "@golem-sdk/golem-js": "v3.0.0-beta.55",
     "commander": "^12.0.0",
     "express": "^4.18.2",
     "tsx": "^4.7.0"

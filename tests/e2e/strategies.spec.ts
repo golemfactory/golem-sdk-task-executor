@@ -1,6 +1,6 @@
 import { TaskExecutor } from "../../src";
 import { sleep } from "../../src/utils";
-import { ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 
 describe("Strategies", function () {
   describe("Proposals", () => {
@@ -19,7 +19,7 @@ describe("Strategies", function () {
             maxCpuPerHourPrice: 1.0,
             maxEnvPerHourPrice: 0.5,
           },
-          proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
+          offerProposalFilter: OfferProposalFilterFactory.disallowProvidersByNameRegex(/provider-2/),
         },
       });
       let proposalReceivedProviderNames: string[] = [];
@@ -60,7 +60,7 @@ describe("Strategies", function () {
             maxCpuPerHourPrice: 1.0,
             maxEnvPerHourPrice: 0.5,
           },
-          proposalFilter: ProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
+          offerProposalFilter: OfferProposalFilterFactory.allowProvidersByNameRegex(/provider-2/),
         },
       });
       let proposalReceivedProviderNames: string[] = [];

@@ -1,6 +1,6 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
-import { ProposalFilter, ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { OfferProposalFilter, OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to write a custom dynamic proposal filter.
@@ -9,7 +9,7 @@ import { ProposalFilter, ProposalFilterFactory } from "@golem-sdk/golem-js";
  */
 
 const makeDynamicFilter: () => {
-  filter: ProposalFilter;
+  filter: OfferProposalFilter;
   stopPolling: () => void;
 } = () => {
   let partnerProviderIds = [];
@@ -28,7 +28,7 @@ const makeDynamicFilter: () => {
 
   // Return the filter that will be called synchronously
   return {
-    filter: ProposalFilterFactory.allowProvidersById(partnerProviderIds),
+    filter: OfferProposalFilterFactory.allowProvidersById(partnerProviderIds),
     stopPolling: () => clearInterval(interval),
   };
 };
@@ -50,7 +50,7 @@ const makeDynamicFilter: () => {
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: filter,
+      offerProposalFilter: filter,
     },
   });
   try {

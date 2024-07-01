@@ -39,8 +39,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: reputation.proposalFilter(),
-      proposalSelector: reputation.agreementSelector(),
+      offerProposalFilter: reputation.offerProposalFilter(),
+      offerProposalSelector: reputation.agreementSelector(),
     },
     payment: { network: "polygon" },
   });

@@ -1,6 +1,6 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
-import { ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 /**
  * Example demonstrating how to use the predefined filter `disallowProvidersByName`,
  * which blocking any proposal coming from a provider whose name is in the array
@@ -24,7 +24,7 @@ const blackListProvidersNames = ["provider-1", "golem-provider", "super-provider
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: ProposalFilterFactory.disallowProvidersByName(blackListProvidersNames),
+      offerProposalFilter: OfferProposalFilterFactory.disallowProvidersByName(blackListProvidersNames),
     },
   });
 

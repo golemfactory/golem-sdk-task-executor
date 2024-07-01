@@ -44,7 +44,7 @@ const myFilter = (proposal) => {
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: myFilter,
+      offerProposalFilter: myFilter,
     },
     task: {
       startupTimeout: 60_000,

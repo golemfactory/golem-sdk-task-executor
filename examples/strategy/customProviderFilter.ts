@@ -1,12 +1,12 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
-import { ProposalFilter } from "@golem-sdk/golem-js";
+import { OfferProposalFilter } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to write a custom proposal filter.
  * In this case the proposal must include VPN access and must not be from "bad-provider"
  */
-const myFilter: ProposalFilter = (proposal) => {
+const myFilter: OfferProposalFilter = (proposal) => {
   return (
     proposal.provider.name !== "bad-provider" || !proposal.properties["golem.runtime.capabilities"]?.includes("vpn")
   );
@@ -28,7 +28,7 @@ const myFilter: ProposalFilter = (proposal) => {
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: myFilter,
+      offerProposalFilter: myFilter,
     },
   });
   try {

@@ -190,7 +190,7 @@ export class TaskExecutor {
         this.network = await this.glm.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
       }
       this.resourceRentalPool = await this.glm.manyOf({
-        concurrency: { min: 1, max: this.options.task.maxParallelTasks },
+        poolSize: { min: 1, max: this.options.task.maxParallelTasks },
         order: {
           ...this.options.order,
           network: this.network,

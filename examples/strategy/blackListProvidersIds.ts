@@ -1,6 +1,6 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
-import { ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to use the predefined filter `disallowProvidersById`,
@@ -29,7 +29,7 @@ const blackListProvidersIds = [
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: ProposalFilterFactory.disallowProvidersById(blackListProvidersIds),
+      offerProposalFilter: OfferProposalFilterFactory.disallowProvidersById(blackListProvidersIds),
     },
   });
 

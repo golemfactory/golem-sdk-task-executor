@@ -1,6 +1,6 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
-import { ProposalFilterFactory } from "@golem-sdk/golem-js";
+import { OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to use the predefined selector `disallowProvidersByNameRegex`,
@@ -23,7 +23,7 @@ import { ProposalFilterFactory } from "@golem-sdk/golem-js";
         maxCpuPerHourPrice: 1.0,
         maxEnvPerHourPrice: 0.5,
       },
-      proposalFilter: ProposalFilterFactory.disallowProvidersByNameRegex(/bad-provider*./),
+      offerProposalFilter: OfferProposalFilterFactory.disallowProvidersByNameRegex(/bad-provider*./),
     },
   });
 
