@@ -22,9 +22,11 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   try {
     await executor.run(async (exe) => {
       const results = await exe.beginBatch().run('echo "Hello Golem"').run('echo "Hello World"').endStream();
-      results.on("data", ({ stdout }) => console.log(stdout));
-      results.on("error", (error) => console.error(error.toString()));
-      results.on("close", () => console.log("END"));
+      results.subscribe({
+        next: ({ stdout }) => console.log(stdout),
+        error: (error) => console.error(error.toString()),
+        complete: () => console.log("END"),
+      });
     });
   } catch (error) {
     console.error("Computation failed:", error);

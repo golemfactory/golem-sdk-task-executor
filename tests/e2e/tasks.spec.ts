@@ -145,8 +145,10 @@ describe("Task Executor", function () {
           .run('echo "Hello World"')
           .run('echo "OK"')
           .endStream();
-        results.on("data", ({ stdout }) => outputs.push(stdout.toString().trim()));
-        results.on("close", () => (onEnd = "END"));
+        results.subscribe({
+          next: ({ stdout }) => stdout && outputs.push(stdout.toString().trim()),
+          complete: () => (onEnd = "END"),
+        });
       })
       .catch((e) => {
         executor.shutdown();
@@ -261,8 +263,8 @@ describe("Task Executor", function () {
     let stderr = "";
     const finalResult = await executor.run(async (exe) => {
       const remoteProcess = await exe.runAndStream("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
-      remoteProcess.stdout.on("data", (data) => (stdout += data.trim()));
-      remoteProcess.stderr.on("data", (data) => (stderr += data.trim()));
+      remoteProcess.stdout.subscribe((data) => (stdout += data?.toString().trim()));
+      remoteProcess.stderr.subscribe((data) => (stderr += data?.toString().trim()));
       return remoteProcess.waitForExit();
     });
     expect(stdout).toContain("Hello World");
@@ -394,7 +396,7 @@ describe("Task Executor", function () {
       echo -n 'Hello from stdout yet again' >&1
       `,
       );
-      proc.stdout.on("data", (data) => console.log(data));
+      proc.stdout.subscribe((data) => console.log(data));
       await proc.waitForExit(30_000).catch((error) => console.warn("Task execution failed:", error));
     });
     // the first task should be terminated by the provider, the second one should not use the same agreement
@@ -420,17 +422,17 @@ describe("Task Executor", function () {
       payment: executor2.glm.payment.events,
     });
     executor1.glm.market.events.on("agreementApproved", (ev) => confirmedAgreementsIds1.add(ev.agreement.id));
-    executor1.glm.payment.events.on("debitNoteAccepted", (debitNote) =>
+    executor1.glm.payment.events.on("debitNoteAccepted", ({ debitNote }) =>
       acceptedPaymentsAgreementIds1.add(debitNote.agreementId),
     );
-    executor1.glm.payment.events.on("invoiceAccepted", (invoice) =>
+    executor1.glm.payment.events.on("invoiceAccepted", ({ invoice }) =>
       acceptedPaymentsAgreementIds1.add(invoice.agreementId),
     );
     executor2.glm.market.events.on("agreementApproved", (ev) => confirmedAgreementsIds2.add(ev.agreement.id));
-    executor2.glm.payment.events.on("debitNoteAccepted", (debitNote) =>
+    executor2.glm.payment.events.on("debitNoteAccepted", ({ debitNote }) =>
       acceptedPaymentsAgreementIds2.add(debitNote.agreementId),
     );
-    executor2.glm.payment.events.on("invoiceAccepted", (invoice) =>
+    executor2.glm.payment.events.on("invoiceAccepted", ({ invoice }) =>
       acceptedPaymentsAgreementIds2.add(invoice.agreementId),
     );
     try {

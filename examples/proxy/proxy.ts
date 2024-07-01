@@ -45,8 +45,8 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
       // Start the server process on the provider
       const server = await exe.runAndStream(`PORT=${PORT_ON_PROVIDER} node /golem/work/server.js`);
 
-      server.stdout.on("data", (data) => console.log("provider>", data));
-      server.stderr.on("data", (data) => console.error("provider>", data));
+      server.stdout.subscribe((data) => console.log("provider>", data));
+      server.stderr.subscribe((data) => console.error("provider>", data));
 
       // Create a proxy instance
       const proxy = exe.createTcpProxy(PORT_ON_PROVIDER);

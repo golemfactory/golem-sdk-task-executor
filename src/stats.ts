@@ -131,7 +131,7 @@ export class StatsService {
       this.logger.debug("AgreementApproved event collected", { agreement });
     });
 
-    this.golemEvents.payment.on("invoiceReceived", (invoice) => {
+    this.golemEvents.payment.on("invoiceReceived", ({ invoice }) => {
       let invoices = this.invoices.get(invoice.agreementId);
       if (!invoices) {
         invoices = [];
@@ -141,7 +141,7 @@ export class StatsService {
       this.logger.debug("InvoiceReceived event collected", { invoice });
     });
 
-    this.golemEvents.payment.on("invoiceAccepted", (invoice) => {
+    this.golemEvents.payment.on("invoiceAccepted", ({ invoice }) => {
       let payments = this.payments.get(invoice.agreementId);
       if (!payments) {
         payments = [];
@@ -151,14 +151,14 @@ export class StatsService {
       this.logger.debug("InvoiceAccepted event collected", { invoice });
     });
 
-    this.golemEvents.market.on("offerProposalReceived", ({ proposal }) => {
-      this.proposals.add(proposal);
+    this.golemEvents.market.on("offerProposalReceived", ({ offerProposal }) => {
+      this.proposals.add(offerProposal);
     });
-    this.golemEvents.market.on("offerProposalRejectedByProposalFilter", (proposal) => {
-      this.proposalsRejected.add(proposal);
+    this.golemEvents.market.on("offerProposalRejectedByProposalFilter", ({ offerProposal }) => {
+      this.proposalsRejected.add(offerProposal);
     });
-    this.golemEvents.market.on("offerProposalRejectedByPriceFilter", (proposal) => {
-      this.proposalsRejected.add(proposal);
+    this.golemEvents.market.on("offerProposalRejectedByPriceFilter", ({ offerProposal }) => {
+      this.proposalsRejected.add(offerProposal);
     });
   }
 

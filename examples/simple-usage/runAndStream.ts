@@ -20,8 +20,8 @@ const executor = await TaskExecutor.create({
 });
 const finalResult = await executor.run(async (exe) => {
   const remoteProcess = await exe.runAndStream("sleep 1 && echo 'Hello World' && echo 'Hello Golem' >&2");
-  remoteProcess.stdout.on("data", (data) => console.log("stdout>", data));
-  remoteProcess.stderr.on("data", (data) => console.error("stderr>", data));
+  remoteProcess.stdout.subscribe((data) => console.log("stdout>", data));
+  remoteProcess.stderr.subscribe((data) => console.error("stderr>", data));
 
   const finalResult = await remoteProcess.waitForExit();
   return finalResult;

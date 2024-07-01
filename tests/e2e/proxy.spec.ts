@@ -35,7 +35,7 @@ describe("TcpProxy", function () {
         "/golem/work/server.js",
       );
       const server = await exe.runAndStream("node /golem/work/server.js");
-      server.stdout.on("data", (data) => (providerStdout += data.toString()));
+      server.stdout.subscribe((data) => (providerStdout += data?.toString()));
       const proxy = exe.createTcpProxy(80);
       await proxy.listen(7777);
       await sleep(10);
