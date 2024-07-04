@@ -187,8 +187,7 @@ export class TaskExecutor {
 
   /**
    * Initialize executor
-   *
-   * @description Method responsible initialize all executor services.
+   * Method responsible for connecting to the golem network and initiating all required services.
    */
   async init() {
     this.logger.debug("Initializing task executor...");
