@@ -83,7 +83,7 @@ export type ExecutorMainOptions = {
 };
 
 /**
- * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
+ * Contains information needed to start executor
  */
 export type TaskExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
