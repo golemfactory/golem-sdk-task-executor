@@ -1,13 +1,6 @@
 import { Task, TaskState } from "./task";
 import { TaskQueue } from "./queue";
-import {
-  GolemInternalError,
-  GolemTimeoutError,
-  GolemWorkError,
-  ResourceRental,
-  ResourceRentalPool,
-  Logger,
-} from "@golem-sdk/golem-js";
+import { GolemInternalError, GolemTimeoutError, GolemWorkError, ResourceRentalPool, Logger } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
 import { ExecutorEvents } from "./events";
@@ -23,7 +16,6 @@ export interface TaskServiceOptions {
  */
 export class TaskService {
   private activeTasksCount = 0;
-  private resourceRentals = new Map<string, ResourceRental>();
   private isRunning = false;
   private taskRunningIntervalMs: number;
 
@@ -93,7 +85,6 @@ export class TaskService {
         }
       });
       const rental = await this.resourceRentalPool.acquire(abortController.signal);
-      this.resourceRentals.set(rental.agreement.id, rental);
 
       if (task.isFailed()) {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
