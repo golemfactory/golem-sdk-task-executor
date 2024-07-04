@@ -128,24 +128,27 @@ export class TaskExecutor {
    *
    * @example **Simple usage of Task Executor**
    *
-   * The executor can be created by passing appropriate initial parameters such as package, budget, subnet tag, payment driver, payment network etc.
-   * One required parameter is a package. This can be done in two ways. First by passing only package image hash or image tag, e.g.
-   * ```js
-   * const executor = await TaskExecutor.create("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae");
-   * ```
-   * or
-   * ```js
-   * const executor = await TaskExecutor.create("golem/alpine:3.18.2");
-   * ```
+   * The executor can be created by passing appropriate initial parameters such as market, payment, payment etc.
    *
    * @example **Usage of Task Executor with custom parameters**
    *
-   * Or by passing some optional parameters, e.g.
    * ```js
    * const executor = await TaskExecutor.create({
-   *   subnetTag: "public",
-   *   payment: { driver: "erc-20", network: "holesky" },
-   *   package: "golem/alpine:3.18.2",
+   *   logger: pinoPrettyLogger({ level: "info" }),
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   market: {
+   *     rentHours: 0.5,
+   *     pricing: {
+   *       model: "linear",
+   *       maxStartPrice: 0.5,
+   *       maxCpuPerHourPrice: 1.0,
+   *       maxEnvPerHourPrice: 0.5,
+   *     },
+   *   },
    * });
    * ```
    *
@@ -161,7 +164,7 @@ export class TaskExecutor {
   /**
    * Create a new TaskExecutor object.
    *
-   * @param options - contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorMainOptions}
+   * @param options -{@link TaskExecutorOptions}
    */
   constructor(options: TaskExecutorOptions) {
     this.options = new ExecutorConfig(options);
