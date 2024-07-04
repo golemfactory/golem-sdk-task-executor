@@ -92,6 +92,11 @@ export type TaskExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & Ma
  */
 export class TaskExecutor {
   public readonly events: EventEmitter<ExecutorEvents>;
+  /**
+   * This object is the main entry-point to the basic golem-js api.
+   * Allows you to listen to events from core golem-js modules such as market, payment, etc.
+   * Provides full access to the low-level api intended for more advanced users
+   */
   public readonly glm: GolemNetwork;
 
   private readonly options: ExecutorConfig;
