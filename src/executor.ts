@@ -182,7 +182,6 @@ export class TaskExecutor {
       { market: this.glm.market.events, activity: this.glm.activity.events, payment: this.glm.payment.events },
       { logger: this.logger },
     );
-    this.events.emit("executorStart", Date.now());
   }
 
   /**
@@ -225,11 +224,7 @@ export class TaskExecutor {
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
     if (isNode) this.installSignalHandlers();
-    this.logger.info(`Task Executor has started`, {
-      subnet: this.options.golemNetwork.payment?.network,
-      network: this.options.golemNetwork.payment?.network,
-      driver: this.options.golemNetwork.payment?.driver,
-    });
+    this.logger.info("Task Executor has started");
     this.events.emit("executorReady", Date.now());
   }
 

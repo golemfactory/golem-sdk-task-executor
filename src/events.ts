@@ -5,11 +5,6 @@ import { TaskDetails } from "./task";
  */
 export interface ExecutorEvents {
   /**
-   * Fires when task executor is created, before initialization services.
-   */
-  executorStart: (timestamp: number) => void;
-
-  /**
    * Fires when task executor is initialized and ready to be used.
    */
   executorReady: (timestamp: number) => void;
