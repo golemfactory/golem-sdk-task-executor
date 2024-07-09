@@ -7,6 +7,7 @@ import {
   GolemNetworkOptions,
   MarketOrderSpec,
   NetworkOptions,
+  LifecycleFunction,
 } from "@golem-sdk/golem-js";
 
 const DEFAULTS = Object.freeze({
@@ -28,6 +29,8 @@ export class ExecutorConfig implements ExecutorMainOptions {
     maxTaskRetries: number;
     taskTimeout?: number;
     taskStartupTimeout?: number;
+    setup?: LifecycleFunction;
+    teardown?: LifecycleFunction;
   };
   readonly golemNetwork: GolemNetworkOptions;
   readonly order: MarketOrderSpec;
@@ -46,6 +49,8 @@ export class ExecutorConfig implements ExecutorMainOptions {
       maxTaskRetries: options.task?.maxTaskRetries ?? DEFAULTS.maxTaskRetries,
       taskTimeout: options.task?.taskTimeout,
       taskStartupTimeout: options.task?.taskStartupTimeout,
+      setup: options.task?.setup,
+      teardown: options.task?.teardown,
     };
     this.startupTimeout = options.startupTimeout;
     this.skipProcessSignals = options.skipProcessSignals ?? DEFAULTS.skipProcessSignals;

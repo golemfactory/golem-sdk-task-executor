@@ -25,9 +25,15 @@ const blenderParams = (frame) => ({
 });
 
 async function main(subnetTag: string, driver?: "erc20", network?: string, maxParallelTasks?: number) {
+  const setup = async (exe) => {
+    console.log("Uploading the scene to the provider %s", exe.provider.name);
+    await exe.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
+    console.log("Upload of the scene to the provider %s finished", exe.provider.name);
+  };
   const executor = await TaskExecutor.create({
     task: {
       maxParallelTasks,
+      setup,
     },
     logger: pinoPrettyLogger(),
     payment: { driver, network },
@@ -47,12 +53,6 @@ async function main(subnetTag: string, driver?: "erc20", network?: string, maxPa
   });
 
   try {
-    executor.onExeUnitReady(async (exe) => {
-      console.log("Uploading the scene to the provider %s", exe.provider.name);
-      await exe.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
-      console.log("Upload of the scene to the provider %s finished", exe.provider.name);
-    });
-
     const futureResults = [0, 10, 20, 30, 40, 50].map(async (frame) =>
       executor.run(async (exe) => {
         console.log("Started rendering of frame %d on provider %s", frame, exe.provider.name);

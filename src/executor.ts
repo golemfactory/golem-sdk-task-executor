@@ -46,6 +46,53 @@ export interface TaskSpecificOptions {
    * Set to false by default. If enabled, timeouts will be retried in case of timeout errors.
    */
   taskRetryOnTimeout?: boolean;
+
+  /**
+   * A setup function that will be run when an exe-unit is ready.
+   * This is the perfect place to run setup function that need to be run only once per exe-unit,
+   * for example uploading files that will be used by all tasks in the exe-unit.
+   * This function can be called multiple times.
+   *
+   * @example
+   * ```ts
+   * const uploadFile = async (exe) => exe.uploadFile("./file1.txt", "/file1.txt");
+   *
+   * const executor = await TaskExecutor.create({
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   task: {
+   *     setup: uploadFile,
+   *   }
+   * });
+   * ```
+   */
+  setup?: LifecycleFunction;
+
+  /**
+   * A teardown function that will be run before the exe unit is destroyed.
+   * This is the perfect place to run teardown function that need to be run only once per
+   * exe-unit at the end of the entire work, for example cleaning of the working environment.
+   *
+   * @example
+   * ```ts
+   * const removeFile = async (exe) => exe.run("rm ./file.txt");
+   *
+   * const executor = await TaskExecutor.create({
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   task: {
+   *     teardown: removeFile,
+   *   }
+   * });
+   * ```
+   */
+  teardown?: LifecycleFunction;
 }
 
 export type ExecutorMainOptions = {
@@ -105,8 +152,6 @@ export class TaskExecutor {
   private readonly options: ExecutorConfig;
   private taskService?: TaskService;
   private statsService: StatsService;
-  private setupFunction?: LifecycleFunction;
-  private teardownFunction?: LifecycleFunction;
   private taskQueue: TaskQueue;
   private logger: Logger;
   private lastTaskIndex = 0;
@@ -204,8 +249,8 @@ export class TaskExecutor {
           ...this.options.order,
           network: this.network,
         },
-        setup: this.setupFunction,
-        teardown: this.teardownFunction,
+        setup: this.options.task.setup,
+        teardown: this.options.task.teardown,
       });
       await this.statsService.run();
       this.setStartupTimeout();
@@ -273,49 +318,6 @@ export class TaskExecutor {
       ...this.statsService.getAll(),
       retries: this.taskService?.getTotalRetryCount(),
     };
-  }
-
-  /**
-   * Registers a setup function that will be run when an exe-unit is ready.
-   * This is the perfect place to run setup functions that need to be run only once per
-   * exe-unit, for example uploading files that will be used by all tasks in the exe-unit.
-   * This function can be called multiple times.
-   *
-   * @param setup setup function that will be run when an exe-unit is ready
-   * @example
-   * ```ts
-   * const uploadFile = async (exe) => exe.uploadFile("./file1.txt", "/file1.txt");
-   *
-   * executor.onExeUnitReady(uploadFile);
-   *
-   * await executor.run(async (exe) => {
-   *  await exe.run("cat /file1.txt /file2.txt");
-   * });
-   * ```
-   */
-  onExeUnitReady(setup: LifecycleFunction) {
-    this.setupFunction = setup;
-  }
-
-  /**
-   * Registers a teardown function that will be run before the exe unit is destroyed.
-   * This is the perfect place to run teardown functions that need to be run only once per
-   * exe-unit at the end of the entire work, for example cleaning of the working environment.
-   *
-   * @param teardown teardown function that will be run before the exe unit is destroyed
-   * @example
-   * ```ts
-   * const removeFile = async (exe) => exe.run("rm ./file.txt");
-   *
-   * executor.onExeUnitStopped(removeFile);
-   *
-   * await executor.run(async (exe) => {
-   *  await exe.run("cat /file.txt");
-   * });
-   * ```
-   */
-  onExeUnitStopped(teardown: LifecycleFunction) {
-    this.teardownFunction = teardown;
   }
 
   /**

@@ -21,12 +21,11 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
     },
     task: {
       maxParallelTasks: 3,
+      setup: async (exe) => {
+        console.log(exe.provider.name + " is downloading action_log file");
+        await exe.uploadFile("./action_log.txt", "/golem/input/action_log.txt");
+      },
     },
-  });
-
-  executor.onExeUnitReady(async (exe) => {
-    console.log(exe.provider.name + " is downloading action_log file");
-    await exe.uploadFile("./action_log.txt", "/golem/input/action_log.txt");
   });
 
   const inputs = [1, 2, 3, 4, 5];
