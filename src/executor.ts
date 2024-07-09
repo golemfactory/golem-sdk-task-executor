@@ -11,6 +11,7 @@ import {
   NetworkOptions,
   LifecycleFunction,
   ResourceRentalPool,
+  ExeUnit,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
 import { ExecutorEvents } from "./events";
@@ -18,7 +19,7 @@ import { EventEmitter } from "eventemitter3";
 import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
 import { isNode, sleep } from "./utils";
-import { Task, TaskFunction, TaskOptions } from "./task";
+import { Task, TaskOptions } from "./task";
 import { StatsService } from "./stats";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
@@ -87,6 +88,8 @@ export type ExecutorMainOptions = {
  */
 export type TaskExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
+export type TaskFunction<OutputType> = (exe: ExeUnit) => Promise<OutputType>;
+
 /**
  * A high-level module for defining and executing tasks in the golem network
  */
@@ -121,7 +124,7 @@ export class TaskExecutor {
 
   /**
    * Shutdown promise.
-   * This will be set by call to shut down() method.
+   * This will be set by call to `shutdown()` method.
    * It will be resolved when the executor is fully stopped.
    */
   private shutdownPromise?: Promise<void>;
@@ -360,7 +363,7 @@ export class TaskExecutor {
         `Unable to execute task. ${error.toString()}`,
         WorkErrorCode.ScriptExecutionFailed,
         task?.getResourceRental()?.agreement,
-        undefined, // task?.getLeaseProcess()?.getActivity(),
+        undefined,
         task?.getResourceRental()?.agreement?.provider,
         error,
       );
@@ -381,7 +384,6 @@ export class TaskExecutor {
       }
 
       const message = `Executor has interrupted by the user. Reason: ${reason}.`;
-      console.log("CANCEL");
       this.logger.info(`${message}. Stopping all tasks...`, {
         tasksInProgress: this.taskQueue.size,
       });

@@ -1,12 +1,5 @@
 import { QueueableTask } from "./queue";
-import {
-  GolemConfigError,
-  GolemInternalError,
-  GolemTimeoutError,
-  ResourceRental,
-  ExeUnit,
-  LifecycleFunction,
-} from "@golem-sdk/golem-js";
+import { GolemConfigError, GolemInternalError, GolemTimeoutError, ResourceRental, ExeUnit } from "@golem-sdk/golem-js";
 
 export interface ProviderInfo {
   name: string;
@@ -73,7 +66,6 @@ export class Task<OutputType = unknown> implements QueueableTask {
   private readonly timeout?: number;
   private readonly startupTimeout?: number;
   private readonly maxRetries: number;
-  private readonly setupFunction?: LifecycleFunction;
   private resourceRental?: ResourceRental;
   private exe?: ExeUnit;
 
@@ -182,9 +174,6 @@ export class Task<OutputType = unknown> implements QueueableTask {
   }
   getTaskFunction(): TaskFunction<OutputType> {
     return this.taskFunction;
-  }
-  getSetupFunction(): LifecycleFunction | undefined {
-    return this.setupFunction;
   }
   getRetriesCount(): number {
     return this.retriesCount;

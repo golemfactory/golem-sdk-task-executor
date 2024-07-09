@@ -8,7 +8,6 @@ import { ExecutorEvents } from "./events";
 export interface TaskServiceOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
   maxParallelTasks: number;
-  taskRunningIntervalMs?: number;
 }
 
 /**
@@ -17,7 +16,6 @@ export interface TaskServiceOptions {
 export class TaskService {
   private activeTasksCount = 0;
   private isRunning = false;
-  private taskRunningIntervalMs: number;
 
   /** To keep track of the stat */
   private retryCountTotal = 0;
@@ -28,9 +26,7 @@ export class TaskService {
     private events: EventEmitter<ExecutorEvents>,
     private logger: Logger,
     private options: TaskServiceOptions,
-  ) {
-    this.taskRunningIntervalMs = options.taskRunningIntervalMs ?? 1000;
-  }
+  ) {}
 
   public async run() {
     this.isRunning = true;
@@ -38,12 +34,12 @@ export class TaskService {
     await this.resourceRentalPool.ready();
     while (this.isRunning) {
       if (this.activeTasksCount >= this.options.maxParallelTasks) {
-        await sleep(this.taskRunningIntervalMs, true);
+        await sleep(0);
         continue;
       }
       const task = this.tasksQueue.get();
       if (!task) {
-        await sleep(this.taskRunningIntervalMs, true);
+        await sleep(0);
         continue;
       }
       task.onStateChange(() => {
