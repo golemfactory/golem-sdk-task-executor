@@ -42,11 +42,12 @@ describe("Blender rendering", function () {
             maxEnvPerHourPrice: 0.5,
           },
         },
-      });
-
-      executor.onExeUnitReady(async (exe) => {
-        const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/cubes.blend"));
-        await exe.uploadFile(sourcePath, "/golem/resource/scene.blend");
+        task: {
+          setup: async (exe) => {
+            const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/cubes.blend"));
+            await exe.uploadFile(sourcePath, "/golem/resource/scene.blend");
+          },
+        },
       });
 
       const data = [0, 10, 20, 30, 40, 50];

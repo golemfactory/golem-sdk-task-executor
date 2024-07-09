@@ -26,11 +26,12 @@ describe("GFTP transfers", function () {
             maxEnvPerHourPrice: 0.5,
           },
         },
-      });
-
-      executor.onExeUnitReady(async (exe) => {
-        const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/eiffel.blend"));
-        await exe.uploadFile(sourcePath, "/golem/work/eiffel.blend");
+        task: {
+          setup: async (exe) => {
+            const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/eiffel.blend"));
+            await exe.uploadFile(sourcePath, "/golem/work/eiffel.blend");
+          },
+        },
       });
 
       const data = [0, 1, 2, 3, 4, 5];

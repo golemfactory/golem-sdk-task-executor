@@ -290,6 +290,7 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 0,
+        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -301,7 +302,6 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
       await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
     } catch (error) {
       await executor.shutdown();
@@ -327,6 +327,7 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 7,
+        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -338,7 +339,6 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      executor.onExeUnitReady(async (exe) => Promise.reject("Error"));
       await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
     } catch (error) {
       await executor.shutdown();
