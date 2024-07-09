@@ -58,7 +58,6 @@ describe("Task Service", () => {
     events.on("taskStarted", cb);
     events.on("taskCompleted", cb);
     const service = new TaskService(queue, resourceRentalPool, events, logger, {
-      taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
     service.run().catch((e) => console.error(e));
@@ -79,7 +78,6 @@ describe("Task Service", () => {
     queue.addToEnd(task2);
     queue.addToEnd(task3);
     const service = new TaskService(queue, resourceRentalPool, events, logger, {
-      taskRunningIntervalMs: 1,
       maxParallelTasks: 2,
     });
     service.run().catch((e) => console.error(e));
@@ -98,7 +96,6 @@ describe("Task Service", () => {
     events.on("taskRetried", cb);
     when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
     const service = new TaskService(queue, resourceRentalPool, events, logger, {
-      taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
     service.run().then();
@@ -114,7 +111,6 @@ describe("Task Service", () => {
     queue.addToEnd(task);
     when(exeUnitMock.run(_)).thenReject(new Error("Test error"));
     const service = new TaskService(queue, resourceRentalPool, events, logger, {
-      taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
     service.run().catch((e) => console.error(e));
@@ -138,7 +134,6 @@ describe("Task Service", () => {
     events.on("taskRetried", cb);
     when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
     const service = new TaskService(queue, resourceRentalPool, events, logger, {
-      taskRunningIntervalMs: 10,
       maxParallelTasks: 1,
     });
     queue.addToEnd(task);
