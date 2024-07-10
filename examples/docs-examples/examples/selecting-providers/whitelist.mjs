@@ -1,4 +1,6 @@
-import { TaskExecutor, pinoPrettyLogger, ProposalFilterFactory } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { OfferProposalFilterFactory } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to use the predefined filter `allowProvidersByName`,
@@ -13,15 +15,28 @@ for (let i = 0; i < whiteListNames.length; i++) {
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    proposalFilter: ProposalFilterFactory.allowProvidersByName(whiteListNames),
     logger: pinoPrettyLogger(),
-    yagnaOptions: { apiKey: "try_golem" },
+    api: { key: "try_golem" },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      offerProposalFilter: OfferProposalFilterFactory.allowProvidersByName(whiteListNames),
+    },
   });
 
   try {
-    await executor.run(async (ctx) =>
-      console.log((await ctx.run(`echo "This task is run on ${ctx.provider.name}"`)).stdout),
+    await executor.run(async (exe) =>
+      console.log((await exe.run(`echo "This task is run on ${exe.provider.name}"`)).stdout),
     );
   } catch (err) {
     console.error("An error occurred:", err);

@@ -1,62 +1,102 @@
 import {
-  Package,
-  PackageOptions,
-  MarketOptions,
-  MarketService,
-  AgreementPoolService,
-  AgreementServiceOptions,
-  PaymentOptions,
-  PaymentService,
-  NetworkService,
-  NetworkServiceOptions,
-  Logger,
-  Yagna,
-  GftpStorageProvider,
-  NullStorageProvider,
-  StorageProvider,
-  WebSocketBrowserStorageProvider,
-  GolemWorkError,
-  WorkErrorCode,
-  WorkOptions,
-  Worker,
-  GolemConfigError,
+  MarketOrderSpec,
   GolemInternalError,
+  GolemNetwork,
+  GolemNetworkOptions,
   GolemTimeoutError,
-  EVENT_TYPE,
-  BaseEvent,
-  GolemUserError,
+  GolemWorkError,
+  Logger,
+  WorkErrorCode,
+  Network,
+  NetworkOptions,
+  LifecycleFunction,
+  ResourceRentalPool,
+  ExeUnit,
 } from "@golem-sdk/golem-js";
 import { ExecutorConfig } from "./config";
-import { RequireAtLeastOne } from "./types";
-import { TaskExecutorEventsDict } from "./events";
+import { ExecutorEvents } from "./events";
 import { EventEmitter } from "eventemitter3";
-import { TaskService, TaskServiceOptions } from "./service";
+import { TaskService } from "./service";
 import { TaskQueue } from "./queue";
-import { isBrowser, isNode, sleep } from "./utils";
+import { isNode, sleep } from "./utils";
 import { Task, TaskOptions } from "./task";
 import { StatsService } from "./stats";
 
 const terminatingSignals = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
 
-export type ExecutorOptions = {
-  /** Image hash or image tag as string, otherwise Package object */
-  package?: string | Package;
+export interface TaskSpecificOptions {
+  /** Number of maximum parallel running task on one TaskExecutor instance. Default is 5 */
+  maxParallelTasks?: number;
+
   /** Timeout for execute one task in ms. Default is 300_000 (5 minutes). */
   taskTimeout?: number;
-  /** Subnet Tag */
-  subnetTag?: string;
-  /** Logger module */
-  logger?: Logger;
-  /** Set to `false` to completely disable logging (even if a logger is provided) */
-  enableLogging?: boolean;
-  /** Yagna Options */
-  yagnaOptions?: YagnaOptions;
+
   /** The maximum number of retries when the job failed on the provider */
   maxTaskRetries?: number;
-  /** Custom Storage Provider used for transfer files */
-  storageProvider?: StorageProvider;
-  /** Timeout for preparing activity - creating and deploy commands */
-  activityPreparingTimeout?: number;
+
+  /**
+   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
+   * This parameter is expressed in ms.
+   * If it is not possible to sign an agreement within the specified time,
+   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
+   */
+  taskStartupTimeout?: number;
+
+  /**
+   * Set to false by default. If enabled, timeouts will be retried in case of timeout errors.
+   */
+  taskRetryOnTimeout?: boolean;
+
+  /**
+   * A setup function that will be run when an exe-unit is ready.
+   * This is the perfect place to run setup function that need to be run only once per exe-unit,
+   * for example uploading files that will be used by all tasks in the exe-unit.
+   *
+   * @example
+   * ```ts
+   * const uploadFile = async (exe) => exe.uploadFile("./file1.txt", "/file1.txt");
+   *
+   * const executor = await TaskExecutor.create({
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   task: {
+   *     setup: uploadFile,
+   *   }
+   * });
+   * ```
+   */
+  setup?: LifecycleFunction;
+
+  /**
+   * A teardown function that will be run before the exe unit is destroyed.
+   * This is the perfect place to run teardown function that need to be run only once per
+   * exe-unit at the end of the entire work, for example cleaning of the working environment.
+   *
+   * @example
+   * ```ts
+   * const removeFile = async (exe) => exe.run("rm ./file.txt");
+   *
+   * const executor = await TaskExecutor.create({
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   task: {
+   *     teardown: removeFile,
+   *   }
+   * });
+   * ```
+   */
+  teardown?: LifecycleFunction;
+}
+
+export type ExecutorMainOptions = {
+  /** Set to `false` to completely disable logging (even if a logger is provided) */
+  enableLogging?: boolean;
   /**
    * Do not install signal handlers for SIGINT, SIGTERM, SIGBREAK, SIGHUP.
    *
@@ -76,66 +116,49 @@ export type ExecutorOptions = {
    * that meets these criteria may take a bit longer.
    */
   startupTimeout?: number;
-  /**
-   * Timeout for waiting for signing an agreement with an available provider from the moment the task initiated.
-   * This parameter is expressed in ms. Default is 120_000 (2 minutes).
-   * If it is not possible to sign an agreement within the specified time,
-   * the task will stop with an error and will be queued to be retried if the `maxTaskRetries` parameter > 0
-   */
-  taskStartupTimeout?: number;
-  /**
-   * If set to `true`, the executor will exit with an error when no proposals are accepted.
-   * You can customize how long the executor will wait for proposals using the `startupTimeout` parameter.
-   * Default is `false`.
-   */
-  exitOnNoProposals?: boolean;
 
-  taskRetryOnTimeout?: boolean;
-} & Omit<PackageOptions, "imageHash" | "imageTag"> &
-  MarketOptions &
-  PaymentOptions &
-  NetworkServiceOptions &
-  AgreementServiceOptions &
-  Omit<WorkOptions, "yagnaOptions"> &
-  TaskServiceOptions;
+  /**
+   * Creates a new logical network within the Golem VPN infrastructure.
+   * Allows communication between tasks using standard network mechanisms,
+   * but requires specific implementation in the ExeUnit/runtime,
+   * which must be capable of providing a standard Unix-socket interface to their payloads
+   * and marshaling the logical network traffic through the Golem Net transport layer.
+   * If boolean - true is provided, the network will be created with default parameters
+   */
+  vpn?: boolean | NetworkOptions;
+  task?: TaskSpecificOptions;
+};
 
 /**
- * Contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
+ * Contains information needed to start executor
  */
-export type ExecutorOptionsMixin = string | ExecutorOptions;
+export type TaskExecutorOptions = ExecutorMainOptions & GolemNetworkOptions & MarketOrderSpec;
 
-export type YagnaOptions = {
-  apiKey?: string;
-  basePath?: string;
-};
+export type TaskFunction<OutputType> = (exe: ExeUnit) => Promise<OutputType>;
 
 /**
  * A high-level module for defining and executing tasks in the golem network
  */
 export class TaskExecutor {
+  public readonly events: EventEmitter<ExecutorEvents>;
   /**
-   * EventEmitter (EventEmitter3) instance emitting TaskExecutor events.
-   * @see TaskExecutorEventsDict for available events.
+   * This object is the main entry-point to the basic golem-js api.
+   * Allows you to listen to events from core golem-js modules such as market, payment, etc.
+   * Provides full access to the low-level api intended for more advanced users
    */
-  readonly events: EventEmitter<TaskExecutorEventsDict> = new EventEmitter();
+  public readonly glm: GolemNetwork;
 
   private readonly options: ExecutorConfig;
-  private marketService: MarketService;
-  private agreementPoolService: AgreementPoolService;
-  private taskService: TaskService;
-  private paymentService: PaymentService;
-  private networkService?: NetworkService;
+  private taskService?: TaskService;
   private statsService: StatsService;
-  private activityReadySetupFunctions: Worker<unknown>[] = [];
   private taskQueue: TaskQueue;
-  private storageProvider?: StorageProvider;
   private logger: Logger;
   private lastTaskIndex = 0;
   private isRunning = true;
-  private configOptions: ExecutorOptions;
   private isCanceled = false;
   private startupTimeoutId?: NodeJS.Timeout;
-  private yagna: Yagna;
+  private resourceRentalPool?: ResourceRentalPool;
+  private network?: Network;
 
   /**
    * Signal handler reference, needed to remove handlers on exit.
@@ -145,7 +168,7 @@ export class TaskExecutor {
 
   /**
    * Shutdown promise.
-   * This will be set by call to shutdown() method.
+   * This will be set by call to `shutdown()` method.
    * It will be resolved when the executor is fully stopped.
    */
   private shutdownPromise?: Promise<void>;
@@ -157,31 +180,34 @@ export class TaskExecutor {
    *
    * @example **Simple usage of Task Executor**
    *
-   * The executor can be created by passing appropriate initial parameters such as package, budget, subnet tag, payment driver, payment network etc.
-   * One required parameter is a package. This can be done in two ways. First by passing only package image hash or image tag, e.g.
-   * ```js
-   * const executor = await TaskExecutor.create("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae");
-   * ```
-   * or
-   * ```js
-   * const executor = await TaskExecutor.create("golem/alpine:3.18.2");
-   * ```
+   * The executor can be created by passing appropriate initial parameters such as market, payment, payment etc.
    *
    * @example **Usage of Task Executor with custom parameters**
    *
-   * Or by passing some optional parameters, e.g.
    * ```js
    * const executor = await TaskExecutor.create({
-   *   subnetTag: "public",
-   *   payment: { driver: "erc-20", network: "holesky" },
-   *   package: "golem/alpine:3.18.2",
+   *   logger: pinoPrettyLogger({ level: "info" }),
+   *   demand: {
+   *     workload: {
+   *       imageTag: "golem/alpine:latest",
+   *     },
+   *   },
+   *   market: {
+   *     rentHours: 0.5,
+   *     pricing: {
+   *       model: "linear",
+   *       maxStartPrice: 0.5,
+   *       maxCpuPerHourPrice: 1.0,
+   *       maxEnvPerHourPrice: 0.5,
+   *     },
+   *   },
    * });
    * ```
    *
    * @param options Task executor options
    * @return TaskExecutor
    */
-  static async create(options: ExecutorOptionsMixin) {
+  static async create(options: TaskExecutorOptions) {
     const executor = new TaskExecutor(options);
     await executor.init();
     return executor;
@@ -190,126 +216,62 @@ export class TaskExecutor {
   /**
    * Create a new TaskExecutor object.
    *
-   * @param options - contains information needed to start executor, if string the imageHash is required, otherwise it should be a type of {@link ExecutorOptions}
+   * @param options -{@link TaskExecutorOptions}
    */
-  constructor(options: ExecutorOptionsMixin) {
-    this.configOptions = (typeof options === "string" ? { package: options } : options) as ExecutorOptions;
-    this.options = new ExecutorConfig(this.configOptions);
+  constructor(options: TaskExecutorOptions) {
+    this.options = new ExecutorConfig(options);
     this.logger = this.options.logger;
-    this.yagna = new Yagna(this.configOptions.yagnaOptions);
-    const yagnaApi = this.yagna.getApi();
     this.taskQueue = new TaskQueue();
-    this.agreementPoolService = new AgreementPoolService(yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("agreement"),
-    });
-    this.paymentService = new PaymentService(yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("payment"),
-    });
-    this.marketService = new MarketService(this.agreementPoolService, yagnaApi, {
-      ...this.options,
-      logger: this.logger.child("market"),
-    });
-    this.networkService = this.options.networkIp
-      ? new NetworkService(yagnaApi, { ...this.options, logger: this.logger.child("network") })
-      : undefined;
-
-    // Initialize storage provider.
-    if (this.configOptions.storageProvider) {
-      this.storageProvider = this.configOptions.storageProvider;
-    } else if (isNode) {
-      this.storageProvider = new GftpStorageProvider(this.logger.child("storage"));
-    } else if (isBrowser) {
-      this.storageProvider = new WebSocketBrowserStorageProvider(yagnaApi, {
-        ...this.options,
-        logger: this.logger.child("storage"),
-      });
-    } else {
-      this.storageProvider = new NullStorageProvider();
-    }
-
-    this.taskService = new TaskService(
-      this.yagna.getApi(),
-      this.taskQueue,
+    this.glm = new GolemNetwork(this.options.golemNetwork);
+    this.events = new EventEmitter<ExecutorEvents>();
+    this.statsService = new StatsService(
       this.events,
-      this.marketService,
-      this.agreementPoolService,
-      this.paymentService,
-      this.networkService,
-      { ...this.options, storageProvider: this.storageProvider, logger: this.logger.child("work") },
+      { market: this.glm.market.events, activity: this.glm.activity.events, payment: this.glm.payment.events },
+      { logger: this.logger },
     );
-    this.statsService = new StatsService(this.events, { logger: this.logger.child("stats") });
-    this.options.eventTarget.addEventListener(EVENT_TYPE, (event) =>
-      this.events.emit("golemEvents", event as BaseEvent<unknown>),
-    );
-    this.events.emit("start", Date.now());
   }
 
   /**
    * Initialize executor
-   *
-   * @description Method responsible initialize all executor services.
+   * Method responsible for connecting to the golem network and initiating all required services.
    */
   async init() {
+    this.logger.debug("Initializing task executor...");
     try {
-      await this.yagna.connect();
+      await this.glm.connect();
+      if (this.options.vpn) {
+        this.network = await this.glm.createNetwork(this.options.vpn === true ? undefined : this.options.vpn);
+      }
+      this.resourceRentalPool = await this.glm.manyOf({
+        poolSize: { min: 1, max: this.options.task.maxParallelTasks },
+        order: {
+          ...this.options.order,
+          network: this.network,
+        },
+        setup: this.options.task.setup,
+        teardown: this.options.task.teardown,
+      });
+      await this.statsService.run();
+      this.setStartupTimeout();
+      this.taskService = new TaskService(
+        this.taskQueue,
+        this.resourceRentalPool,
+        this.events,
+        this.logger.child("work"),
+        {
+          maxParallelTasks: this.options.task.maxParallelTasks,
+        },
+      );
     } catch (error) {
       this.logger.error("Initialization failed", error);
       throw error;
     }
-    const manifest = this.options.packageOptions.manifest;
-    const packageReference = this.options.package;
-    let taskPackage: Package;
-
-    if (manifest) {
-      taskPackage = await this.createPackage({
-        manifest,
-      });
-    } else {
-      if (packageReference) {
-        if (typeof packageReference === "string") {
-          taskPackage = await this.createPackage(Package.getImageIdentifier(packageReference));
-        } else {
-          taskPackage = packageReference;
-        }
-      } else {
-        const error = new GolemConfigError("No package or manifest provided");
-        this.logger.error("No package or manifest provided", error);
-        throw error;
-      }
-    }
-
-    this.logger.debug("Initializing task executor services...");
-    const allocations = await this.paymentService.createAllocation();
-    await Promise.all([
-      this.marketService.run(taskPackage, allocations).then(() => this.setStartupTimeout()),
-      this.agreementPoolService.run(),
-      this.paymentService.run(),
-      this.networkService?.run(),
-      this.statsService.run(),
-      this.storageProvider?.init(),
-    ]).catch((e) => this.handleCriticalError(e));
-
-    // Start listening to issues reported by the services
-    this.paymentService.events.on("error", (e) => {
-      if (e instanceof GolemUserError) {
-        this.handleCriticalError(e);
-      } else {
-        this.logger.error("An error occurred while processing the payment", e);
-      }
-    });
 
     this.taskService.run().catch((e) => this.handleCriticalError(e));
 
     if (isNode) this.installSignalHandlers();
-    // this.options.eventTarget.dispatchEvent(new Events.ComputationStarted());
-    this.logger.info(`Task Executor has started`, {
-      subnet: this.options.subnetTag,
-      network: this.paymentService.config.payment.network,
-      driver: this.paymentService.config.payment.driver,
-    });
-    this.events.emit("ready", Date.now());
+    this.logger.info("Task Executor has started");
+    this.events.emit("executorReady", Date.now());
   }
 
   /**
@@ -338,86 +300,51 @@ export class TaskExecutor {
    * @private
    */
   private async doShutdown() {
-    this.events.emit("beforeEnd", Date.now());
+    this.events.emit("executorBeforeEnd", Date.now());
     if (isNode) this.removeSignalHandlers();
     clearTimeout(this.startupTimeoutId);
-    if (!this.configOptions.storageProvider) await this.storageProvider?.close();
-    await this.networkService?.end();
-    await Promise.all([this.taskService.end(), this.agreementPoolService.end(), this.marketService.end()]);
-    await this.paymentService.end();
-    await this.yagna.end();
-    // this.options.eventTarget?.dispatchEvent(new Events.ComputationFinished());
+    await this.taskService?.end();
+    await this.resourceRentalPool?.drainAndClear();
+    await this.glm.disconnect();
     this.printStats();
     await this.statsService.end();
     this.logger.info("Task Executor has shut down");
-    this.events.emit("end", Date.now());
+    this.events.emit("executorEnd", Date.now());
   }
 
   getStats() {
     return {
       ...this.statsService.getAll(),
-      retries: this.taskService.getTotalRetryCount(),
+      retries: this.taskService?.getTotalRetryCount(),
     };
   }
 
   /**
-   * Registers a worker function that will be run when an activity is ready.
-   * This is the perfect place to run setup functions that need to be run only once per
-   * activity, for example uploading files that will be used by all tasks in the activity.
-   * This function can be called multiple times, each worker will be run in the order
-   * they were registered.
+   * Run task - allows to execute a single taskFunction function on the Golem network with a single provider.
    *
-   * @param worker worker function that will be run when an activity is ready
-   * @example
-   * ```ts
-   * const uploadFile1 = async (ctx) => ctx.uploadFile("./file1.txt", "/file1.txt");
-   * const uploadFile2 = async (ctx) => ctx.uploadFile("./file2.txt", "/file2.txt");
-   *
-   * executor.onActivityReady(uploadFile1);
-   * executor.onActivityReady(uploadFile2);
-   *
-   * await executor.run(async (ctx) => {
-   *  await ctx.run("cat /file1.txt /file2.txt");
-   * });
-   * ```
-   */
-  onActivityReady(worker: Worker<unknown>) {
-    this.activityReadySetupFunctions.push(worker);
-  }
-
-  /**
-   * Run task - allows to execute a single worker function on the Golem network with a single provider.
-   *
-   * @param worker function that run task
+   * @param taskFunction function that run task
    * @param options task options
    * @return result of task computation
    * @example
    * ```typescript
-   * await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
+   * await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
    * ```
    */
-  async run<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
-    return this.executeTask<OutputType>(worker, options);
+  async run<OutputType>(taskFunction: TaskFunction<OutputType>, options?: TaskOptions): Promise<OutputType> {
+    return this.executeTask<OutputType>(taskFunction, options);
   }
 
-  private async createPackage(
-    packageReference: RequireAtLeastOne<
-      { imageHash: string; manifest: string; imageTag: string },
-      "manifest" | "imageTag" | "imageHash"
-    >,
-  ): Promise<Package> {
-    return Package.create({ ...this.options.packageOptions, ...packageReference });
-  }
-
-  private async executeTask<OutputType>(worker: Worker<OutputType>, options?: TaskOptions): Promise<OutputType> {
+  private async executeTask<OutputType>(
+    taskFunction: TaskFunction<OutputType>,
+    options?: TaskOptions,
+  ): Promise<OutputType> {
     let task;
     try {
-      task = new Task((++this.lastTaskIndex).toString(), worker, {
-        maxRetries: options?.maxRetries ?? this.options.maxTaskRetries,
-        timeout: options?.timeout ?? this.options.taskTimeout,
-        startupTimeout: options?.startupTimeout ?? this.options.taskStartupTimeout,
-        activityReadySetupFunctions: this.activityReadySetupFunctions,
-        retryOnTimeout: options?.retryOnTimeout ?? this.options.taskRetryOnTimeout,
+      task = new Task((++this.lastTaskIndex).toString(), taskFunction, {
+        maxRetries: options?.maxRetries ?? this.options.task.maxTaskRetries,
+        timeout: options?.timeout ?? this.options.task.taskTimeout,
+        startupTimeout: options?.startupTimeout ?? this.options.task.taskStartupTimeout,
+        retryOnTimeout: options?.retryOnTimeout ?? this.options.task.taskRetryOnTimeout,
       });
       this.taskQueue.addToEnd(task);
       this.events.emit("taskQueued", task.getDetails());
@@ -436,9 +363,9 @@ export class TaskExecutor {
       throw new GolemWorkError(
         `Unable to execute task. ${error.toString()}`,
         WorkErrorCode.ScriptExecutionFailed,
-        task?.getActivity()?.agreement,
-        task?.getActivity(),
-        task?.getActivity()?.getProviderInfo(),
+        task?.getResourceRental()?.agreement,
+        undefined,
+        task?.getResourceRental()?.agreement?.provider,
         error,
       );
     }
@@ -458,7 +385,6 @@ export class TaskExecutor {
       }
 
       const message = `Executor has interrupted by the user. Reason: ${reason}.`;
-
       this.logger.info(`${message}. Stopping all tasks...`, {
         tasksInProgress: this.taskQueue.size,
       });
@@ -470,14 +396,14 @@ export class TaskExecutor {
   }
 
   private installSignalHandlers() {
-    if (this.configOptions.skipProcessSignals) return;
+    if (this.options.skipProcessSignals) return;
     terminatingSignals.forEach((event) => {
       process.on(event, this.signalHandler);
     });
   }
 
   private removeSignalHandlers() {
-    if (this.configOptions.skipProcessSignals) return;
+    if (this.options.skipProcessSignals) return;
     terminatingSignals.forEach((event) => {
       process.removeListener(event, this.signalHandler);
     });
@@ -526,8 +452,11 @@ export class TaskExecutor {
    * a critical error will be reported and the entire process will be interrupted.
    */
   private setStartupTimeout() {
+    if (!this.options.startupTimeout) {
+      return;
+    }
     this.startupTimeoutId = setTimeout(() => {
-      const proposalsCount = this.marketService.getProposalsCount();
+      const proposalsCount = this.statsService.getProposalsCount();
       if (proposalsCount.confirmed === 0) {
         const hint =
           proposalsCount.initial === 0 && proposalsCount.confirmed === 0
@@ -536,11 +465,7 @@ export class TaskExecutor {
               ? "All off proposals got rejected."
               : "Check your proposal filters if they are not too restrictive.";
         const errorMessage = `Could not start any work on Golem. Processed ${proposalsCount.initial} initial proposals from yagna, filters accepted ${proposalsCount.confirmed}. ${hint}`;
-        if (this.options.exitOnNoProposals) {
-          this.handleCriticalError(new GolemTimeoutError(errorMessage));
-        } else {
-          console.error(errorMessage);
-        }
+        this.handleCriticalError(new GolemTimeoutError(errorMessage));
       }
     }, this.options.startupTimeout);
   }

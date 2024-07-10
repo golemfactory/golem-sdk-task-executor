@@ -1,25 +1,41 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 import crypto from "crypto";
 
 async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100) {
   const executor = await TaskExecutor.create({
-    package: "golem/examples-ssh:latest",
+    vpn: true,
+    task: {
+      maxParallelTasks: count,
+    },
     logger: pinoPrettyLogger(),
-    capabilities: ["vpn"],
-    networkIp: "192.168.0.0/24",
-    maxParallelTasks: count,
-    subnetTag,
     payment: { driver, network },
+    demand: {
+      workload: {
+        imageTag: "golem/examples-ssh:latest",
+        capabilities: ["vpn"],
+      },
+      subnetTag,
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
   const appKey = process.env["YAGNA_APPKEY"];
   const runningTasks: Promise<void>[] = [];
   for (let i = 0; i < count; i++) {
     runningTasks.push(
-      executor.run(async (ctx) => {
+      executor.run(async (exe) => {
         const password = crypto.randomBytes(3).toString("hex");
         try {
-          const results = await ctx
+          const results = await exe
             .beginBatch()
             .run("syslogd")
             .run("ssh-keygen -A")
@@ -29,9 +45,9 @@ async function main(subnetTag, driver, network, count = 2, sessionTimeout = 100)
           if (!results) return;
 
           console.log("\n------------------------------------------");
-          console.log(`Connect via ssh to provider "${ctx.provider?.name}" with:`);
+          console.log(`Connect via ssh to provider "${exe.provider?.name}" with:`);
           console.log(
-            `ssh -o ProxyCommand='websocat asyncstdio: ${ctx.getWebsocketUri(
+            `ssh -o ProxyCommand='websocat asyncstdio: ${exe.getWebsocketUri(
               22,
             )} --binary -H=Authorization:"Bearer ${appKey}"' root@${crypto.randomBytes(10).toString("hex")}`,
           );

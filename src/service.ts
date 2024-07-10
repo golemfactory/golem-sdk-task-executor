@@ -1,37 +1,13 @@
-import { Task } from "./task";
+import { Task, TaskState } from "./task";
 import { TaskQueue } from "./queue";
-import {
-  WorkContext,
-  defaultLogger,
-  Logger,
-  YagnaApi,
-  StorageProvider,
-  Agreement,
-  AgreementPoolService,
-  PaymentService,
-  NetworkNode,
-  NetworkService,
-  Activity,
-  ActivityOptions,
-  GolemWorkError,
-  GolemInternalError,
-  GolemTimeoutError,
-  MarketService,
-} from "@golem-sdk/golem-js";
-import { TaskConfig } from "./config";
+import { GolemInternalError, GolemTimeoutError, GolemWorkError, ResourceRentalPool, Logger } from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
-import { TaskExecutorEventsDict } from "./events";
+import { ExecutorEvents } from "./events";
 
-export interface TaskServiceOptions extends ActivityOptions {
+export interface TaskServiceOptions {
   /** Number of maximum parallel running task on one TaskExecutor instance */
-  maxParallelTasks?: number;
-  taskRunningInterval?: number;
-  activityStateCheckingInterval?: number;
-  activityPreparingTimeout?: number;
-  taskTimeout?: number;
-  logger?: Logger;
-  storageProvider?: StorageProvider;
+  maxParallelTasks: number;
 }
 
 /**
@@ -39,41 +15,31 @@ export interface TaskServiceOptions extends ActivityOptions {
  */
 export class TaskService {
   private activeTasksCount = 0;
-  private activities = new Map<string, Activity>();
-  private activitySetupDone: Set<string> = new Set();
   private isRunning = false;
-  private logger: Logger;
-  private options: TaskConfig;
 
   /** To keep track of the stat */
   private retryCountTotal = 0;
 
   constructor(
-    private yagnaApi: YagnaApi,
     private tasksQueue: TaskQueue,
-    private events: EventEmitter<TaskExecutorEventsDict>,
-    private marketService: MarketService,
-    private agreementPoolService: AgreementPoolService,
-    private paymentService: PaymentService,
-    private networkService?: NetworkService,
-    options?: TaskServiceOptions,
-  ) {
-    this.options = new TaskConfig(options);
-    this.logger = options?.logger || defaultLogger("work");
-  }
+    private resourceRentalPool: ResourceRentalPool,
+    private events: EventEmitter<ExecutorEvents>,
+    private logger: Logger,
+    private options: TaskServiceOptions,
+  ) {}
 
   public async run() {
     this.isRunning = true;
     this.logger.info("Task Service has started");
+    await this.resourceRentalPool.ready();
     while (this.isRunning) {
-      const proposalsCount = this.marketService.getProposalsCount();
-      if (this.activeTasksCount >= this.options.maxParallelTasks || proposalsCount.confirmed === 0) {
-        await sleep(this.options.taskRunningInterval, true);
+      if (this.activeTasksCount >= this.options.maxParallelTasks) {
+        await sleep(0);
         continue;
       }
       const task = this.tasksQueue.get();
       if (!task) {
-        await sleep(this.options.taskRunningInterval, true);
+        await sleep(0);
         continue;
       }
       task.onStateChange(() => {
@@ -91,14 +57,6 @@ export class TaskService {
 
   async end() {
     this.isRunning = false;
-    this.logger.debug(`Trying to stop all activities`, { size: this.activities.size });
-    await Promise.all(
-      [...this.activities.values()].map((activity) =>
-        activity
-          .stop()
-          .catch((error) => this.logger.warn(`Stopping activity failed`, { activityId: activity.id, error })),
-      ),
-    );
     this.logger.info("Task Service has been stopped", {
       stats: {
         retryCountTotal: this.retryCountTotal,
@@ -116,63 +74,29 @@ export class TaskService {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      // TODO: This should be able to be canceled if the task state has changed
-      const agreement = await this.agreementPoolService.getAgreement();
-      this.startAcceptingAgreementPayments(agreement);
+      const abortController = new AbortController();
+      task.onStateChange((state) => {
+        if (state === TaskState.Rejected || state === TaskState.Retry) {
+          abortController.abort();
+        }
+      });
+      const rental = await this.resourceRentalPool.acquire(abortController.signal);
 
       if (task.isFailed()) {
-        /**
-         * only in this case it is necessary to manually terminate the agreement,
-         * in other cases after the creation of the activity this will be done by the releaseTaskResources method
-         */
-        await this.agreementPoolService
-          .releaseAgreement(agreement.id, false)
-          .catch((error) =>
-            this.logger.error(`Releasing agreement failed`, { agreementId: activity.agreement.id, error }),
-          );
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      let networkNode: NetworkNode | undefined;
-      const activity = await this.getOrCreateActivity(agreement);
-      task.start(activity, networkNode);
+      const exe = await rental.getExeUnit();
+      task.start(rental, exe);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
         taskId: task.id,
-        providerName: agreement.getProviderInfo().name,
-        activityId: activity.id,
+        providerName: exe.provider.name,
+        activityId: exe.activity.id,
       });
 
-      const activityReadySetupFunctions = task.getActivityReadySetupFunctions();
-      const worker = task.getWorker();
-      if (this.networkService && !this.networkService.hasNode(agreement.getProviderInfo().id)) {
-        networkNode = await this.networkService.addNode(agreement.getProviderInfo().id);
-      }
-
-      const ctx = new WorkContext(activity, {
-        yagnaOptions: this.yagnaApi.yagnaOptions,
-        activityReadySetupFunctions: this.activitySetupDone.has(activity.id) ? [] : activityReadySetupFunctions,
-        storageProvider: this.options.storageProvider,
-        networkNode,
-        logger: this.logger,
-        activityPreparingTimeout: this.options.activityPreparingTimeout,
-        activityStateCheckingInterval: this.options.activityStateCheckingInterval,
-      });
-
-      if (task.isFailed()) {
-        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
-      }
-
-      await ctx.before();
-      if (activityReadySetupFunctions.length && !this.activitySetupDone.has(activity.id)) {
-        this.activitySetupDone.add(activity.id);
-        this.logger.debug(`Activity setup completed`, { activityId: activity.id });
-      }
-
-      if (task.isFailed()) {
-        throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
-      }
-      const results = await worker(ctx);
+      const taskFunction = task.getTaskFunction();
+      const results = await taskFunction(exe);
       task.stop(results);
     } catch (error) {
       task.stop(
@@ -182,28 +106,6 @@ export class TaskService {
       );
     } finally {
       --this.activeTasksCount;
-    }
-  }
-
-  private async stopActivity(activity: Activity) {
-    await activity.stop();
-    this.activities.delete(activity.agreement.id);
-  }
-
-  private startAcceptingAgreementPayments(agreement: Agreement) {
-    const agreementAlreadyAccepted = this.activities.has(agreement.id);
-    if (agreementAlreadyAccepted) return;
-    this.paymentService.acceptPayments(agreement);
-  }
-
-  private async getOrCreateActivity(agreement: Agreement) {
-    const previous = this.activities.get(agreement.id);
-    if (previous) {
-      return previous;
-    } else {
-      const activity = await Activity.create(agreement, this.yagnaApi, this.options);
-      this.activities.set(agreement.id, activity);
-      return activity;
     }
   }
 
@@ -236,44 +138,26 @@ export class TaskService {
         taskId: task.id,
         reason: task.getError()?.message,
         retries: task.getRetriesCount(),
-        providerName: task.getActivity()?.getProviderInfo().name,
+        providerName: task.getExeUnit()?.provider.name,
       });
     } else {
       this.events.emit("taskCompleted", task.getDetails());
       this.logger.info(`Task computed`, {
         taskId: task.id,
         retries: task.getRetriesCount(),
-        providerName: task.getActivity()?.getProviderInfo().name,
+        providerName: task.getExeUnit()?.provider.name,
       });
     }
   }
 
   private async releaseTaskResources(task: Task) {
-    const activity = task.getActivity();
-    if (activity) {
+    const rental = task.getResourceRental();
+    if (rental) {
       if (task.isFailed()) {
-        /**
-         * Activity should only be terminated when the task fails.
-         * We assume that the next attempt should be performed on a new activity instance.
-         * For successfully completed tasks, activities remain in the ready state
-         * and are ready to be used for other tasks.
-         * For them, termination will be completed with the end of service
-         */
-        await this.stopActivity(activity).catch((error) =>
-          this.logger.error(`Stopping activity failed`, { activityId: activity.id, error }),
-        );
+        await this.resourceRentalPool.destroy(rental);
+      } else {
+        await this.resourceRentalPool.release(rental);
       }
-      await this.agreementPoolService
-        .releaseAgreement(activity.agreement.id, task.isDone())
-        .catch((error) =>
-          this.logger.error(`Releasing agreement failed`, { agreementId: activity.agreement.id, error }),
-        );
-    }
-    const networkNode = task.getNetworkNode();
-    if (this.networkService && networkNode) {
-      await this.networkService
-        .removeNode(networkNode.id)
-        .catch((error) => this.logger.error(`Removing network node failed`, { nodeId: networkNode.id, error }));
     }
   }
 
