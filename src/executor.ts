@@ -51,7 +51,6 @@ export interface TaskSpecificOptions {
    * A setup function that will be run when an exe-unit is ready.
    * This is the perfect place to run setup function that need to be run only once per exe-unit,
    * for example uploading files that will be used by all tasks in the exe-unit.
-   * This function can be called multiple times.
    *
    * @example
    * ```ts
