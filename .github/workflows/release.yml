@@ -48,18 +48,18 @@ env:
 
 jobs:
   regular-checks:
-    uses: .github/workflows/regular-checks.yml
+    uses: ./.github/workflows/regular-checks.yml
 
   run-e2e-tests:
-    uses: .github/workflows/e2e-tests.yml
+    uses: ./.github/workflows/e2e-tests.yml
     needs: regular-checks
 
   run-cypress-tests:
-    uses: .github/workflows/cypress-tests.yml
+    uses: ./.github/workflows/cypress-tests.yml
     needs: regular-checks
 
   run-examples-tests:
-    uses: .github/workflows/examples-tests.yml
+    uses: ./.github/workflows/examples-tests.yml
     needs: regular-checks
 
   release:
