@@ -48,121 +48,19 @@ env:
 
 jobs:
   regular-checks:
-    name: Build and unit-test on supported platforms and NodeJS versions
-    strategy:
-      matrix:
-        # Make sure you're addressing it to the minor version, as sometimes macos was picking 20.9 while others 20.10
-        # and that caused issues with rollup
-        node-version: [18.19.x, 20.10.x]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup NodeJS ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Perform regular checks
-        run: |
-          npm ci
-          npm run format:check
-          npm run lint
-          npm run test:unit
-          npm run build
-          npm install --prefix examples --legacy-peer-deps
-          npm run --prefix examples lint:ts
-          npm run test:import
-      - name: Upload unit test reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: unit-test-report-${{matrix.os}}-node-${{matrix.node-version}}
-          path: reports/unit-report.xml
+    uses: .github/workflows/regular-checks.yml
 
   run-e2e-tests:
-    name: Run E2E tests
+    uses: .github/workflows/e2e-tests.yml
     needs: regular-checks
-    runs-on: goth2
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Prepare providers and requestor
-        uses: ./.github/actions/prepare-tests
-
-      - name: Start the E2E test
-        run: docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor && npm run test:e2e"
-
-      - name: Upload E2E reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: e2e-test-report
-          path: reports/e2e-report.xml
-
-      - name: Cleanup test environment
-        uses: ./.github/actions/cleanup-tests
-        with:
-          type: "e2e"
 
   run-cypress-tests:
-    name: Run Cypress tests
+    uses: .github/workflows/cypress-tests.yml
     needs: regular-checks
-    runs-on: goth2
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Prepare providers and requestor
-        uses: ./.github/actions/prepare-tests
-        with:
-          type: "cypress"
-
-      - name: Copy docs examples
-        run: docker exec -t docker-requestor-1 /bin/sh -c '
-          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/transfer-data-in-browser.html /golem-sdk-task-executor/examples/web/ &&
-          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/upload-json-in-browser.html /golem-sdk-task-executor/examples/web/ &&
-          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/index.html /golem-sdk-task-executor/examples/web/quickstart.html &&
-          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/requestor.mjs /golem-sdk-task-executor/examples/web/ &&
-          cp /golem-sdk-task-executor/examples/docs-examples/tutorials/running-from-browser/index.html /golem-sdk-task-executor/examples/web/tutorial.html'
-      - name: Run web server
-        run: docker exec -t -d docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor/examples && npm run web"
-
-      - name: Run test suite
-        run: docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor &&  npm run test:cypress -- --browser chromium"
-
-      - name: Upload test logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cypress-logs
-          path: .cypress
-
-      - name: Cleanup test environment
-        uses: ./.github/actions/cleanup-tests
-        with:
-          type: "cypress"
 
   run-examples-tests:
-    name: Run Examples tests
+    uses: .github/workflows/examples-tests.yml
     needs: regular-checks
-    runs-on: goth2
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Prepare providers and requestor
-        uses: ./.github/actions/prepare-tests
-
-      - name: Run the Examples tests
-        run: docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor && npm run test:examples -- --exitOnError"
-
-      - name: Cleanup test environment
-        uses: ./.github/actions/cleanup-tests
-        with:
-          type: "examples"
 
   release:
     name: Release the SDK to NPM and GitHub
