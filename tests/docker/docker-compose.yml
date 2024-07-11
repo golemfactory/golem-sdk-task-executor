@@ -22,6 +22,7 @@ services:
     environment:
       - NODE_NAME=provider-1
       - SUBNET=${YAGNA_SUBNET:-golemjstest}
+      - YA_NET_BROADCAST_SIZE=30
   provider-2:
     build:
       context: .
@@ -44,6 +45,7 @@ services:
     environment:
       - NODE_NAME=provider-2
       - SUBNET=${YAGNA_SUBNET:-golemjstest}
+      - YA_NET_BROADCAST_SIZE=30
   requestor:
     build:
       context: .
