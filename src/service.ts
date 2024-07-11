@@ -87,15 +87,14 @@ export class TaskService {
           abortController.abort();
         }
       });
-      const rental = await this.resourceRentalPool.acquire(
-        anyAbortSignal(this.abortController.signal, abortController.signal),
-      );
+      const signal = anyAbortSignal(this.abortController.signal, abortController.signal);
+      const rental = await this.resourceRentalPool.acquire(signal);
 
       if (task.isFailed()) {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      const exe = await rental.getExeUnit(abortController.signal);
+      const exe = await rental.getExeUnit(signal);
       task.start(rental, exe);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {

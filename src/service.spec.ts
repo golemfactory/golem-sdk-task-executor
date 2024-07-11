@@ -35,7 +35,7 @@ describe("Task Service", () => {
   when(resourceRentalPoolMock.acquire(_)).thenResolve(instance(resourceRentalMock));
   when(resourceRentalMock.agreement).thenReturn(instance(agreementMock));
   when(agreementMock.provider).thenReturn(testProvider);
-  when(resourceRentalMock.getExeUnit()).thenResolve(instance(exeUnitMock));
+  when(resourceRentalMock.getExeUnit(_)).thenResolve(instance(exeUnitMock));
   when(resourceRentalMock.stopAndFinalize()).thenResolve();
   when(exeUnitMock.run(_)).thenCall(async () => {
     await sleep(100, true);
