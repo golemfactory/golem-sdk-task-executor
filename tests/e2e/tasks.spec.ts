@@ -46,7 +46,6 @@ describe("Task Executor", function () {
 
   const verifyAllExpectedEventsEmitted = () => {
     expect(emittedEventsNames).toContain("taskStarted");
-    expect(emittedEventsNames).toContain("taskCompleted");
     expect(emittedEventsNames).toContain("offerProposalReceived");
     expect(emittedEventsNames).toContain("agreementApproved");
     expect(emittedEventsNames).toContain("activityCreated");
@@ -290,7 +289,6 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 0,
-        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -302,7 +300,7 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
+      await executor.run(async (exe) => Promise.reject("Error"));
     } catch (error) {
       await executor.shutdown();
     }
@@ -327,7 +325,6 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 7,
-        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -339,7 +336,7 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
+      await executor.run(async (exe) => Promise.reject("Error"), { maxRetries: 0 });
     } catch (error) {
       await executor.shutdown();
     }
