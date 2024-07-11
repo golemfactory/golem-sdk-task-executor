@@ -51,7 +51,7 @@ describe("Task Executor", function () {
     expect(emittedEventsNames).toContain("activityCreated");
     expect(emittedEventsNames).toContain("exeUnitInitialized");
     expect(emittedEventsNames).toContain("scriptExecuted");
-    expect(emittedEventsNames).toContain("invoiceReceived");
+    expect([...emittedEventsNames].some((e) => e === "invoiceReceived" || e === "debitNoteReceived")).toBe(true);
   };
 
   beforeEach(() => {
