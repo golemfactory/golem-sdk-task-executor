@@ -60,9 +60,7 @@ program
         const [, potfileResult] = await exe
           .beginBatch()
           .run(
-            `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${
-              skip + step
-            } -o pass.potfile || true`,
+            `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${step} -o pass.potfile || true`,
           )
           .run("cat pass.potfile || true")
           .end();
