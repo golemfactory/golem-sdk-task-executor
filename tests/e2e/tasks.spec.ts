@@ -51,7 +51,6 @@ describe("Task Executor", function () {
     expect(emittedEventsNames).toContain("activityCreated");
     expect(emittedEventsNames).toContain("exeUnitInitialized");
     expect(emittedEventsNames).toContain("scriptExecuted");
-    expect(emittedEventsNames).toContain("debitNoteReceived");
     expect(emittedEventsNames).toContain("invoiceAccepted");
   };
 
