@@ -22,7 +22,7 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
   try {
     const result = await executor.run(async (exe) => {
-      const res = await exe
+      const stream = await exe
         .beginBatch()
         .uploadFile("./worker.mjs", "/golem/input/worker.mjs")
         .run("node /golem/input/worker.mjs > /golem/input/output.txt")
@@ -30,10 +30,14 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
         .downloadFile("/golem/input/output.txt", "./output.txt")
         .endStream();
 
-      res.subscribe((chunk) => {
-        if (chunk.index === 2) console.log(chunk.stdout);
+      return new Promise((resolve, reject) => {
+        stream.subscribe((chunk, error) => {
+          if (chunk.index === 2) resolve(chunk.stdout);
+          if (error) reject(error);
+        });
       });
     });
+    console.log(result);
   } catch (err) {
     console.error("Task encountered an error:", err);
   } finally {
