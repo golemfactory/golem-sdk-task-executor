@@ -41,7 +41,7 @@ describe("Task Executor", function () {
     golemEvents.activity.on("exeUnitInitialized", () => emittedEventsNames.add("exeUnitInitialized"));
     golemEvents.activity.on("scriptExecuted", () => emittedEventsNames.add("scriptExecuted"));
     golemEvents.payment.on("debitNoteReceived", () => emittedEventsNames.add("debitNoteReceived"));
-    golemEvents.payment.on("invoiceAccepted", () => emittedEventsNames.add("invoiceAccepted"));
+    golemEvents.payment.on("invoiceReceived", () => emittedEventsNames.add("invoiceReceived"));
   };
 
   const verifyAllExpectedEventsEmitted = () => {
@@ -51,7 +51,7 @@ describe("Task Executor", function () {
     expect(emittedEventsNames).toContain("activityCreated");
     expect(emittedEventsNames).toContain("exeUnitInitialized");
     expect(emittedEventsNames).toContain("scriptExecuted");
-    expect(emittedEventsNames).toContain("invoiceAccepted");
+    expect(emittedEventsNames).toContain("invoiceReceived");
   };
 
   beforeEach(() => {
