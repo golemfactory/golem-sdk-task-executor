@@ -50,6 +50,11 @@ runs:
       run: |
         docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor && npm i && npm run build"
 
+    - name: Check yagna status
+      shell: bash
+      run: |
+        docker exec -t docker-requestor-1 /bin/sh -c "yagna net status && yagna net sessions"
+
     - name: Install Cypress
       if: ${{ inputs.type == 'cypress' }}
       shell: bash
