@@ -53,7 +53,7 @@ runs:
     - name: Check yagna status
       shell: bash
       run: |
-        docker exec -t docker-requestor-1 /bin/sh -c "yagna net status && yagna net sessions"
+        docker exec -t docker-requestor-1 /bin/sh -c "yagna net ping && yagna net status && yagna net sessions"
 
     - name: Install Cypress
       if: ${{ inputs.type == 'cypress' }}
