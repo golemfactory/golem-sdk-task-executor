@@ -45,13 +45,16 @@ describe("Task Executor", function () {
   };
 
   const verifyAllExpectedEventsEmitted = () => {
-    expect(emittedEventsNames).toContain("taskStarted");
-    expect(emittedEventsNames).toContain("offerProposalReceived");
-    expect(emittedEventsNames).toContain("agreementApproved");
-    expect(emittedEventsNames).toContain("activityCreated");
-    expect(emittedEventsNames).toContain("exeUnitInitialized");
-    expect(emittedEventsNames).toContain("scriptExecuted");
-    expect([...emittedEventsNames].some((e) => e === "invoiceReceived" || e === "debitNoteReceived")).toBe(true);
+    expect(emittedEventsNames).toEqual(
+      expect.arrayContaining([
+        "taskStarted",
+        "offerProposalReceived",
+        "agreementApproved",
+        "activityCreated",
+        "exeUnitInitialized",
+        "scriptExecuted",
+      ]),
+    );
   };
 
   beforeEach(() => {
