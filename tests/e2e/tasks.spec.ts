@@ -45,7 +45,7 @@ describe("Task Executor", function () {
   };
 
   const verifyAllExpectedEventsEmitted = () => {
-    expect(emittedEventsNames).toEqual(
+    expect([...emittedEventsNames]).toEqual(
       expect.arrayContaining([
         "taskStarted",
         "offerProposalReceived",
