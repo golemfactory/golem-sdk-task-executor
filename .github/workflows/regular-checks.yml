@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   regular-checks:
-    name: Build and unit-test on supported platforms and NodeJS versions
+    name: Build and unit-test
     strategy:
       matrix:
         # Make sure you're addressing it to the minor version, as sometimes macos was picking 20.9 while others 20.10
