@@ -39,6 +39,7 @@ env:
 
 jobs:
   run-examples-tests:
+    name: Run Examples
     runs-on: goth2
     steps:
       - uses: actions/checkout@v4
