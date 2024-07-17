@@ -51,14 +51,17 @@ jobs:
     uses: ./.github/workflows/regular-checks.yml
 
   run-e2e-tests:
+    name: Run E2E tests
     uses: ./.github/workflows/e2e-tests.yml
     needs: regular-checks
 
   run-cypress-tests:
+    name: Run Cypress tests
     uses: ./.github/workflows/cypress-tests.yml
     needs: regular-checks
 
   run-examples-tests:
+    name: Run Examples tests
     uses: ./.github/workflows/examples-tests.yml
     needs: regular-checks
 
