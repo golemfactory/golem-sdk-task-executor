@@ -39,7 +39,6 @@ env:
 
 jobs:
   run-cypress-tests:
-    name: Run Cypress tests
     runs-on: goth2
     steps:
       - uses: actions/checkout@v4
