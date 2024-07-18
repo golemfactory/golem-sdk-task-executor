@@ -1,4 +1,6 @@
-import { TaskExecutor, AgreementCandidate, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { OfferProposal } from "@golem-sdk/golem-js";
 
 /**
  * Example demonstrating how to write a selector which choose the best provider based on scores provided as object: [providerName]: score
@@ -10,25 +12,36 @@ const scores = {
   "super-provider": 25,
 };
 
-const bestProviderSelector =
-  (scores: { [providerName: string]: number }) => async (candidates: AgreementCandidate[]) => {
-    candidates.sort((a, b) =>
-      (scores?.[a.proposal.provider.name] || 0) >= (scores?.[b.proposal.provider.name] || 0) ? 1 : -1,
-    );
-    return candidates[0];
-  };
+/** Selector selecting the provider according to the provided list of scores */
+const bestAgreementSelector = (scores: { [providerName: string]: number }) => (proposals: OfferProposal[]) => {
+  proposals.sort((a, b) => ((scores?.[a.provider.name] || 0) >= (scores?.[b.provider.name] || 0) ? 1 : -1));
+  return proposals[0];
+};
 
 (async function main() {
   const executor = await TaskExecutor.create({
-    package: "golem/alpine:latest",
-    logger: pinoPrettyLogger(),
-    agreementSelector: bestProviderSelector(scores),
+    logger: pinoPrettyLogger({ level: "info" }),
+    demand: {
+      workload: {
+        imageTag: "golem/alpine:latest",
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+      offerProposalSelector: bestAgreementSelector(scores),
+    },
   });
 
   try {
-    await executor.run(async (ctx) => console.log((await ctx.run("echo 'Hello World'")).stdout));
-  } catch (err) {
-    console.error("Task execution failed:", err);
+    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
+  } catch (error) {
+    console.error("Computation failed:", error);
   } finally {
     await executor.shutdown();
   }

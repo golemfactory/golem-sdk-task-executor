@@ -1,0 +1,48 @@
+name: regular tests
+
+on:
+  workflow_call:
+
+  workflow_dispatch:
+
+# We're going to interact with GH from the pipelines, so we need to get some permissions
+permissions:
+  contents: read # for checkout
+
+jobs:
+  regular-checks:
+    name: Build and unit-test
+    strategy:
+      matrix:
+        # Make sure you're addressing it to the minor version, as sometimes macos was picking 20.9 while others 20.10
+        # and that caused issues with rollup
+        node-version: [18.19.x, 20.10.x]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup NodeJS ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Perform regular checks
+        run: |
+          npm ci
+          npm run format:check
+          npm run lint
+          npm run test:unit
+          npm run build
+          npm install --prefix examples --legacy-peer-deps
+          npm run --prefix examples lint:ts
+          npm run test:import
+      - name: Upload unit test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-report-${{matrix.os}}-node-${{matrix.node-version}}
+          path: reports/unit-report.xml

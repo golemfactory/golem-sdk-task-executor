@@ -8,12 +8,11 @@ node_modules/
 dist/
 coverage/
 /.nyc_output
-/examples/blender/*.png
-/examples/yacat/*.sh
-/examples/yacat/*.txt
-/examples/yacat/*.hash
-/examples/yacat/*.potfile
-/docs
+examples/blender/*.png
+examples/yacat/*.sh
+examples/yacat/*.txt
+examples/yacat/*.hash
+examples/yacat/*.potfile
 logs/
 .cypress
 

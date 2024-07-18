@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 import { fileURLToPath } from "url";
 
@@ -23,34 +24,47 @@ const blenderParams = (frame) => ({
   OUTPUT_DIR: "/golem/output",
 });
 
-async function main(subnetTag: string, driver?: string, network?: string, maxParallelTasks?: number) {
+async function main(subnetTag: string, driver?: "erc20", network?: string, maxParallelTasks?: number) {
+  const setup = async (exe) => {
+    console.log("Uploading the scene to the provider %s", exe.provider.name);
+    await exe.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
+    console.log("Upload of the scene to the provider %s finished", exe.provider.name);
+  };
   const executor = await TaskExecutor.create({
-    subnetTag,
-    payment: { driver, network },
-    package: "golem/blender:latest",
-    maxParallelTasks,
+    task: {
+      maxParallelTasks,
+      setup,
+    },
     logger: pinoPrettyLogger(),
+    payment: { driver, network },
+    demand: {
+      workload: { imageTag: "golem/blender:latest" },
+      subnetTag,
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
   });
 
   try {
-    executor.onActivityReady(async (ctx) => {
-      console.log("Uploading the scene to the provider %s", ctx.provider.name);
-      await ctx.uploadFile(`${DIR_NAME}/cubes.blend`, "/golem/resource/scene.blend");
-      console.log("Upload of the scene to the provider %s finished", ctx.provider.name);
-    });
-
     const futureResults = [0, 10, 20, 30, 40, 50].map(async (frame) =>
-      executor.run(async (ctx) => {
-        console.log("Started rendering of frame %d on provider %s", frame, ctx.provider.name);
+      executor.run(async (exe) => {
+        console.log("Started rendering of frame %d on provider %s", frame, exe.provider.name);
 
-        const result = await ctx
+        const result = await exe
           .beginBatch()
           .uploadJson(blenderParams(frame), "/golem/work/params.json")
           .run("/golem/entrypoints/run-blender.sh")
           .downloadFile(`/golem/output/out${frame?.toString().padStart(4, "0")}.png`, `${DIR_NAME}/output_${frame}.png`)
           .end();
 
-        console.log("Finished rendering of frame %d on provider %s", frame, ctx.provider.name);
+        console.log("Finished rendering of frame %d on provider %s", frame, exe.provider.name);
 
         return result?.length ? `output_${frame}.png` : "";
       }),
