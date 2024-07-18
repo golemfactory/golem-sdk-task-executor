@@ -25,7 +25,7 @@ const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
     },
   });
   try {
-    await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => console.log((await exe.run("cat hello.txt")).stdout));
   } catch (error) {
     console.error("Computation failed:", error);
   } finally {
