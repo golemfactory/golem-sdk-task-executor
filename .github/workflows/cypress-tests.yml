@@ -1,0 +1,75 @@
+name: cypress tests
+
+on:
+  workflow_call:
+  # Allows triggering the workflow manually
+  workflow_dispatch:
+    inputs:
+      payment_network:
+        description: "Payment network (holesky, goerli, mainnet, mumbai, polygon, rinkeby)"
+        required: false
+        default: "holesky"
+      provider_version:
+        description: "Provider version (e.g., v0.15.2 or pre-rel-v0.15.1)"
+        required: false
+        default: "v0.15.2"
+      requestor_version:
+        description: "Requestor version (e.g., v0.15.2 or pre-rel-v0.15.1)"
+        required: false
+        default: "v0.15.2"
+      provider_wasi_version:
+        description: "Provider WASI version (e.g., v0.2.2)"
+        required: false
+        default: "v0.2.2"
+      provider_vm_version:
+        description: "Provider VM version (e.g., v0.3.0)"
+        required: false
+        default: "v0.3.0"
+
+# We're going to interact with GH from the pipelines, so we need to get some permissions
+permissions:
+  contents: read # for checkout
+
+env:
+  PROVIDER_VERSION: ${{ github.event.inputs.provider_version || 'v0.15.2' }}
+  REQUESTOR_VERSION: ${{ github.event.inputs.requestor_version || 'v0.15.2' }}
+  PROVIDER_WASI_VERSION: ${{ github.event.inputs.provider_wasi_version || 'v0.2.2' }}
+  PROVIDER_VM_VERSION: ${{ github.event.inputs.provider_vm_version || 'v0.3.0' }}
+  PAYMENT_NETWORK: ${{ github.event.inputs.payment_network || 'holesky' }}
+
+jobs:
+  run-cypress-tests:
+    name: Cypress
+    runs-on: goth2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare providers and requestor
+        uses: ./.github/actions/prepare-tests
+        with:
+          type: "cypress"
+
+      - name: Copy docs examples
+        run: docker exec -t docker-requestor-1 /bin/sh -c '
+          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/transfer-data-in-browser.html /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/examples/transferring-data/upload-json-in-browser.html /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/index.html /golem-sdk-task-executor/examples/web/quickstart.html &&
+          cp /golem-sdk-task-executor/examples/docs-examples/quickstarts/web-quickstart/requestor.mjs /golem-sdk-task-executor/examples/web/ &&
+          cp /golem-sdk-task-executor/examples/docs-examples/tutorials/running-from-browser/index.html /golem-sdk-task-executor/examples/web/tutorial.html'
+      - name: Run web server
+        run: docker exec -t -d docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor/examples && npm run web"
+
+      - name: Run test suite
+        run: docker exec -t docker-requestor-1 /bin/sh -c "cd /golem-sdk-task-executor &&  npm run test:cypress -- --browser chromium"
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-logs
+          path: .cypress
+
+      - name: Cleanup test environment
+        uses: ./.github/actions/cleanup-tests
+        with:
+          type: "cypress"

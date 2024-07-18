@@ -40,11 +40,7 @@ async function main(args) {
     const password = await executor.run(async (exe) => {
       const [, potfileResult] = await exe
         .beginBatch()
-        .run(
-          `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${
-            skip + step
-          } -o pass.potfile || true`,
-        )
+        .run(`hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${step} -o pass.potfile || true`)
         .run("cat pass.potfile || true")
         .end();
       if (!potfileResult.stdout) return false;

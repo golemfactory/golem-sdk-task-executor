@@ -1,6 +1,13 @@
 import { Task, TaskState } from "./task";
 import { TaskQueue } from "./queue";
-import { GolemInternalError, GolemTimeoutError, GolemWorkError, ResourceRentalPool, Logger } from "@golem-sdk/golem-js";
+import {
+  GolemInternalError,
+  GolemTimeoutError,
+  GolemWorkError,
+  ResourceRentalPool,
+  Logger,
+  anyAbortSignal,
+} from "@golem-sdk/golem-js";
 import { sleep } from "./utils";
 import { EventEmitter } from "eventemitter3";
 import { ExecutorEvents } from "./events";
@@ -15,7 +22,7 @@ export interface TaskServiceOptions {
  */
 export class TaskService {
   private activeTasksCount = 0;
-  private isRunning = false;
+  private abortController = new AbortController();
 
   /** To keep track of the stat */
   private retryCountTotal = 0;
@@ -29,10 +36,9 @@ export class TaskService {
   ) {}
 
   public async run() {
-    this.isRunning = true;
     this.logger.info("Task Service has started");
     await this.resourceRentalPool.ready();
-    while (this.isRunning) {
+    while (!this.abortController.signal.aborted) {
       if (this.activeTasksCount >= this.options.maxParallelTasks) {
         await sleep(0);
         continue;
@@ -50,13 +56,14 @@ export class TaskService {
         }
       });
       this.startTask(task).catch(
-        (error) => this.isRunning && this.logger.error(`Issue with starting a task on Golem`, error),
+        (error) =>
+          !this.abortController.signal.aborted && this.logger.error(`Issue with starting a task on Golem`, error),
       );
     }
   }
 
   async end() {
-    this.isRunning = false;
+    this.abortController.abort();
     this.logger.info("Task Service has been stopped", {
       stats: {
         retryCountTotal: this.retryCountTotal,
@@ -80,13 +87,14 @@ export class TaskService {
           abortController.abort();
         }
       });
-      const rental = await this.resourceRentalPool.acquire(abortController.signal);
+      const signal = anyAbortSignal(this.abortController.signal, abortController.signal);
+      const rental = await this.resourceRentalPool.acquire(signal);
 
       if (task.isFailed()) {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      const exe = await rental.getExeUnit();
+      const exe = await rental.getExeUnit(signal);
       task.start(rental, exe);
       this.events.emit("taskStarted", task.getDetails());
       this.logger.info(`Task started`, {
@@ -110,7 +118,7 @@ export class TaskService {
   }
 
   private async retryTask(task: Task) {
-    if (!this.isRunning) return;
+    if (this.abortController.signal.aborted) return;
     task.cleanup();
     await this.releaseTaskResources(task);
     const reason = task.getError()?.message;

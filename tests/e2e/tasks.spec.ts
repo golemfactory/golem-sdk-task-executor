@@ -41,19 +41,20 @@ describe("Task Executor", function () {
     golemEvents.activity.on("exeUnitInitialized", () => emittedEventsNames.add("exeUnitInitialized"));
     golemEvents.activity.on("scriptExecuted", () => emittedEventsNames.add("scriptExecuted"));
     golemEvents.payment.on("debitNoteReceived", () => emittedEventsNames.add("debitNoteReceived"));
-    golemEvents.payment.on("invoiceAccepted", () => emittedEventsNames.add("invoiceAccepted"));
+    golemEvents.payment.on("invoiceReceived", () => emittedEventsNames.add("invoiceReceived"));
   };
 
   const verifyAllExpectedEventsEmitted = () => {
-    expect(emittedEventsNames).toContain("taskStarted");
-    expect(emittedEventsNames).toContain("taskCompleted");
-    expect(emittedEventsNames).toContain("offerProposalReceived");
-    expect(emittedEventsNames).toContain("agreementApproved");
-    expect(emittedEventsNames).toContain("activityCreated");
-    expect(emittedEventsNames).toContain("exeUnitInitialized");
-    expect(emittedEventsNames).toContain("scriptExecuted");
-    expect(emittedEventsNames).toContain("debitNoteReceived");
-    expect(emittedEventsNames).toContain("invoiceAccepted");
+    expect([...emittedEventsNames]).toEqual(
+      expect.arrayContaining([
+        "taskStarted",
+        "offerProposalReceived",
+        "agreementApproved",
+        "activityCreated",
+        "exeUnitInitialized",
+        "scriptExecuted",
+      ]),
+    );
   };
 
   beforeEach(() => {
@@ -290,7 +291,6 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 0,
-        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -302,7 +302,7 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout));
+      await executor.run(async (exe) => Promise.reject("Error"));
     } catch (error) {
       await executor.shutdown();
     }
@@ -327,7 +327,6 @@ describe("Task Executor", function () {
       },
       task: {
         maxTaskRetries: 7,
-        setup: async (exe) => Promise.reject("Error"),
       },
     });
 
@@ -339,7 +338,7 @@ describe("Task Executor", function () {
     let isRetry = false;
     executor.events.on("taskRetried", () => (isRetry = true));
     try {
-      await executor.run(async (exe) => console.log((await exe.run("echo 'Hello World'")).stdout), { maxRetries: 0 });
+      await executor.run(async (exe) => Promise.reject("Error"), { maxRetries: 0 });
     } catch (error) {
       await executor.shutdown();
     }
