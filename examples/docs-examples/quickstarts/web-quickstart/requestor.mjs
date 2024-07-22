@@ -1,4 +1,4 @@
-import * as golem from "https://unpkg.com/@golem-sdk/task-executor";
+import { TaskExecutor } from "https://unpkg.com/@golem-sdk/task-executor";
 
 function appendResults(result) {
   const results = document.getElementById("results");
@@ -23,7 +23,7 @@ const logger = {
 };
 
 async function run() {
-  const executor = await golem.TaskExecutor.create({
+  const executor = await TaskExecutor.create({
     logger,
     api: { key: "try_golem", url: document.getElementById("YAGNA_API_BASEPATH").value },
     demand: {

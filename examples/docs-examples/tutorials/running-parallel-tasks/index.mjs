@@ -21,7 +21,7 @@ async function main(args) {
       },
     },
     task: {
-      maxParallelTasks: 1,
+      maxParallelTasks: args.numberOfProviders,
     },
   });
 
@@ -33,8 +33,8 @@ async function main(args) {
   if (!keyspace) throw new Error(`Cannot calculate keyspace`);
 
   console.log(`Keyspace size computed. Keyspace size = ${keyspace}.`);
-  const step = Math.floor(keyspace / args.numberOfProviders + 1);
-  const range = [...Array(Math.floor(keyspace / step) + 1).keys()].map((i) => i * step);
+  const step = Math.floor(keyspace / args.numberOfProviders);
+  const range = [...Array(Math.floor(keyspace / step)).keys()].map((i) => i * step);
 
   const findPasswordInRange = async (skip) => {
     const password = await executor.run(async (exe) => {

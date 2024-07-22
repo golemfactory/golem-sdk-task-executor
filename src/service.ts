@@ -112,8 +112,6 @@ export class TaskService {
         error,
         error instanceof GolemWorkError || (error instanceof GolemTimeoutError && task.retryOnTimeout),
       );
-    } finally {
-      --this.activeTasksCount;
     }
   }
 
@@ -156,6 +154,7 @@ export class TaskService {
         providerName: task.getExeUnit()?.provider.name,
       });
     }
+    --this.activeTasksCount;
   }
 
   private async releaseTaskResources(task: Task) {
