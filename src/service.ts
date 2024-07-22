@@ -133,6 +133,7 @@ export class TaskService {
     } else {
       this.logger.warn(`Task ${task.id} has been already added to the queue`);
     }
+    --this.activeTasksCount;
   }
 
   private async stopTask(task: Task) {
