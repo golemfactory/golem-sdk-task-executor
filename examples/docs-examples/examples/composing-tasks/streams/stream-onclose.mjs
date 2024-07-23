@@ -46,7 +46,6 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
           complete: () => resolve(),
         });
       });
-      return 0;
     });
     console.log(result);
   } catch (err) {

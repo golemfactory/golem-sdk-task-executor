@@ -9,6 +9,7 @@ async function main(args) {
     demand: {
       workload: {
         imageHash: "055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db",
+        minMemGib: 8,
       },
     },
     market: {
