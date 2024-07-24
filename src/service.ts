@@ -50,11 +50,16 @@ export class TaskService {
       }
       task.onStateChange(() => {
         if (task.isRetry()) {
-          this.retryTask(task).catch((error) => this.logger.error(`Issue with retrying a task on Golem`, error));
+          this.retryTask(task)
+            .catch((error) => this.logger.error(`Issue with retrying a task on Golem`, error))
+            .finally(() => --this.activeTasksCount);
         } else if (task.isFinished()) {
-          this.stopTask(task).catch((error) => this.logger.error(`Issue with stopping a task on Golem`, error));
+          this.stopTask(task)
+            .catch((error) => this.logger.error(`Issue with stopping a task on Golem`, error))
+            .finally(() => --this.activeTasksCount);
         }
       });
+      ++this.activeTasksCount;
       this.startTask(task).catch(
         (error) =>
           !this.abortController.signal.aborted && this.logger.error(`Issue with starting a task on Golem`, error),
@@ -75,7 +80,6 @@ export class TaskService {
     try {
       task.init();
       this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
-      ++this.activeTasksCount;
 
       if (task.isFailed()) {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
@@ -112,8 +116,6 @@ export class TaskService {
         error,
         error instanceof GolemWorkError || (error instanceof GolemTimeoutError && task.retryOnTimeout),
       );
-    } finally {
-      --this.activeTasksCount;
     }
   }
 

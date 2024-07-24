@@ -8,7 +8,6 @@
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/single-command.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/single-command.cjs" },
   { "cmd": "tsx", "path": "examples/docs-examples/examples/composing-tasks/single-command.ts" },
-  { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/alert-code.mjs" },
 
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/on-activity-ready.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/foreach.mjs" },

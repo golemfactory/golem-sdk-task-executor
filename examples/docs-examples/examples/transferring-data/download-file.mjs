@@ -1,5 +1,6 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { readFileSync } from "fs";
 
 (async () => {
   const executor = await TaskExecutor.create({
@@ -22,18 +23,15 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   });
 
   try {
-    const result = await executor.run(async (exe) => {
-      const res = await exe
+    await executor.run(async (exe) => {
+      await exe
         .beginBatch()
         .run("ls -l /golem > /golem/work/output.txt")
         .run("cat /golem/work/output.txt")
         .downloadFile("/golem/work/output.txt", "./output.txt")
         .end();
-
-      return res[2]?.stdout;
     });
-
-    console.log(result);
+    console.log(readFileSync("./output.txt", "utf8"));
   } catch (error) {
     console.error(error);
   } finally {
