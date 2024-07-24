@@ -52,7 +52,7 @@ const executor = await TaskExecutor.create({
 
 #### Allocation budget
 
-In version 1.x, defining the allocation budget used to pay for tasks, was defined directly using the budget parameter.
+In version 1.x, defining the allocation budget used to pay for tasks, was defined directly using the budget parameter. Now in version 2.x we do not specify the budget directly, but it is estimated using parameters specified in market options.
 
 before:
 
@@ -62,8 +62,6 @@ const executor = await TaskExecutor.create({
   budget: 2,
 });
 ```
-
-Now in version 2.x we do not specify the budget directly, but it is estimated using parameters specified in market options.
 
 after:
 
@@ -358,7 +356,7 @@ const executor = await TaskExecutor.create({
       maxEnvPerHourPrice: 0.5,
     },
     offerProposalFilter: OfferProposalFilterFactory.allowProvidersById(whiteListIds),
-    offerProposalSelector: bestAgreementSelector(scores),
+    offerProposalSelector: bestOfferProposalSelector(scores),
   },
   payment: {
     network: "holesky",
