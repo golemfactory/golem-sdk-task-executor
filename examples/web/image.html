@@ -110,8 +110,8 @@
 
         const fileData = await readFile(imgInput.files[0]);
         const extension = imgInput.files[0].name.split(".").pop();
-        const apiKey = document.getElementById("YAGNA_APPKEY").value;
-        const basePath = document.getElementById("YAGNA_API_BASEPATH").value;
+        const key = document.getElementById("YAGNA_APPKEY").value;
+        const url = document.getElementById("YAGNA_API_BASEPATH").value;
         const network = document.getElementById("PAYMENT_NETWORK").value;
         const subnetTag = document.getElementById("SUBNET_TAG").value;
         const inputImage = `/golem/input/input.${extension}`;
@@ -119,20 +119,36 @@
         const text = textInput.value.replace(/'/g, `'\\''`);
 
         const executor = await TaskExecutor.create({
-          yagnaOptions: { apiKey, basePath },
-          package: "golem/imagemagick:latest",
+          api: {
+            key,
+            url,
+          },
+          demand: {
+            workload: {
+              imageTag: "golem/imagemagick:latest",
+            },
+            subnetTag,
+          },
+          market: {
+            rentHours: 0.5,
+            pricing: {
+              model: "linear",
+              maxStartPrice: 0.5,
+              maxCpuPerHourPrice: 1.0,
+              maxEnvPerHourPrice: 0.5,
+            },
+          },
           payment: { network },
-          subnetTag,
           startupTimeout: 120_000,
         });
 
         const result = await executor
-          .run(async (ctx) => {
-            await ctx.uploadData(fileData, inputImage);
-            await ctx.run(
+          .run(async (exe) => {
+            await exe.uploadData(fileData, inputImage);
+            await exe.run(
               `convert ${inputImage} -background Khaki -pointsize 50 label:'${text}' -gravity Center -append ${outputImage}`,
             );
-            return await ctx.downloadData(outputImage);
+            return await exe.downloadData(outputImage);
           })
           .catch((e) => logger.error(e));
 

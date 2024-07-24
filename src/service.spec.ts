@@ -2,212 +2,117 @@ import { Task } from "./task";
 import { TaskQueue } from "./queue";
 import {
   Activity,
-  ActivityStateEnum,
   Agreement,
-  AgreementPoolService,
   GolemWorkError,
-  MarketService,
-  NetworkService,
-  PaymentService,
+  ResourceRental,
+  ResourceRentalPool,
+  Logger,
   Result,
-  ResultState,
-  WorkContext,
+  ExeUnit,
   WorkErrorCode,
-  YagnaApi,
 } from "@golem-sdk/golem-js";
 import { TaskService } from "./service";
-import { anything, imock, instance, mock, spy, verify, when } from "@johanblumenberg/ts-mockito";
+import { _, imock, instance, mock, verify, when } from "@johanblumenberg/ts-mockito";
 import { EventEmitter } from "eventemitter3";
-import { TaskExecutorEventsDict } from "./events";
-import { Readable } from "node:stream";
+import { ExecutorEvents } from "./events";
 import { sleep } from "./utils";
 
+const testResults = new Result({ eventDate: "", index: 0, result: "Ok", stdout: "test" });
+
 let queue: TaskQueue;
-const paymentServiceMock = mock(PaymentService);
-const marketServiceMock = mock(MarketService);
-const agreementPoolServiceMock = mock(AgreementPoolService);
-const networkServiceMock = mock(NetworkService);
-const paymentService = instance(paymentServiceMock);
-const agreementPoolService = instance(agreementPoolServiceMock);
-const marketService = instance(marketServiceMock);
-const networkService = instance(networkServiceMock);
-const yagnaApiMock = imock<YagnaApi>();
-const yagnaApi = instance(yagnaApiMock);
-const events = new EventEmitter<TaskExecutorEventsDict>();
-const agreementMock = mock(Agreement);
-const activityMock = mock(Activity);
-const agreement = instance(agreementMock);
-const activity = instance(activityMock);
-when(agreementPoolServiceMock.getAgreement()).thenResolve(agreement);
-when(marketServiceMock.getProposalsCount()).thenReturn({ confirmed: 1, initial: 1, rejected: 0 });
-when(agreementPoolServiceMock.releaseAgreement(anything(), anything())).thenResolve();
-when(activityMock.agreement).thenReturn(agreement);
-when(activityMock.getState()).thenResolve(ActivityStateEnum.Ready);
-when(activityMock.stop()).thenResolve(true);
-const providerInfo = { name: "testProvider", id: "testId", walletAddress: "0x1234567" };
-when(agreementMock.getProviderInfo()).thenReturn(providerInfo);
-Activity.create = jest.fn(() => Promise.resolve(activity));
+const events = new EventEmitter<ExecutorEvents>();
+const testProvider = { name: "testProvider", id: "testId", walletAddress: "0x1234567" };
 
 describe("Task Service", () => {
+  const resourceRentalPoolMock = mock(ResourceRentalPool);
+  const resourceRentalPool = instance(resourceRentalPoolMock);
+  const resourceRentalMock = mock(ResourceRental);
+  const agreementMock = mock(Agreement);
+  const activityMock = mock(Activity);
+  const exeUnitMock = mock(ExeUnit);
+  const logger = instance(imock<Logger>());
+  when(resourceRentalPoolMock.ready()).thenResolve(true);
+  when(resourceRentalPoolMock.acquire(_)).thenResolve(instance(resourceRentalMock));
+  when(resourceRentalMock.agreement).thenReturn(instance(agreementMock));
+  when(agreementMock.provider).thenReturn(testProvider);
+  when(resourceRentalMock.getExeUnit(_)).thenResolve(instance(exeUnitMock));
+  when(resourceRentalMock.stopAndFinalize()).thenResolve();
+  when(exeUnitMock.run(_)).thenCall(async () => {
+    await sleep(100, true);
+    return testResults;
+  });
+  when(exeUnitMock.provider).thenReturn(testProvider);
+  when(exeUnitMock.activity).thenReturn(instance(activityMock));
+  when(activityMock.id).thenReturn("test-activity-id");
+  when(agreementMock.id).thenReturn("test-agreement-id");
+
   beforeEach(() => {
     queue = new TaskQueue();
-    const results = [
-      new Result({ index: 0, result: ResultState.Ok, stdout: "test", eventDate: new Date().toDateString() }),
-    ];
-    const readable = new Readable({
-      objectMode: true,
-      read() {
-        readable.push(results.shift() ?? null);
-      },
-    });
-    when(activityMock.execute(anything(), false, undefined)).thenResolve(readable);
+    jest.clearAllMocks();
   });
   it("should process new task in queue", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker);
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction);
     queue.addToEnd(task);
     const cb = jest.fn();
     events.on("taskStarted", cb);
     events.on("taskCompleted", cb);
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-      },
-    );
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
+      maxParallelTasks: 1,
+    });
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
     expect(task.isFinished()).toEqual(true);
     expect(task.getResults()?.stdout).toEqual("test");
     expect(cb).toHaveBeenNthCalledWith(2, task.getDetails());
     await service.end();
-    verify(activityMock.stop()).once();
-    verify(agreementPoolServiceMock.releaseAgreement(agreement.id, true)).once();
+    verify(resourceRentalPoolMock.release(_)).once();
   });
 
   it("process only allowed number of tasks simultaneously", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task1 = new Task("1", worker);
-    const task2 = new Task("2", worker);
-    const task3 = new Task("3", worker);
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task1 = new Task("1", taskFunction);
+    const task2 = new Task("2", taskFunction);
+    const task3 = new Task("3", taskFunction);
     queue.addToEnd(task1);
     queue.addToEnd(task2);
     queue.addToEnd(task3);
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-        maxParallelTasks: 2,
-      },
-    );
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
+      maxParallelTasks: 2,
+    });
     service.run().catch((e) => console.error(e));
-    expect(task1.isQueued()).toEqual(true);
-    expect(task2.isQueued()).toEqual(true);
-    expect(task3.isQueued()).toEqual(false);
+    await sleep(20, true);
+    expect(task1.isNew()).toEqual(false);
+    expect(task2.isNew()).toEqual(false);
     expect(task3.isNew()).toEqual(true);
     await service.end();
   });
 
-  it("should retry task if a GolemWorkError occurred", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 3 });
+  it("should retry task if it failed", async () => {
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 3 });
     queue.addToEnd(task);
-    const readable = new Readable({
-      objectMode: true,
-      read() {
-        readable.destroy(new Error("Test error"));
-      },
-    });
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(activityMock.execute(anything(), false, undefined)).thenReject(
-      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
-    );
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-      },
-    );
+    when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
+      maxParallelTasks: 1,
+    });
     service.run().then();
-    await sleep(800, true);
+    await sleep(500, true);
     expect(cb).toHaveBeenCalledTimes(3);
     expect(task.isRejected()).toEqual(true);
     await service.end();
   });
 
-  it("should not retry task if a TypeError occurred", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 3 });
-    queue.addToEnd(task);
-    const readable = new Readable({
-      objectMode: true,
-      read() {
-        readable.destroy(new Error("Test error"));
-      },
-    });
-    const cb = jest.fn();
-    events.on("taskRetried", cb);
-    when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-      },
-    );
-    service.run().then();
-    await sleep(800, true);
-    expect(cb).toHaveBeenCalledTimes(0);
-    expect(task.isRejected()).toEqual(true);
-    await service.end();
-  });
-
   it("should not retry task if it failed and maxRetries is zero", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 0 });
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 0 });
     queue.addToEnd(task);
-    when(activityMock.execute(anything(), false, undefined)).thenReject(new Error("Test error"));
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-      },
-    );
+    when(exeUnitMock.run(_)).thenReject(new Error("Test error"));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
+      maxParallelTasks: 1,
+    });
     service.run().catch((e) => console.error(e));
     await sleep(200, true);
     expect(task.isRetry()).toEqual(false);
@@ -216,73 +121,26 @@ describe("Task Service", () => {
   });
 
   it("should throw an error if maxRetries is less then zero", async () => {
-    const worker = async () => Promise.resolve(true);
-    expect(() => new Task("1", worker, { maxRetries: -1 })).toThrow(
+    const taskFunction = async () => Promise.resolve(true);
+    expect(() => new Task("1", taskFunction, { maxRetries: -1 })).toThrow(
       "The maxRetries parameter cannot be less than zero",
     );
   });
 
   it("should reject task if it failed max attempts", async () => {
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task = new Task("1", worker, { maxRetries: 1 });
+    const taskFunction = async (exe: ExeUnit) => exe.run("some_shell_command");
+    const task = new Task("1", taskFunction, { maxRetries: 1 });
     const cb = jest.fn();
     events.on("taskRetried", cb);
-    when(activityMock.execute(anything(), false, undefined)).thenReject(
-      new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed),
-    );
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-      },
-    );
+    when(exeUnitMock.run(_)).thenReject(new GolemWorkError("Test error", WorkErrorCode.ScriptExecutionFailed));
+    const service = new TaskService(queue, resourceRentalPool, events, logger, {
+      maxParallelTasks: 1,
+    });
     queue.addToEnd(task);
     service.run().catch((e) => console.error(e));
     await sleep(500, true);
     expect(task.isRejected()).toEqual(true);
     expect(cb).toHaveBeenCalledWith(task.getDetails());
-    await service.end();
-  });
-
-  it("should run setup functions on each activity", async () => {
-    let i = 1;
-    when(activityMock.id).thenCall(() => (++i).toString());
-    const setupFunctions = [async (ctx: WorkContext) => ctx.run("init_shell_command")];
-    const worker = async (ctx: WorkContext) => ctx.run("some_shell_command");
-    const task1 = new Task("1", worker, { activityReadySetupFunctions: setupFunctions });
-    const task2 = new Task("2", worker, { activityReadySetupFunctions: setupFunctions });
-    const task3 = new Task("3", worker, { activityReadySetupFunctions: setupFunctions });
-    queue.addToEnd(task1);
-    queue.addToEnd(task2);
-    queue.addToEnd(task3);
-    const service = new TaskService(
-      yagnaApi,
-      queue,
-      events,
-      marketService,
-      agreementPoolService,
-      paymentService,
-      networkService,
-      {
-        taskRunningInterval: 10,
-        activityStateCheckingInterval: 10,
-        maxParallelTasks: 2,
-      },
-    );
-    const activitySetupDoneSpy = spy(service["activitySetupDone"]);
-    service.run().then();
-    await sleep(500, true);
-    verify(activitySetupDoneSpy.add(anything())).times(3);
-    expect(task1.isFinished()).toEqual(true);
-    expect(task2.isFinished()).toEqual(true);
-    expect(task3.isFinished()).toEqual(true);
     await service.end();
   });
 });

@@ -1,24 +1,17 @@
-name: Regular CI Pipeline
+name: regular tests
 
 on:
-  pull_request:
-    branches:
-      # Regular release channels
-      - master
-      - next
-      - beta
-      - alpha
-      # Support, hotfix branches like: 1.0.x or 1.x
-      - '([0-9]+)(\.([0-9]+))?\.x'
-
   workflow_call:
 
-  # Allows triggering the workflow manually
   workflow_dispatch:
+
+# We're going to interact with GH from the pipelines, so we need to get some permissions
+permissions:
+  contents: read # for checkout
 
 jobs:
   regular-checks:
-    name: Build and unit-test on supported platforms and NodeJS versions
+    name: Build and unit-test
     strategy:
       matrix:
         # Make sure you're addressing it to the minor version, as sometimes macos was picking 20.9 while others 20.10
@@ -47,3 +40,9 @@ jobs:
           npm install --prefix examples --legacy-peer-deps
           npm run --prefix examples lint:ts
           npm run test:import
+      - name: Upload unit test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-report-${{matrix.os}}-node-${{matrix.node-version}}
+          path: reports/unit-report.xml

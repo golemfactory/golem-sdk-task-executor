@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 import { program } from "commander";
 
 type MainOptions = {
@@ -6,7 +7,7 @@ type MainOptions = {
   subnetTag: string;
   paymentNetwork: string;
   mask: string;
-  paymentDriver: string;
+  paymentDriver: "erc20";
   hash: string;
 };
 
@@ -19,19 +20,33 @@ program
   .requiredOption("--hash <hash>")
   .action(async (args: MainOptions) => {
     const executor = await TaskExecutor.create({
-      package: "golem/examples-hashcat:latest",
-      logger: pinoPrettyLogger(),
-      maxParallelTasks: args.numberOfProviders,
-      minMemGib: 0.5,
-      minStorageGib: 2,
-      budget: 10,
-      subnetTag: args.subnetTag,
-      taskTimeout: 1000 * 60 * 8, // 8 min
+      logger: pinoPrettyLogger({ level: "info" }),
+      demand: {
+        workload: {
+          imageTag: "golem/examples-hashcat:latest",
+          minMemGib: 0.5,
+          minStorageGib: 2,
+        },
+        subnetTag: args.subnetTag,
+      },
+      market: {
+        rentHours: 0.5,
+        pricing: {
+          model: "linear",
+          maxStartPrice: 0.5,
+          maxCpuPerHourPrice: 1.0,
+          maxEnvPerHourPrice: 0.5,
+        },
+      },
+      task: {
+        maxParallelTasks: args.numberOfProviders,
+        taskTimeout: 1000 * 60 * 8, // 8 min
+      },
       payment: { driver: args.paymentDriver, network: args.paymentNetwork },
     });
 
-    const keyspace = await executor.run<number>(async (ctx) => {
-      const result = await ctx.run(`hashcat --keyspace -a 3 ${args.mask} -m 400`);
+    const keyspace = await executor.run<number>(async (exe) => {
+      const result = await exe.run(`hashcat --keyspace -a 3 ${args.mask} -m 400`);
       return parseInt(result.stdout?.toString().trim() || "");
     });
 
@@ -41,13 +56,11 @@ program
     console.log(`Keyspace size computed. Keyspace size = ${keyspace}. Tasks to compute = ${range.length}`);
 
     const findPasswordInRange = async (skip: number) => {
-      const password = await executor.run(async (ctx) => {
-        const [, potfileResult] = await ctx
+      const password = await executor.run(async (exe) => {
+        const [, potfileResult] = await exe
           .beginBatch()
           .run(
-            `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${
-              skip + step
-            } -o pass.potfile || true`,
+            `hashcat -a 3 -m 400 '${args.hash}' '${args.mask}' --skip=${skip} --limit=${step} -o pass.potfile || true`,
           )
           .run("cat pass.potfile || true")
           .end();

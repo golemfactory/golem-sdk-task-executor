@@ -1,4 +1,4 @@
-import * as golem from "https://unpkg.com/@golem-sdk/task-executor";
+import { TaskExecutor } from "https://unpkg.com/@golem-sdk/task-executor";
 
 function appendResults(result) {
   const results = document.getElementById("results");
@@ -23,16 +23,29 @@ const logger = {
 };
 
 async function run() {
-  const executor = await golem.TaskExecutor.create({
-    package: "golem/alpine:latest",
-    yagnaOptions: { apiKey: "try_golem", basePath: document.getElementById("YAGNA_API_BASEPATH").value },
-    subnetTag: document.getElementById("SUBNET_TAG").value,
-    payment: { network: document.getElementById("PAYMENT_NETWORK").value },
+  const executor = await TaskExecutor.create({
     logger,
+    api: { key: "try_golem", url: document.getElementById("YAGNA_API_BASEPATH").value },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+      },
+      subnetTag: document.getElementById("SUBNET_TAG").value,
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    payment: { network: document.getElementById("PAYMENT_NETWORK").value },
   });
 
   try {
-    await executor.run(async (ctx) => appendResults((await ctx.run("echo 'Hello World'")).stdout));
+    await executor.run(async (exe) => appendResults((await exe.run("echo 'Hello World'")).stdout));
   } catch (error) {
     logger.error("Computation failed:", error);
   } finally {

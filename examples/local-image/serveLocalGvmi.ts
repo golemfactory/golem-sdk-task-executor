@@ -1,12 +1,17 @@
 import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
+import { fileURLToPath } from "url";
+
+const DIR_NAME = fileURLToPath(new URL(".", import.meta.url));
 
 (async function main() {
   const executor = await TaskExecutor.create({
     logger: pinoPrettyLogger({ level: "info" }),
     demand: {
       workload: {
-        imageTag: "golem/alpine:latest",
+        // if the image url starts with "file://" it will be treated as a local file
+        // and the sdk will automatically serve it to the provider
+        imageUrl: `file://${DIR_NAME}/alpine.gvmi`,
       },
     },
     market: {
@@ -19,16 +24,10 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
       },
     },
   });
-
   try {
-    const results = await executor.run(async (exe) => {
-      const res1 = await exe.run('echo "Hello"');
-      const res2 = await exe.run('echo "World"');
-      return `${res1.stdout}${res2.stdout}`;
-    });
-    console.log(results);
-  } catch (err) {
-    console.error("An error occurred during execution:", err);
+    await executor.run(async (exe) => console.log((await exe.run("cat hello.txt")).stdout));
+  } catch (error) {
+    console.error("Computation failed:", error);
   } finally {
     await executor.shutdown();
   }

@@ -1,4 +1,5 @@
-import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
+import { TaskExecutor } from "@golem-sdk/task-executor";
+import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 /**
  * An example demonstrating the use of a proxy server to send and receive http requests to the provider.
@@ -7,35 +8,48 @@ import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
  */
 (async function main() {
   const executor = await TaskExecutor.create({
-    logger: pinoPrettyLogger(),
-    package: "golem/node:20-alpine",
-    capabilities: ["vpn"],
-    networkIp: "192.168.0.0/24",
     skipProcessSignals: true,
-
-    // Restart the HTTP server up to 5 times
-    maxTaskRetries: 5,
-
-    // If you're using TaskExecutor, you want the "task" to last long in that case
-    taskTimeout: 60 * 60 * 1000, // 60 minutes
+    logger: pinoPrettyLogger({ level: "info" }),
+    task: {
+      // Restart the HTTP server up to 5 times
+      maxTaskRetries: 5,
+      // If you're using TaskExecutor, you want the "task" to last long in that case
+      taskTimeout: 60 * 60 * 1000, // 60 minutes
+    },
+    demand: {
+      workload: {
+        imageTag: "golem/node:20-alpine",
+        capabilities: ["vpn"],
+      },
+    },
+    market: {
+      rentHours: 0.5,
+      pricing: {
+        model: "linear",
+        maxStartPrice: 0.5,
+        maxCpuPerHourPrice: 1.0,
+        maxEnvPerHourPrice: 0.5,
+      },
+    },
+    vpn: { ip: "192.168.0.0/24" },
   });
 
   try {
-    await executor.run(async (ctx) => {
+    await executor.run(async (exe) => {
       const PORT_ON_PROVIDER = 80;
       const PORT_ON_REQUESTOR = 8080;
 
       // Install the server script
-      await ctx.uploadFile(`./proxy/server.js`, "/golem/work/server.js");
+      await exe.uploadFile(`./proxy/server.js`, "/golem/work/server.js");
 
       // Start the server process on the provider
-      const server = await ctx.runAndStream(`PORT=${PORT_ON_PROVIDER} node /golem/work/server.js`);
+      const server = await exe.runAndStream(`PORT=${PORT_ON_PROVIDER} node /golem/work/server.js`);
 
-      server.stdout.on("data", (data) => console.log("provider>", data));
-      server.stderr.on("data", (data) => console.error("provider>", data));
+      server.stdout.subscribe((data) => console.log("provider>", data));
+      server.stderr.subscribe((data) => console.error("provider>", data));
 
       // Create a proxy instance
-      const proxy = ctx.createTcpProxy(PORT_ON_PROVIDER);
+      const proxy = exe.createTcpProxy(PORT_ON_PROVIDER);
       proxy.events.on("error", (error) => console.error("TcpProxy reported an error:", error));
 
       // Start listening and expose the port on your requestor machine

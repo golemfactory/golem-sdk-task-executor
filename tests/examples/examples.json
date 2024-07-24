@@ -4,15 +4,10 @@
     "cmd": "node",
     "path": "examples/docs-examples/examples/composing-tasks/batch-endstream-chunks.mjs"
   },
-  {
-    "cmd": "node",
-    "path": "examples/docs-examples/examples/composing-tasks/batch-endstream-forawait.mjs"
-  },
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/multiple-run-prosaic.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/single-command.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/single-command.cjs" },
   { "cmd": "tsx", "path": "examples/docs-examples/examples/composing-tasks/single-command.ts" },
-  { "cmd": "node", "path": "examples/docs-examples/examples/composing-tasks/alert-code.mjs" },
 
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/on-activity-ready.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/foreach.mjs" },
@@ -65,5 +60,6 @@
   { "cmd": "node", "path": "examples/docs-examples/examples/executing-tasks/observing-events.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/outbound/npm-install.mjs" },
   { "cmd": "node", "path": "examples/docs-examples/examples/outbound/outbound-basic.mjs" },
-  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/whitelist-checker.mjs" }
+  { "cmd": "node", "path": "examples/docs-examples/examples/outbound/whitelist-checker.mjs" },
+  { "cmd": "tsx", "path": "examples/local-image/serveLocalGvmi.ts" }
 ]

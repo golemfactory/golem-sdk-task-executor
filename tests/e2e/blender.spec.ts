@@ -30,19 +30,31 @@ describe("Blender rendering", function () {
     "should render images by blender",
     async () => {
       const executor = await TaskExecutor.create({
-        package: "golem/blender:latest",
-      });
-
-      executor.onActivityReady(async (ctx) => {
-        const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/cubes.blend"));
-        await ctx.uploadFile(sourcePath, "/golem/resource/scene.blend");
+        demand: {
+          workload: { imageTag: "golem/blender:latest" },
+        },
+        market: {
+          rentHours: 0.5,
+          pricing: {
+            model: "linear",
+            maxStartPrice: 0.5,
+            maxCpuPerHourPrice: 1.0,
+            maxEnvPerHourPrice: 0.5,
+          },
+        },
+        task: {
+          setup: async (exe) => {
+            const sourcePath = fs.realpathSync(resolve(__dirname + "/../fixtures/cubes.blend"));
+            await exe.uploadFile(sourcePath, "/golem/resource/scene.blend");
+          },
+        },
       });
 
       const data = [0, 10, 20, 30, 40, 50];
 
       const futureResults = data.map((frame) =>
-        executor.run(async (ctx) => {
-          const result = await ctx
+        executor.run(async (exe) => {
+          const result = await exe
             .beginBatch()
             .uploadJson(blenderParams(frame), "/golem/work/params.json")
             .run("/golem/entrypoints/run-blender.sh")
