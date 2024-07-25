@@ -1,11 +1,31 @@
-# Migration
+# Upgrade Guide
 
-## Migrating from version 1.x to 2.x
+<!-- TOC -->
 
-### 1. Creating a TaskExecutor instance
+- [Upgrade Guide](#upgrade-guide)
+  - [Upgrading from 1.x to 2.x](#upgrading-from-1x-to-2x)
+  - [Creating a `TaskExecutor` instance](#creating-a-taskexecutor-instance)
+  - [Package](#package)
+  - [Providing task specific options](#providing-task-specific-options)
+  - [Providing market options](#providing-market-options)
+  - [Allocation budget](#allocation-budget)
+  - [Proposal filters](#proposal-filters)
+  - [Agreement selector](#agreement-selector)
+  - [Network (VPN)](#network-vpn)
+  - [Payment filters](#payment-filters)
+  - [Logger](#logger)
+  - [Full example](#full-example)
+  - [Running tasks](#running-tasks)
+  - [The `WorkContext` object](#the-workcontext-object)
+  - [The `onActivityReady` function](#the-onactivityready-function) \* [Events handling](#events-handling)
+  <!-- TOC -->
+
+## Upgrading from 1.x to 2.x
+
+### Creating a `TaskExecutor` instance
 
 The key change in creating a TaskExecutor instance concerns the options passed to the `TaskExecutor.create` method.
-In version 1.x the only required option was `imageHash` or `imageTag` which could be passed as a single string or as an object value of a `package` object. In version 2.x it is necessary to pass options of the [`TaskExecutorOptions`](https://github.com/golemfactory/golem-sdk-task-executor/blob/a5bd6d6ac97106b501bc5d867349c3031e6b65a6/src/executor.ts#L135) type
+In version 1.x the only required option was `imageHash` or `imageTag` which could be passed as a single string or as an object value of a `package` object. In version 2.x it is necessary to pass options of the `TaskExecutorOptions`.
 
 ### Package
 
@@ -31,9 +51,9 @@ const executor = await TaskExecutor.create({
 });
 ```
 
-### Task specific options
+### Providing task specific options
 
-The `TaskExecutorOptions` is compatible with the interface used in `golem-js@3.x`. Additionally, it is extended with [options](https://github.com/golemfactory/golem-sdk-task-executor/blob/a5bd6d6ac97106b501bc5d867349c3031e6b65a6/src/executor.ts#L27) specific to the task model. E.g.
+The `TaskExecutorOptions` is compatible with the interface used in `golem-js@3.x`. Additionally, it is extended with `TaskSpecificOptions` specific to the task model. E.g.
 
 ```typescript
 const executor = await TaskExecutor.create({
@@ -48,7 +68,7 @@ const executor = await TaskExecutor.create({
 });
 ```
 
-### Market options
+### Providing market options
 
 #### Allocation budget
 
@@ -114,6 +134,7 @@ before:
 
 ```typescript
 import { TaskExecutor, ProposalFilterFactory } from "@golem-sdk/task-executor";
+
 const whiteListIds = [
   "0x79bcfdc92af492c9b15ce9f690c3ccae53437179",
   "0x3c6a3f59518a0da1e75ea4351713bfe908e6642c",
@@ -270,9 +291,8 @@ before:
 import { TaskExecutor, pinoPrettyLogger } from "@golem-sdk/task-executor";
 
 const executor = await TaskExecutor.create({
-  // ...
   logger: pinoPrettyLogger({ level: "info" }),
-  // ...
+});
 ```
 
 after:
@@ -282,9 +302,8 @@ import { TaskExecutor } from "@golem-sdk/task-executor";
 import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
 
 const executor = await TaskExecutor.create({
-  // ...
   logger: pinoPrettyLogger({ level: "info" }),
-  // ...
+});
 ```
 
 ### Full example
@@ -376,7 +395,7 @@ const executor = await TaskExecutor.create({
 });
 ```
 
-### 2. Running tasks
+### Running tasks
 
 #### The `WorkContext` object
 
@@ -428,7 +447,7 @@ const executor = await TaskExecutor.create({
 });
 ```
 
-### 3. Events handling
+### Events handling
 
 In version 1.x, all events were available from the `ecxecutor.events.on` level and all events related to golem-js core were emit on one `golemEvents` stream. Now in version 2.x, particular events are available under appropriate emitters eg. `TaskExecutor.glm.market.events.on`.
 
