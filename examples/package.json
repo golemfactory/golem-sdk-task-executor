@@ -42,7 +42,7 @@
     "tsx": "^4.7.0"
   },
   "devDependencies": {
-    "@types/node": "20",
+    "@types/node": "22",
     "serve": "^14.2.1",
     "typescript": "^5.3.3"
   }
