@@ -63,8 +63,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.1",
-    "@golem-sdk/golem-js": "v3.1.0"
+    "@golem-sdk/golem-js": "^3.2.0",
+    "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.3",
