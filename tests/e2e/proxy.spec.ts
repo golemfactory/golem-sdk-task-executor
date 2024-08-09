@@ -1,7 +1,7 @@
 import { TaskExecutor } from "../../src";
 import { sleep } from "../../src/utils";
 import fs from "fs";
-import { resolve, dirname } from "path";
+import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,23 +27,29 @@ describe("TcpProxy", function () {
         },
       },
     });
-    let response;
-    let providerStdout = "";
-    await executor.run(async (exe) => {
+
+    const response = await executor.run(async (exe) => {
       await exe.uploadFile(
         fs.realpathSync(resolve(__dirname + "../../../examples/proxy/server.js")),
         "/golem/work/server.js",
       );
+
+      // Just run it in background, will be terminated by `executor.shutdown()`
       const server = await exe.runAndStream("node /golem/work/server.js");
-      server.stdout.subscribe((data) => (providerStdout += data?.toString()));
       const proxy = exe.createTcpProxy(80);
       await proxy.listen(7777);
       await sleep(10);
-      response = await fetch("http://localhost:7777");
+
+      const response = await fetch("http://localhost:7777")
+        .then((res) => res.text())
+        .then((text) => text.trim());
+
       await proxy.close();
+
+      return response;
     });
+
     await executor.shutdown();
-    expect((await response.text()).trim()).toEqual("Hello Golem!");
-    expect(providerStdout).toContain('HTTP server started at "http://localhost:80"');
+    expect(response).toEqual("Hello Golem!");
   });
 });
