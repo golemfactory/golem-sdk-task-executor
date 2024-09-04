@@ -34,7 +34,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@golem-sdk/golem-js": "^3.2.0",
+    "@golem-sdk/golem-js": "^3.3.0",
     "@golem-sdk/pino-logger": "^1.1.0",
     "@golem-sdk/task-executor": "file:..",
     "commander": "^12.0.0",
