@@ -77,6 +77,8 @@ export class TaskService {
   }
 
   private async startTask(task: Task) {
+    const abortController = new AbortController();
+    const { signal, cleanup } = anyAbortSignal(this.abortController.signal, abortController.signal);
     try {
       task.init();
       this.logger.debug(`Starting task`, { taskId: task.id, attempt: task.getRetriesCount() + 1 });
@@ -85,13 +87,11 @@ export class TaskService {
         throw new GolemInternalError(`Execution of task ${task.id} aborted due to error. ${task.getError()}`);
       }
 
-      const abortController = new AbortController();
       task.onStateChange((state) => {
         if (state === TaskState.Rejected || state === TaskState.Retry) {
           abortController.abort();
         }
       });
-      const signal = anyAbortSignal(this.abortController.signal, abortController.signal);
       const rental = await this.resourceRentalPool.acquire(signal);
 
       if (task.isFailed()) {
@@ -116,6 +116,8 @@ export class TaskService {
         error,
         error instanceof GolemWorkError || (error instanceof GolemTimeoutError && task.retryOnTimeout),
       );
+    } finally {
+      cleanup();
     }
   }
 
