@@ -4,6 +4,10 @@ import { pinoPrettyLogger } from "@golem-sdk/pino-logger";
   const executor = await TaskExecutor.create({
     logger: pinoPrettyLogger({ level: "info" }),
     api: { key: "try_golem" },
+    // Optional: select payment network.
+    // Testnets:  holesky (default), sepolia, rinkeby, amoy
+    // Mainnets:  mainnet, polygon
+    // payment: { network: "holesky" },
     demand: {
       workload: {
         imageTag: "golem/node:20-alpine",
